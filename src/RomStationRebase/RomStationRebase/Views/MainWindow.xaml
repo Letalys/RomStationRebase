@@ -1,0 +1,1012 @@
+<Window x:Class="RomStationRebase.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RomStationRebase.Views"
+        xmlns:res="clr-namespace:RomStationRebase.Resources"
+        xmlns:helpers="clr-namespace:RomStationRebase.Helpers"
+        xmlns:toolkit="clr-namespace:WpfToolkit.Controls;assembly=VirtualizingWrapPanel"
+        mc:Ignorable="d"
+        Title="RomStation Rebase" Height="680" Width="1100"
+        WindowStyle="None" AllowsTransparency="False" ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BackgroundBrush}"
+        Icon="/Resources/Images/rsr-logo.png">
+
+    <Window.Resources>
+        <!-- Séparateur vertical pour la StatusBar -->
+        <Style x:Key="StatusSeparator" TargetType="Rectangle">
+            <Setter Property="Width"   Value="1"/>
+            <Setter Property="Margin"  Value="10,6"/>
+            <Setter Property="Fill"    Value="#7B6FD0"/>
+        </Style>
+
+        <!-- Bouton fenêtre (chrome) : fond transparent, 46x40, pas de bordure -->
+        <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width"            Value="46"/>
+            <Setter Property="Height"           Value="40"/>
+            <Setter Property="BorderThickness"  Value="0"/>
+            <Setter Property="Background"       Value="Transparent"/>
+            <Setter Property="Foreground"       Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize"         Value="12"/>
+        </Style>
+
+        <!-- Bouton fermer : rouge au hover -->
+        <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E24B4A"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Opacity"    Value="1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Bouton toolbar standard -->
+        <Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Padding"   Value="10,5"/>
+            <Setter Property="FontSize"  Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        </Style>
+
+        <!-- Toggle vue — template commun aux deux boutons.
+             Inactif : fond transparent, bordure 0.5px BorderBrush, CornerRadius 5.
+             Actif   : fond AccentBrush, pas de bordure, icône blanche (OpacityMask trick). -->
+
+        <!-- Bouton mosaïque — actif quand IsMosaicView = true -->
+        <Style x:Key="ViewToggleMosaicButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width"           Value="28"/>
+            <Setter Property="Height"          Value="28"/>
+            <Setter Property="Padding"         Value="4"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="BorderBrush"     Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                CornerRadius="5">
+                            <Grid Width="16" Height="16">
+                                <Image x:Name="ColoredIcon"
+                                       Source="/Resources/Icons/icon-showgrid.png"
+                                       Width="16" Height="16"/>
+                                <Rectangle x:Name="WhiteIcon" Width="16" Height="16"
+                                           Fill="White" Visibility="Collapsed">
+                                    <Rectangle.OpacityMask>
+                                        <ImageBrush ImageSource="/Resources/Icons/icon-showgrid.png"/>
+                                    </Rectangle.OpacityMask>
+                                </Rectangle>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsMosaicView}" Value="True">
+                                <Setter TargetName="Bd"          Property="Background"      Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Bd"          Property="BorderThickness" Value="0"/>
+                                <Setter TargetName="ColoredIcon" Property="Visibility"      Value="Collapsed"/>
+                                <Setter TargetName="WhiteIcon"   Property="Visibility"      Value="Visible"/>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Bouton liste — actif quand IsMosaicView = false -->
+        <Style x:Key="ViewToggleListButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width"           Value="28"/>
+            <Setter Property="Height"          Value="28"/>
+            <Setter Property="Padding"         Value="4"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="BorderBrush"     Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                CornerRadius="5">
+                            <Grid Width="16" Height="16">
+                                <Image x:Name="ColoredIcon"
+                                       Source="/Resources/Icons/icon-showlist.png"
+                                       Width="16" Height="16"/>
+                                <Rectangle x:Name="WhiteIcon" Width="16" Height="16"
+                                           Fill="White" Visibility="Collapsed">
+                                    <Rectangle.OpacityMask>
+                                        <ImageBrush ImageSource="/Resources/Icons/icon-showlist.png"/>
+                                    </Rectangle.OpacityMask>
+                                </Rectangle>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsMosaicView}" Value="False">
+                                <Setter TargetName="Bd"          Property="Background"      Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Bd"          Property="BorderThickness" Value="0"/>
+                                <Setter TargetName="ColoredIcon" Property="Visibility"      Value="Collapsed"/>
+                                <Setter TargetName="WhiteIcon"   Property="Visibility"      Value="Visible"/>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Label section sidebar -->
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="10"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Margin"     Value="14,14,14,8"/>
+        </Style>
+
+        <!-- ── Convertisseurs ── -->
+        <helpers:SystemInitialsConverter      x:Key="SystemInitialsConverter"/>
+        <!-- Null/vide → Collapsed ; toute valeur → Visible (Invert inverse) -->
+        <helpers:NullToVisibilityConverter    x:Key="NullToVisibilityConverter"/>
+        <!-- Chemin string → ImageSource ; null/vide → null (évite l'erreur WPF) -->
+        <helpers:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
+        <!-- int FileCount → "1 fichier" / "N fichiers" -->
+        <helpers:FileCountConverter           x:Key="FileCountConverter"/>
+        <!-- bool → Visibility (WPF built-in) -->
+        <BooleanToVisibilityConverter         x:Key="BoolToVisibilityConverter"/>
+        <!-- bool → Visibility inversé : true → Collapsed, false → Visible -->
+        <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+
+        <!-- En-tête de colonne GridView (vue liste) -->
+        <Style x:Key="ListColumnHeaderStyle" TargetType="GridViewColumnHeader">
+            <Setter Property="Background"                 Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground"                 Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="BorderBrush"                Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness"            Value="0,0,0,1"/>
+            <Setter Property="Padding"                    Value="8,0"/>
+            <Setter Property="Height"                     Value="30"/>
+            <Setter Property="FontSize"                   Value="11"/>
+            <Setter Property="FontWeight"                 Value="Medium"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        </Style>
+
+        <!-- ── Case à cocher réutilisable (cartes mosaïque et colonnes liste) ── -->
+        <Style x:Key="GameCheckboxButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width"           Value="18"/>
+            <Setter Property="Height"          Value="18"/>
+            <Setter Property="Padding"         Value="0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="CbBorder" Width="18" Height="18" CornerRadius="4"
+                                Background="White"
+                                BorderBrush="#AAAAAA"
+                                BorderThickness="1.5">
+                            <!-- Checkmark blanc — visible quand IsSelected = true -->
+                            <Path x:Name="CbCheck"
+                                  Data="M 3,9 L 6,12 L 14,4"
+                                  Stroke="White" StrokeThickness="1.5"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round"
+                                  Visibility="Collapsed"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- Le DataContext du bouton est GameItemViewModel (hérité du DataTemplate) -->
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="CbBorder" Property="Background"  Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="CbBorder" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="CbCheck"  Property="Visibility"  Value="Visible"/>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CbBorder" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ══════════════════════════════════════════════════════
+             DataTemplate MOSAÏQUE — carte ~170px
+             ══════════════════════════════════════════════════════ -->
+        <DataTemplate x:Key="MosaicGameTemplate">
+            <Border x:Name="CardBorder" CornerRadius="8"
+                    BorderThickness="0.5" BorderBrush="{StaticResource BorderBrush}"
+                    Background="{StaticResource SurfaceBrush}"
+                    Margin="8">
+                <Grid>
+                    <StackPanel>
+                        <!-- Zone jaquette 184×220 — carré avec bordure ou placeholder -->
+                        <Grid HorizontalAlignment="Center" Margin="0,10,0,6">
+                            <!-- Placeholder : fond gris + nom système, visible si CoverExists = false -->
+                            <Border Width="184" Height="220" Background="#EBEBEB" CornerRadius="4"
+                                    Visibility="{Binding CoverExists, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                <TextBlock Text="{Binding SystemName}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </Border>
+                            <!-- Jaquette — Stretch=Uniform, fond blanc, sans bordure -->
+                            <Border Width="184" Height="220" Background="White" CornerRadius="4"
+                                    Visibility="{Binding CoverExists, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Image Source="{Binding CoverPath, Converter={StaticResource StringToImageSourceConverter}}"
+                                       Stretch="Uniform"
+                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Zone info bas de carte -->
+                        <StackPanel Margin="8,6,8,8">
+                            <!-- Titre — tronqué si trop long -->
+                            <TextBlock Text="{Binding Title}"
+                                       FontSize="11" FontWeight="Medium"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       MaxWidth="184"
+                                       TextTrimming="CharacterEllipsis"
+                                       TextWrapping="NoWrap"/>
+                            <!-- Ligne système + compteur fichiers (si multi-disques) -->
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <Image Source="{Binding SystemImagePath, Converter={StaticResource StringToImageSourceConverter}}"
+                                       Width="12" Height="12"
+                                       Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding SystemName}"
+                                           FontSize="10"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text=" • " FontSize="10"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Visibility="{Binding HasMultipleFiles, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                <TextBlock Text="{Binding FileCount, Converter={StaticResource FileCountConverter}}"
+                                           FontSize="10"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           Visibility="{Binding HasMultipleFiles, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Case à cocher en overlay haut-gauche — backdrop semi-transparent pour lisibilité sur jaquette -->
+                    <Border Background="#80FFFFFF" CornerRadius="4"
+                            HorizontalAlignment="Left" VerticalAlignment="Top"
+                            Margin="8,8,0,0" Padding="2">
+                        <Button Style="{StaticResource GameCheckboxButton}"
+                                Command="{Binding ToggleSelectCommand}"/>
+                    </Border>
+
+                    <!-- Badge "exporté" en overlay haut-droite -->
+                    <Grid x:Name="MosaicExportBadge" Width="18" Height="18"
+                          HorizontalAlignment="Right" VerticalAlignment="Top"
+                          Margin="0,8,8,0" Visibility="Collapsed">
+                        <Ellipse Fill="#2EB67D"/>
+                        <Path Data="M 4,9 L 7,12 L 14,5"
+                              Stroke="White" StrokeThickness="1.5"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <!-- Hover : bordure AccentBrush fine -->
+                <Trigger SourceName="CardBorder" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                </Trigger>
+                <!-- Sélection : bordure AccentBrush épaisse (priorité sur hover) -->
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="CardBorder" Property="BorderBrush"     Value="{StaticResource AccentBrush}"/>
+                    <Setter TargetName="CardBorder" Property="BorderThickness" Value="1.5"/>
+                </DataTrigger>
+                <!-- Badge exporté -->
+                <DataTrigger Binding="{Binding IsExported}" Value="True">
+                    <Setter TargetName="MosaicExportBadge" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+
+        <!-- Style ListViewItem mosaïque — ControlTemplate minimal pour supprimer les
+             échecs de liaison HorizontalContentAlignment/VerticalContentAlignment du template WPF par défaut -->
+        <Style x:Key="MosaicListViewItemStyle" TargetType="ListViewItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment"   Value="Stretch"/>
+            <Setter Property="Padding"         Value="0"/>
+            <Setter Property="Margin"          Value="0"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <ContentPresenter HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>   <!-- Titlebar    -->
+            <RowDefinition Height="64"/>   <!-- Toolbar     -->
+            <RowDefinition Height="*"/>    <!-- Main        -->
+            <RowDefinition Height="28"/>   <!-- StatusBar   -->
+        </Grid.RowDefinitions>
+
+        <!-- ═══════════════════════════════════════════════════
+             1. TITLEBAR
+             ═══════════════════════════════════════════════════ -->
+        <Border Grid.Row="0"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                MouseLeftButtonDown="Titlebar_MouseLeftButtonDown">
+            <Grid>
+                <!-- Logo + titre alignés à gauche -->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Image Source="pack://application:,,,/Resources/Images/rsr-logo.png"
+                           Width="16" Height="16"
+                           VerticalAlignment="Center"
+                           Margin="12,0,8,0"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="RomStation "
+                               FontSize="13" FontWeight="Medium"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="Rebase"
+                               FontSize="13" FontWeight="Medium"
+                               Foreground="{StaticResource AccentBrush}"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding AppVersion}"
+                               FontSize="11"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="6,0,0,0"/>
+                </StackPanel>
+
+                <!-- Boutons chrome à droite -->
+                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                    <Button x:Name="MinimizeButton" Style="{StaticResource ChromeButton}"
+                            Content="&#x2212;" ToolTip="Minimiser"
+                            Click="MinimizeButton_Click"/>
+                    <Button x:Name="MaximizeButton" Style="{StaticResource ChromeButton}"
+                            Content="&#x2610;" ToolTip="Maximiser"
+                            Click="MaximizeButton_Click"/>
+                    <Button x:Name="CloseButton" Style="{StaticResource CloseButton}"
+                            Content="&#x2715;" ToolTip="Fermer"
+                            Click="CloseButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════════════
+             2. TOOLBAR
+             ═══════════════════════════════════════════════════ -->
+        <Border Grid.Row="1"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid Margin="14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Logo texte -->
+                <!-- Zone de marque : logo + nom de l'application -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="pack://application:,,,/Resources/Images/rsr-logo.png"
+                           Width="48" Height="48"
+                           VerticalAlignment="Center"
+                           Margin="20,0,12,0"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <WrapPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0">
+                        <TextBlock Text="RomStation "
+                                   FontSize="18" FontWeight="Medium"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="Rebase"
+                                   FontSize="18" FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"/>
+                    </WrapPanel>
+                    <!-- Séparateur entre la marque et les boutons d'action -->
+                    <Rectangle Width="1" Height="32"
+                               Fill="{StaticResource BorderBrush}"
+                               Margin="16,0,16,0"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Actions à droite -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <!-- Sync DB -->
+                    <Button x:Name="SyncDbButton"
+                            Style="{StaticResource ToolbarButton}"
+                            Command="{Binding SyncDbCommand}"
+                            Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Image Source="/Resources/Icons/icon-syncdb.png"
+                                   Width="16" Height="16" Margin="0,0,6,0"
+                                   VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Static res:Strings.SyncDb}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <!-- Tout sélectionner -->
+                    <Button x:Name="SelectAllButton"
+                            Style="{StaticResource ToolbarButton}"
+                            Command="{Binding SelectAllGamesCommand}"
+                            Margin="0,0,6,0">
+                        <TextBlock Text="{x:Static res:Strings.SelectAll}"/>
+                    </Button>
+                    <!-- Tout désélectionner -->
+                    <Button x:Name="DeselectAllButton"
+                            Style="{StaticResource ToolbarButton}"
+                            Command="{Binding DeselectAllGamesCommand}"
+                            Margin="0,0,6,0">
+                        <TextBlock Text="{x:Static res:Strings.Deselect}"/>
+                    </Button>
+                    <!-- Rebase vers… -->
+                    <Button x:Name="RebaseButton"
+                            Style="{StaticResource PrimaryButton}"
+                            Command="{Binding RebaseCommand}"
+                            Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Image Source="/Resources/Icons/icon-rebase.png"
+                                   Width="16" Height="16" Margin="0,0,6,0"
+                                   VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Static res:Strings.RebaseTo}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <!-- Paramètres -->
+                    <Button x:Name="SettingsButton"
+                            Style="{StaticResource ToolbarButton}"
+                            Command="{Binding SettingsCommand}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Image Source="/Resources/Icons/icon-gear.png"
+                                   Width="16" Height="16" Margin="0,0,6,0"
+                                   VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Static res:Strings.Settings}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════════════
+             3. ZONE PRINCIPALE
+             ═══════════════════════════════════════════════════ -->
+        <DockPanel Grid.Row="2">
+
+            <!-- ── Sidebar ── -->
+            <Border DockPanel.Dock="Left" Width="190"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <!-- Scrollbar slim appliquée implicitement à tous les ScrollBar de la sidebar -->
+                <Border.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+                </Border.Resources>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="{x:Static res:Strings.Systems}"
+                                       Style="{StaticResource SectionLabel}"/>
+                            <ItemsControl x:Name="SystemsList"
+                                          ItemsSource="{Binding Systems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="14,3">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0"
+                                                      IsChecked="{Binding IsChecked}"
+                                                      VerticalAlignment="Center"
+                                                      Margin="0,0,8,0"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Name}"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{Binding GameCount}"
+                                                       FontSize="11"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="6,0,0,0"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Actions bas de sidebar — bordure haute + alignement bas -->
+                    <Border Grid.Row="1"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="0,1,0,0"
+                            VerticalAlignment="Bottom">
+                        <StackPanel Margin="14,8">
+                            <!-- Filtre "Problèmes uniquement" -->
+                            <CheckBox Content="{x:Static res:Strings.Issues_FilterLabel}"
+                                      IsChecked="{Binding ShowIssuesOnly}"
+                                      FontSize="12"
+                                      Foreground="{StaticResource TextPrimaryBrush}"
+                                      Margin="0,0,0,6"/>
+                            <!-- Liens cocher/décocher tous les systèmes -->
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="CheckAllSystemsLink"
+                                           Text="{x:Static res:Strings.CheckAll}"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Cursor="Hand"
+                                           Margin="0,0,12,0">
+                                    <TextBlock.InputBindings>
+                                        <MouseBinding Command="{Binding CheckAllSystemsCommand}"
+                                                      MouseAction="LeftClick"/>
+                                    </TextBlock.InputBindings>
+                                </TextBlock>
+                                <TextBlock x:Name="UncheckAllSystemsLink"
+                                           Text="{x:Static res:Strings.UncheckAll}"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Cursor="Hand">
+                                    <TextBlock.InputBindings>
+                                        <MouseBinding Command="{Binding UncheckAllSystemsCommand}"
+                                                      MouseAction="LeftClick"/>
+                                    </TextBlock.InputBindings>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- ── Zone de contenu ── -->
+            <Grid Background="{StaticResource BackgroundBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="44"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header contenu -->
+                <Border Grid.Row="0"
+                        Background="{StaticResource SurfaceBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="0,0,0,1">
+                    <Grid Margin="16,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Titre section -->
+                        <TextBlock x:Name="ContentTitle"
+                                   Grid.Column="0"
+                                   Text="{x:Static res:Strings.AllGames}"
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"/>
+
+                        <!-- Compteur -->
+                        <Border x:Name="ContentCount"
+                                Grid.Column="1"
+                                Background="{StaticResource BackgroundBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="8,2"
+                                VerticalAlignment="Center"
+                                Margin="0,0,12,0">
+                            <TextBlock x:Name="ContentCountText"
+                                       Text="{Binding FilteredGameCount}"
+                                       FontSize="11"
+                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </Border>
+
+                        <!-- Filtres actifs -->
+                        <StackPanel x:Name="ActiveFilters"
+                                    Grid.Column="2"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center"/>
+
+                        <!-- Recherche avec placeholder localisé -->
+                        <TextBox x:Name="SearchBox"
+                                 Grid.Column="3"
+                                 Width="180"
+                                 VerticalAlignment="Center"
+                                 Margin="8,0,8,0"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                    <Style.Resources>
+                                        <VisualBrush x:Key="SearchPlaceholderBrush" AlignmentX="Left" AlignmentY="Center" Stretch="None">
+                                            <VisualBrush.Visual>
+                                                <TextBlock Text="{x:Static res:Strings.SearchPlaceholder}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           FontSize="12" Margin="2,0,0,0"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Style.Resources>
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="">
+                                            <Setter Property="Background" Value="{StaticResource SearchPlaceholderBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsFocused" Value="True">
+                                            <Setter Property="Background" Value="White"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <!-- Toggle vue — état actif géré par DataTrigger sur IsMosaicView -->
+                        <StackPanel Grid.Column="4" Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <Button x:Name="ViewMosaicButton"
+                                    Style="{StaticResource ViewToggleMosaicButton}"
+                                    Command="{Binding SwitchToMosaicCommand}"
+                                    ToolTip="Vue mosaïque"
+                                    Margin="0,0,4,0"/>
+                            <Button x:Name="ViewListButton"
+                                    Style="{StaticResource ViewToggleListButton}"
+                                    Command="{Binding SwitchToListCommand}"
+                                    ToolTip="Vue liste"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Vue mosaïque — VirtualizingWrapPanel, visible quand IsMosaicView = true -->
+                <ListView x:Name="MosaicListView"
+                          Grid.Row="1"
+                          ItemsSource="{Binding FilteredGames}"
+                          ItemTemplate="{StaticResource MosaicGameTemplate}"
+                          ItemContainerStyle="{StaticResource MosaicListViewItemStyle}"
+                          Visibility="{Binding IsMosaicView, Converter={StaticResource BoolToVisibilityConverter}}"
+                          Margin="8"
+                          BorderThickness="0"
+                          Background="Transparent"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <!-- ItemSize = conteneur de chaque item : 216×295 — la carte gère ses marges via Margin="8" -->
+                            <toolkit:VirtualizingWrapPanel ItemSize="216,295"/>
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                </ListView>
+
+                <!-- Vue liste — GridView avec en-têtes de colonnes triables, visible quand IsMosaicView = false -->
+                <ListView x:Name="ListListView"
+                          Grid.Row="1"
+                          ItemsSource="{Binding FilteredGames}"
+                          Visibility="{Binding IsListView, Converter={StaticResource BoolToVisibilityConverter}}"
+                          AlternationCount="2"
+                          BorderThickness="0"
+                          Background="Transparent"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          GridViewColumnHeader.Click="ListViewColumnHeader_Click">
+                    <ListView.View>
+                        <GridView ColumnHeaderContainerStyle="{StaticResource ListColumnHeaderStyle}">
+
+                            <!-- Col 0 : case à cocher (36px, pas d'en-tête) -->
+                            <GridViewColumn Width="36">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource GameCheckboxButton}"
+                                                Command="{Binding ToggleSelectCommand}"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Col 1 : miniature jaquette (52px, pas d'en-tête) -->
+                            <GridViewColumn Width="52">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Width="40" Height="40" CornerRadius="4"
+                                                HorizontalAlignment="Center"
+                                                ClipToBounds="True">
+                                            <Grid>
+                                                <Grid x:Name="CoverPlaceholder">
+                                                    <Rectangle Fill="#E8E8E8"/>
+                                                    <TextBlock Text="{Binding SystemName, Converter={StaticResource SystemInitialsConverter}}"
+                                                               FontSize="9" FontWeight="Medium"
+                                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <Image x:Name="CoverImage"
+                                                       Source="{Binding CoverPath, Converter={StaticResource StringToImageSourceConverter}}"
+                                                       Width="40" Height="40"
+                                                       Stretch="UniformToFill"
+                                                       RenderOptions.BitmapScalingMode="LowQuality"
+                                                       Visibility="Collapsed"/>
+                                            </Grid>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding CoverExists}" Value="True">
+                                                <Setter TargetName="CoverPlaceholder" Property="Visibility" Value="Collapsed"/>
+                                                <Setter TargetName="CoverImage"       Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Col 2 : Titre (Auto, min 200px) — triable, titre seul sans icône -->
+                            <GridViewColumn x:Name="TitleColumn" Width="Auto">
+                                <GridViewColumn.HeaderContainerStyle>
+                                    <Style TargetType="GridViewColumnHeader" BasedOn="{StaticResource ListColumnHeaderStyle}">
+                                        <Setter Property="Tag"      Value="Title"/>
+                                        <Setter Property="MinWidth" Value="280"/>
+                                    </Style>
+                                </GridViewColumn.HeaderContainerStyle>
+                                <GridViewColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{x:Static res:Strings.Column_Title}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding DataContext.TitleSortArrow, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
+                                                       Foreground="{StaticResource AccentBrush}"
+                                                       FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.HeaderTemplate>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Title}"
+                                                   FontSize="13" FontWeight="Medium"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center" Margin="4,0"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Col 3 : Système (Auto, min 130px) — triable, icône + nom -->
+                            <GridViewColumn Width="Auto">
+                                <GridViewColumn.HeaderContainerStyle>
+                                    <Style TargetType="GridViewColumnHeader" BasedOn="{StaticResource ListColumnHeaderStyle}">
+                                        <Setter Property="Tag"      Value="System"/>
+                                        <Setter Property="MinWidth" Value="180"/>
+                                    </Style>
+                                </GridViewColumn.HeaderContainerStyle>
+                                <GridViewColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{x:Static res:Strings.Column_System}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding DataContext.SystemSortArrow, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
+                                                       Foreground="{StaticResource AccentBrush}"
+                                                       FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.HeaderTemplate>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                                            <Image Source="{Binding SystemImagePath, Converter={StaticResource StringToImageSourceConverter}}"
+                                                   Visibility="{Binding SystemImagePath, Converter={StaticResource NullToVisibilityConverter}}"
+                                                   Width="14" Height="14"
+                                                   RenderOptions.BitmapScalingMode="LowQuality"
+                                                   Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding SystemName}"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Col 4 : Fichiers (Auto, min 70px) — triable, FileCountConverter pour tous les jeux -->
+                            <GridViewColumn Width="Auto">
+                                <GridViewColumn.HeaderContainerStyle>
+                                    <Style TargetType="GridViewColumnHeader" BasedOn="{StaticResource ListColumnHeaderStyle}">
+                                        <Setter Property="Tag"      Value="Files"/>
+                                        <Setter Property="MinWidth" Value="70"/>
+                                    </Style>
+                                </GridViewColumn.HeaderContainerStyle>
+                                <GridViewColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{x:Static res:Strings.Column_Files}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding DataContext.FilesSortArrow, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
+                                                       Foreground="{StaticResource AccentBrush}"
+                                                       FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.HeaderTemplate>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding FileCount, Converter={StaticResource FileCountConverter}}"
+                                                   FontSize="11"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                   Margin="4,0"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Col 5 : problèmes — badges fichier/jaquette manquants (Auto, min 80px) -->
+                            <GridViewColumn Width="Auto">
+                                <GridViewColumn.HeaderContainerStyle>
+                                    <Style TargetType="GridViewColumnHeader" BasedOn="{StaticResource ListColumnHeaderStyle}">
+                                        <Setter Property="MinWidth" Value="80"/>
+                                    </Style>
+                                </GridViewColumn.HeaderContainerStyle>
+                                <GridViewColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{x:Static res:Strings.Column_Issues}" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </GridViewColumn.HeaderTemplate>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border x:Name="FileMissingBadge"
+                                                    Background="#20E24B4A" CornerRadius="3"
+                                                    Padding="4,2" Margin="0,0,3,0"
+                                                    Visibility="Collapsed">
+                                                <TextBlock Text="{x:Static res:Strings.Badge_FilesMissing}"
+                                                           FontSize="9" Foreground="#E24B4A"/>
+                                            </Border>
+                                            <Border x:Name="CoverMissingBadge"
+                                                    Background="#20F5A623" CornerRadius="3"
+                                                    Padding="4,2"
+                                                    Visibility="Collapsed">
+                                                <TextBlock Text="{x:Static res:Strings.Badge_CoverMissing}"
+                                                           FontSize="9" Foreground="#F5A623"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding FileExists}" Value="False">
+                                                <Setter TargetName="FileMissingBadge" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CoverExists}" Value="False">
+                                                <Setter TargetName="CoverMissingBadge" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                        </GridView>
+                    </ListView.View>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Height"                     Value="44"/>
+                            <Setter Property="Background"                 Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListViewItem">
+                                        <Border x:Name="RowBorder"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="0,0,0,0.5">
+                                            <GridViewRowPresenter VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="RowBorder" Property="Background" Value="#F5F3FF"/>
+                                            </Trigger>
+                                            <!-- Alternance : ligne impaire (index=1) légèrement grisée -->
+                                            <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                                <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                                            </Trigger>
+                                            <!-- Sélection via GameItemViewModel.IsSelected -->
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter TargetName="RowBorder" Property="Background" Value="#EDE9FF"/>
+                                            </DataTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
+
+                <!-- LoadingOverlay — plein écran, visible pendant LoadLibraryAsync() -->
+                <Grid x:Name="LoadingOverlay" Grid.Row="1" Panel.ZIndex="10"
+                      Background="{StaticResource BackgroundBrush}"
+                      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                        <Image Source="/Resources/Images/rsr-logo.png"
+                               Width="64" Height="64"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,24"/>
+
+                        <TextBlock Text="{Binding LoadingStatusText}"
+                                   FontSize="14"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,16"/>
+
+                        <ProgressBar x:Name="LoadingProgressBar"
+                                     Value="{Binding LoadingProgress, Mode=OneWay}"
+                                     Minimum="0" Maximum="100"
+                                     Width="400" Height="6"
+                                     Foreground="#5B3FE0"
+                                     Background="#E0E0E0"
+                                     BorderThickness="0"/>
+
+
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </DockPanel>
+
+        <!-- ═══════════════════════════════════════════════════
+             4. STATUSBAR
+             ═══════════════════════════════════════════════════ -->
+        <Border Grid.Row="3"
+                Background="{StaticResource AccentBrush}">
+            <StackPanel Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Margin="14,0">
+                <TextBlock x:Name="SelectedCountLabel"
+                           Text="{Binding SelectedCountText}"
+                           FontSize="11"
+                           Foreground="White"
+                           VerticalAlignment="Center"/>
+
+                <Rectangle Style="{StaticResource StatusSeparator}"/>
+
+                <TextBlock x:Name="LastSyncLabel"
+                           FontSize="11"
+                           Foreground="White"
+                           VerticalAlignment="Center">
+                    <Run Text="{x:Static res:Strings.LastSync}"/>
+                    <Run Text=" "/>
+                    <Run Text="{Binding LastSyncText, Mode=OneWay}"/>
+                </TextBlock>
+
+                <Rectangle Style="{StaticResource StatusSeparator}"/>
+
+                <Ellipse Width="8" Height="8"
+                         Fill="#2EB67D"
+                         VerticalAlignment="Center"
+                         Margin="0,0,6,0"/>
+                <TextBlock Text="{x:Static res:Strings.DbSynced}"
+                           FontSize="11"
+                           Foreground="White"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</Window>

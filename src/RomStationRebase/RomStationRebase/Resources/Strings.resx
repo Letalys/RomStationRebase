@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string"/>
+              <xsd:attribute name="type" type="xsd:string"/>
+              <xsd:attribute name="mimetype" type="xsd:string"/>
+              <xsd:attribute ref="xml:space"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string"/>
+              <xsd:attribute name="name" type="xsd:string"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2"/>
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string"/>
+              <xsd:attribute name="type" type="xsd:string"/>
+              <xsd:attribute name="mimetype" type="xsd:string"/>
+              <xsd:attribute ref="xml:space"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SyncDb" xml:space="preserve">
+    <value>Sync RomStation DB</value>
+  </data>
+  <data name="SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Deselect" xml:space="preserve">
+    <value>Deselect all</value>
+  </data>
+  <data name="RebaseTo" xml:space="preserve">
+    <value>Rebase to…</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Systems" xml:space="preserve">
+    <value>SYSTEMS</value>
+  </data>
+  <data name="CheckAll" xml:space="preserve">
+    <value>Check all</value>
+  </data>
+  <data name="UncheckAll" xml:space="preserve">
+    <value>Uncheck all</value>
+  </data>
+  <data name="AllGames" xml:space="preserve">
+    <value>All games</value>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Search a game…</value>
+  </data>
+  <data name="SelectedCount" xml:space="preserve">
+    <value>{0} games selected</value>
+  </data>
+  <data name="LastSync" xml:space="preserve">
+    <value>Last sync:</value>
+  </data>
+  <data name="DbSynced" xml:space="preserve">
+    <value>Database synced</value>
+  </data>
+  <data name="Splash_LoadingConfig" xml:space="preserve">
+    <value>Loading configuration</value>
+  </data>
+  <data name="Splash_DetectingRS" xml:space="preserve">
+    <value>Detecting RomStation</value>
+  </data>
+  <data name="Splash_ReadingConfig" xml:space="preserve">
+    <value>Reading RomStation configuration</value>
+  </data>
+  <data name="Splash_CheckingDB" xml:space="preserve">
+    <value>Checking database</value>
+  </data>
+  <data name="Splash_CopyingDB" xml:space="preserve">
+    <value>Copying database</value>
+  </data>
+  <data name="Splash_VerifyingDB" xml:space="preserve">
+    <value>Verifying database integrity</value>
+  </data>
+  <data name="Splash_LoadingLibrary" xml:space="preserve">
+    <value>Loading library</value>
+  </data>
+  <data name="Splash_Starting" xml:space="preserve">
+    <value>Starting RomStation Rebase...</value>
+  </data>
+  <data name="Splash_RSFound" xml:space="preserve">
+    <value>Found at {0}</value>
+  </data>
+  <data name="Splash_RSOpen" xml:space="preserve">
+    <value>RomStation is open — copy may be incomplete</value>
+  </data>
+  <data name="Splash_DBCorrupted" xml:space="preserve">
+    <value>Database appears corrupted. Close RomStation and sync again.</value>
+  </data>
+  <data name="Splash_ConfigCorrupted_State" xml:space="preserve">
+    <value>app-state.json is corrupted. RSRebase needs to recreate it.
+This will trigger a full RomStation re-detection and database copy.
+
+Detail: {0}
+
+Continue?</value>
+  </data>
+  <data name="Splash_ConfigCorrupted_Prefs" xml:space="preserve">
+    <value>user-preferences.json is corrupted. Reset to default preferences?
+
+Detail: {0}</value>
+  </data>
+  <data name="Issues_FilterLabel" xml:space="preserve">
+    <value>Issues only</value>
+  </data>
+  <data name="Badge_FilesMissing" xml:space="preserve">
+    <value>Missing files</value>
+  </data>
+  <data name="Badge_CoverMissing" xml:space="preserve">
+    <value>No cover</value>
+  </data>
+  <data name="Badge_MultiDisc" xml:space="preserve">
+    <value>{0} files</value>
+  </data>
+  <data name="Splash_DBLocked" xml:space="preserve">
+    <value>Database is locked by another process. Close DBeaver or any tool accessing the database and retry.</value>
+  </data>
+  <data name="Column_Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Column_System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Column_Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="Column_Issues" xml:space="preserve">
+    <value>Issues</value>
+  </data>
+  <data name="Badge_SingleFile" xml:space="preserve">
+    <value>1 file</value>
+  </data>
+
+  <!-- ── Rebase window ── -->
+  <data name="Rebase_Title" xml:space="preserve">
+    <value>Rebase</value>
+  </data>
+  <data name="Rebase_TargetPath" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="Rebase_Browse" xml:space="preserve">
+    <value>Browse…</value>
+  </data>
+  <data name="Rebase_Architecture" xml:space="preserve">
+    <value>Target architecture</value>
+  </data>
+  <data name="Rebase_GenerateM3U" xml:space="preserve">
+    <value>Generate M3U playlists</value>
+  </data>
+  <data name="Rebase_DuplicatePolicy" xml:space="preserve">
+    <value>If file exists</value>
+  </data>
+  <data name="Rebase_DuplicatePolicy_Ignore" xml:space="preserve">
+    <value>Ignore</value>
+  </data>
+  <data name="Rebase_DuplicatePolicy_Overwrite" xml:space="preserve">
+    <value>Overwrite</value>
+  </data>
+  <data name="Rebase_ParallelCopies" xml:space="preserve">
+    <value>Concurrent copies</value>
+  </data>
+  <data name="Rebase_Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Rebase_Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Rebase_Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Rebase_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Rebase_OpenFolder" xml:space="preserve">
+    <value>Open folder</value>
+  </data>
+  <data name="Rebase_ExportLog" xml:space="preserve">
+    <value>Export log</value>
+  </data>
+  <data name="Rebase_Status_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Rebase_Status_Copying" xml:space="preserve">
+    <value>Copying</value>
+  </data>
+  <data name="Rebase_Status_Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Rebase_Status_Skipped" xml:space="preserve">
+    <value>Skipped</value>
+  </data>
+  <data name="Rebase_Status_Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Rebase_Validation_NoTarget" xml:space="preserve">
+    <value>Please select a destination folder.</value>
+  </data>
+  <data name="Rebase_Validation_NoArchitecture" xml:space="preserve">
+    <value>Please select a target architecture.</value>
+  </data>
+  <data name="Rebase_Validation_NoGames" xml:space="preserve">
+    <value>No games selected.</value>
+  </data>
+  <data name="Rebase_Validation_UnmappedSystems" xml:space="preserve">
+    <value>{0} system(s) have no mapping and will be skipped: {1}.</value>
+  </data>
+  <data name="Rebase_Validation_NoSpace" xml:space="preserve">
+    <value>Not enough disk space. Required: {0} GB.</value>
+  </data>
+  <data name="Rebase_Completed" xml:space="preserve">
+    <value>Rebase completed: {0} done, {1} failed, {2} skipped.</value>
+  </data>
+  <data name="Rebase_Column_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Rebase_Column_Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Rebase_Column_System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Rebase_Column_Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="Rebase_Column_Progress" xml:space="preserve">
+    <value>Progress</value>
+  </data>
+  <data name="Rebase_Column_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Rebase_GamesCount" xml:space="preserve">
+    <value>{0}/{1} games</value>
+  </data>
+  <data name="Rebase_Speed" xml:space="preserve">
+    <value>{0}/s</value>
+  </data>
+  <data name="Rebase_ETA" xml:space="preserve">
+    <value>~{0} remaining</value>
+  </data>
+  <data name="Rebase_Ready" xml:space="preserve">
+    <value>Ready — {0} games selected</value>
+  </data>
+  <data name="Status_Pending" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Rebase_CloseTitle" xml:space="preserve">
+    <value>Rebase in progress</value>
+  </data>
+  <data name="Rebase_CloseMessage" xml:space="preserve">
+    <value>A rebase is in progress. Cancel and close?</value>
+  </data>
+  <data name="Rebase_CloseConfirm" xml:space="preserve">
+    <value>Yes, cancel</value>
+  </data>
+  <data name="General_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="General_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Rebase_FolderNotExist" xml:space="preserve">
+    <value>Target folder does not exist. Create it?</value>
+  </data>
+  <data name="Rebase_FolderCreate" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Rebase_FolderNotEmpty" xml:space="preserve">
+    <value>Target folder is not empty. Continue anyway?</value>
+  </data>
+  <data name="Rebase_CancelCalcTitle" xml:space="preserve">
+    <value>Cancel calculation</value>
+  </data>
+  <data name="Rebase_CancelCalcMessage" xml:space="preserve">
+    <value>Size calculation is in progress. Cancel it?</value>
+  </data>
+  <data name="Rebase_CalculationCancelled" xml:space="preserve">
+    <value>Calculation cancelled</value>
+  </data>
+  <data name="Rebase_RetryAttempts" xml:space="preserve">
+    <value>Retry attempts</value>
+  </data>
+  <data name="Rebase_RetryDelay" xml:space="preserve">
+    <value>Retry delay</value>
+  </data>
+  <data name="Rebase_RetryDelayUnit" xml:space="preserve">
+    <value>sec.</value>
+  </data>
+  <data name="Rebase_Cancelling" xml:space="preserve">
+    <value>Cancelling...</value>
+  </data>
+  <data name="Rebase_Completed_Title" xml:space="preserve">
+    <value>Rebase complete</value>
+  </data>
+  <data name="Rebase_Completed_Success" xml:space="preserve">
+    <value>Rebase completed successfully. {0} file(s) copied.</value>
+  </data>
+  <data name="Rebase_Completed_Partial_Title" xml:space="preserve">
+    <value>Rebase completed with warnings</value>
+  </data>
+  <data name="Rebase_Completed_Partial" xml:space="preserve">
+    <value>The rebase finished but some files could not be copied.
+
+{0} copied, {1} failed, {2} skipped.
+
+Check the table for error details.</value>
+  </data>
+  <data name="Rebase_Error_Title" xml:space="preserve">
+    <value>Rebase error</value>
+  </data>
+  <data name="Rebase_Error_Message" xml:space="preserve">
+    <value>An error interrupted the rebase:
+
+{0}</value>
+  </data>
+  <data name="Rebase_Error_DirectoryNotFound" xml:space="preserve">
+    <value>The target folder is no longer accessible. Check that your device (USB drive, SD card, external disk...) is still connected and properly mounted.</value>
+  </data>
+  <data name="Rebase_Error_AccessDenied" xml:space="preserve">
+    <value>Access denied to the target folder. Check that you have write permissions on this device.</value>
+  </data>
+  <data name="Rebase_Error_DiskFull" xml:space="preserve">
+    <value>Not enough disk space on the target device.</value>
+  </data>
+  <data name="Rebase_Error_Interrupted" xml:space="preserve">
+    <value>Copy interrupted due to a fatal error.</value>
+  </data>
+  <data name="Sync_InProgress" xml:space="preserve">
+    <value>Synchronizing database...</value>
+  </data>
+  <data name="Sync_ErrorTitle" xml:space="preserve">
+    <value>Synchronization error</value>
+  </data>
+
+  <!-- ── Settings window ── -->
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Settings_Section_General" xml:space="preserve">
+    <value>GENERAL</value>
+  </data>
+  <data name="Settings_Section_Display" xml:space="preserve">
+    <value>DISPLAY</value>
+  </data>
+  <data name="Settings_Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Settings_Language_Auto" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="Settings_Language_Fr" xml:space="preserve">
+    <value>French</value>
+  </data>
+  <data name="Settings_Language_En" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Settings_Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Settings_Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Settings_RestartRequired" xml:space="preserve">
+    <value>Restart the application to apply the new language.</value>
+  </data>
+  <data name="Settings_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Settings_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Settings_Section_Locations" xml:space="preserve">
+    <value>LOCATIONS</value>
+  </data>
+  <data name="Settings_OpenInstallFolder" xml:space="preserve">
+    <value>Open RSRebase installation folder</value>
+  </data>
+  <data name="Settings_OpenUserDataFolder" xml:space="preserve">
+    <value>Open RSRebase data folder</value>
+  </data>
+  <data name="Settings_OpenRomStationFolder" xml:space="preserve">
+    <value>Open RomStation installation folder</value>
+  </data>
+  <data name="Rebase_Error_InvalidDriveLetter" xml:space="preserve">
+    <value>The specified drive letter does not exist. Connect the corresponding device or choose another location.</value>
+  </data>
+  <data name="Rebase_Validation_PathNotAbsolute" xml:space="preserve">
+    <value>The destination path must be complete and absolute (example: C:\My ROMs or E:\roms). Please enter a complete path or use the Browse button.</value>
+  </data>
+  <data name="Splash_RSNotFound_Title" xml:space="preserve">
+    <value>RomStation not found</value>
+  </data>
+  <data name="Splash_RSNotFound_Message" xml:space="preserve">
+    <value>RomStation was not detected on this machine. If you are using the portable ZIP version, please manually indicate the folder where RomStation is located.</value>
+  </data>
+  <data name="Splash_RSNotFound_Browse" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="Splash_RSNotFound_Quit" xml:space="preserve">
+    <value>Quit</value>
+  </data>
+  <data name="Splash_RSNotFound_InvalidFolder" xml:space="preserve">
+    <value>This folder does not contain a valid RomStation installation. The folder must contain the "app\database" sub-folder and the "app\RomStation.cfg" file.
+
+If RomStation was just installed, please launch it at least once before using RomStation Rebase — the database is created on first startup.</value>
+  </data>
+  <data name="Splash_RSNotFound_SelectFolder" xml:space="preserve">
+    <value>Select the RomStation installation folder</value>
+  </data>
+  <data name="Splash_RSNotFound_StepFailed" xml:space="preserve">
+    <value>RomStation not found — install RomStation or manually indicate its location.</value>
+  </data>
+  <data name="Settings_Section_About" xml:space="preserve">
+    <value>ABOUT</value>
+  </data>
+  <data name="Settings_About_Copyright" xml:space="preserve">
+    <value>© {0} — Licensed under {1}</value>
+  </data>
+  <data name="Settings_About_OpenRepository" xml:space="preserve">
+    <value>View project on GitHub</value>
+  </data>
+</root>

@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- Langue neutre de l'assembly = anglais (ressources par défaut) -->
+    <NeutralLanguage>en</NeutralLanguage>
+
+    <!-- Icône de l'exécutable (visible dans l'Explorateur, la barre des tâches, etc.) -->
+    <ApplicationIcon>Resources\Images\rsr-logo.ico</ApplicationIcon>
+
+    <!-- ─────────────────────────────────────────────────────
+         Configuration de publication self-contained
+         L'application embarque le runtime .NET 10 Desktop pour
+         être autonome — pas besoin d'installer .NET sur la
+         machine cible.
+         ───────────────────────────────────────────────────── -->
+
+    <!-- Cible : Windows 64-bit -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <!-- Embarquer le runtime .NET dans la sortie -->
+    <SelfContained>true</SelfContained>
+
+    <!-- Ne PAS merger en exécutable unique : IKVM et les ressources natives
+         (ikvm/, runtimes/) doivent rester en fichiers séparés -->
+    <PublishSingleFile>false</PublishSingleFile>
+
+    <!-- ReadyToRun : compile AOT le code .NET pour un démarrage plus rapide
+         au prix d'une légère augmentation de taille -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+
+  <!-- IKVM : pont Java→.NET pour accéder à la base Derby de RomStation -->
+  <ItemGroup>
+    <PackageReference Include="IKVM" Version="8.15.0" />
+    <PackageReference Include="VirtualizingWrapPanel" Version="2.5.1" />
+  </ItemGroup>
+
+  <!-- Référence au driver Derby embarqué — IKVM génère un assembly .NET depuis le JAR -->
+  <ItemGroup>
+    <IkvmReference Include="Lib\derby-10.14.2.0.jar" />
+  </ItemGroup>
+
+  <!-- Icônes et images embarquées comme ressources WPF (pack URI) -->
+  <ItemGroup>
+    <Resource Include="Resources\Icons\*.png" />
+    <Resource Include="Resources\Images\*.png" />
+  </ItemGroup>
+
+  <!-- Fichiers de configuration des architectures — copiés dans le répertoire de sortie -->
+  <ItemGroup>
+    <Content Include="config\architectures\*.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="config\window-defaults.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="config\app-metadata.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Fichier de ressources principal (anglais, génère Strings.Designer.cs) -->
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <!-- Ressources satellites françaises — pas de générateur de code -->
+    <EmbeddedResource Update="Resources\Strings.fr.resx">
+      <Generator></Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Lie Strings.Designer.cs au .resx parent dans l'explorateur de solution -->
+  <ItemGroup>
+    <Compile Update="Resources\Strings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Strings.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+</Project>

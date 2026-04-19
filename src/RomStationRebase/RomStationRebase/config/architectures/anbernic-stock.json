@@ -1,0 +1,19 @@
+{
+  "folderTreeMappings": [
+    { "romStationSystem": "Playstation",     "targetFolder": "PS"     },
+    { "romStationSystem": "Nintendo DS",     "targetFolder": "NDS"    },
+    { "romStationSystem": "GameBoy Advance", "targetFolder": "GBA"    },
+    { "romStationSystem": "Megadrive",       "targetFolder": "MD"     },
+    { "romStationSystem": "NES",             "targetFolder": "FC"     },
+    { "romStationSystem": "Super Nintendo",  "targetFolder": "SFC"    },
+    { "romStationSystem": "Nintendo 64",     "targetFolder": "N64"    },
+    { "romStationSystem": "GameBoy",         "targetFolder": "GB"     },
+    { "romStationSystem": "GameBoy Color",   "targetFolder": "GBC"    },
+    { "romStationSystem": "Game Gear",       "targetFolder": "GG"     },
+    { "romStationSystem": "Master System",   "targetFolder": "SMS"    },
+    { "romStationSystem": "Neo-Geo",         "targetFolder": "NEOGEO" },
+    { "romStationSystem": "Arcade",          "targetFolder": "MAME"   },
+    { "romStationSystem": "Dreamcast",       "targetFolder": "DC"     },
+    { "romStationSystem": "PSP",             "targetFolder": "PSP"    }
+  ]
+}

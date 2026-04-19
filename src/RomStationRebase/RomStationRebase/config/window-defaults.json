@@ -1,0 +1,10 @@
+{
+  "mainWindow": {
+    "width": 1280,
+    "height": 800
+  },
+  "rebaseWindow": {
+    "width": 1100,
+    "height": 720
+  }
+}

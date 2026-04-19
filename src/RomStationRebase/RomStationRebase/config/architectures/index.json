@@ -1,0 +1,28 @@
+{
+  "architectures": [
+    {
+      "id": "retroarch",
+      "label": "RetroArch / Lakka / ArkOS",
+      "description": "Compatible RetroArch, Lakka, ArkOS, JELOS, muOS",
+      "folderTreeMapping": "retroarch.json",
+      "generateM3UByDefault": true,
+      "isDefault": true
+    },
+    {
+      "id": "emulationstation",
+      "label": "EmulationStation / Batocera",
+      "description": "Compatible Batocera, EmulationStation",
+      "folderTreeMapping": "emulationstation.json",
+      "generateM3UByDefault": true,
+      "isDefault": false
+    },
+    {
+      "id": "anbernic-stock",
+      "label": "Anbernic OS stock",
+      "description": "Compatible firmware Anbernic original",
+      "folderTreeMapping": "anbernic-stock.json",
+      "generateM3UByDefault": false,
+      "isDefault": false
+    }
+  ]
+}
