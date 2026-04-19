@@ -1,3 +1,5 @@
+![RomStation Rebase](docs/images/banner.png)
+
 # RomStation Rebase
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blueviolet)](https://github.com/Letalys/RomStationRebase/releases/latest)
