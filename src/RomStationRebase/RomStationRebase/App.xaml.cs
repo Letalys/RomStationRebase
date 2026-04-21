@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
 using RomStationRebase.Models;
+using RomStationRebase.Resources;
 using RomStationRebase.Services;
 using RomStationRebase.ViewModels;
 using RomStationRebase.Views;
@@ -136,64 +137,133 @@ public partial class App : Application
 
     /// <summary>
     /// Gère le cycle de vie SplashWindow → MainWindow.
-    /// Tout le corps est protégé par un try/catch global pour capturer
-    /// les exceptions inattendues et les afficher avant fermeture.
+    /// En cas d'erreur non récupérable, affiche un ConfirmDialog spécifique puis ferme l'application.
+    /// Les cas de fermeture volontaire (clic Quitter dans un dialog de résolution RS) sont déjà
+    /// traités par Shutdown() direct dans SplashViewModel — RunStartupSequence retourne ShuttingDown.
     /// </summary>
     private async void RunStartupAsync()
     {
+        var splash = new SplashWindow();
+        MainWindow = splash;
+        splash.Show();
+
+        StartupResult result;
         try
         {
-            var splash = new SplashWindow();
-            MainWindow = splash;
-            splash.Show();
-
-            bool success = await splash.ViewModel.RunStartupSequence();
-
-            if (!success)
-            {
-                // La SplashWindow affiche déjà l'étape en erreur (icône rouge + détail).
-                // On ferme proprement sans jamais instancier MainWindow.
-                Application.Current.Shutdown();
-                return;
-            }
-
-            // Seulement ici — séquence complète garantie — on crée MainWindow.
-            // ContentRendered se déclenche quand WPF a réellement dessiné le contenu
-            // à l'écran ; c'est le bon moment pour fermer le splash sans effet de flash.
-            var dbCopyPath     = splash.ViewModel.DbCopyPath;
-            var romStationPath = splash.ViewModel.RomStationPath;
-            var loadedPrefs    = splash.ViewModel.LoadedPreferences;
-
-            var tcs = new TaskCompletionSource<bool>();
-            MainViewModel vm = null!;
+            result = await splash.ViewModel.RunStartupSequence();
+        }
+        catch (Exception ex)
+        {
+            // Exception non prévue ayant échappé à RunStartupSequence
+            string detail = ex.Message;
+            Debug.WriteLine($"[App] RunStartupAsync fatal:\n{FormatException(ex)}");
 
             await Dispatcher.InvokeAsync(() =>
             {
-                vm = new MainViewModel(loadedPrefs);
-                var main = new MainWindow();
-                main.DataContext = vm;
-
-                main.ContentRendered += (_, _) => tcs.TrySetResult(true);
-
-                MainWindow = main;
-                main.Show();
+                var dlg = new ConfirmDialog(
+                    Strings.Splash_UnexpectedError_Title,
+                    string.Format(Strings.Splash_UnexpectedError_Message, detail),
+                    Strings.Splash_UnexpectedError_Quit)
+                { Owner = splash };
+                dlg.ShowDialog();
+                Shutdown(1);
             });
+            return;
+        }
 
-            // Attendre que MainWindow soit vraiment rendue avant de fermer le splash
-            await tcs.Task;
-            await Dispatcher.InvokeAsync(() => splash.Close());
+        switch (result)
+        {
+            case StartupResult.ShuttingDown:
+                // Shutdown() déjà appelé dans SplashViewModel — ne rien faire
+                return;
 
-            // Chargement lazy de la bibliothèque — s'exécute dans MainWindow avec ProgressBar animée
+            case StartupResult.DatabaseCorrupted:
+                // Base Derby corrompue détectée au step 5 — l'icône rouge est déjà visible sur le splash
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    var dlg = new ConfirmDialog(
+                        Strings.Splash_DBCorrupted_Title,
+                        Strings.Splash_DBCorrupted,
+                        Strings.Splash_RSNotFound_Quit)
+                    { Owner = splash };
+                    dlg.ShowDialog();
+                    Shutdown(1);
+                });
+                return;
+
+            case StartupResult.DatabaseNotInitialized:
+                // Base Derby non initialisée détectée au step 3 — RomStation jamais lancé
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    var dlg = new ConfirmDialog(
+                        Strings.Splash_DBNotInitialized_Title,
+                        Strings.Splash_DBNotInitialized_Message,
+                        Strings.Splash_DBNotInitialized_Quit)
+                    { Owner = splash };
+                    dlg.ShowDialog();
+                    Shutdown(1);
+                });
+                return;
+
+            case StartupResult.Failed:
+                // Erreur technique (step 2 ou step 4) — le détail est déjà visible sur le splash
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    var dlg = new ConfirmDialog(
+                        Strings.Splash_UnexpectedError_Title,
+                        string.Format(Strings.Splash_UnexpectedError_Message, string.Empty),
+                        Strings.Splash_UnexpectedError_Quit)
+                    { Owner = splash };
+                    dlg.ShowDialog();
+                    Shutdown(1);
+                });
+                return;
+        }
+
+        // ── Success : ouvrir MainWindow ───────────────────────────────────────
+        // Seulement ici — séquence complète garantie — on crée MainWindow.
+        // ContentRendered se déclenche quand WPF a réellement dessiné le contenu
+        // à l'écran ; c'est le bon moment pour fermer le splash sans effet de flash.
+        var dbCopyPath     = splash.ViewModel.DbCopyPath;
+        var romStationPath = splash.ViewModel.RomStationPath;
+        var loadedPrefs    = splash.ViewModel.LoadedPreferences;
+
+        var tcs = new TaskCompletionSource<bool>();
+        MainViewModel vm = null!;
+
+        await Dispatcher.InvokeAsync(() =>
+        {
+            vm = new MainViewModel(loadedPrefs);
+            var main = new MainWindow();
+            main.DataContext = vm;
+
+            main.ContentRendered += (_, _) => tcs.TrySetResult(true);
+
+            MainWindow = main;
+            main.Show();
+        });
+
+        // Attendre que MainWindow soit vraiment rendue avant de fermer le splash
+        await tcs.Task;
+        await Dispatcher.InvokeAsync(() => splash.Close());
+
+        // Chargement lazy de la bibliothèque — s'exécute dans MainWindow avec ProgressBar animée
+        try
+        {
             await vm.LoadLibraryAsync(dbCopyPath, romStationPath);
         }
         catch (Exception ex)
         {
-            string msg = FormatException(ex);
-            Debug.WriteLine($"[App] RunStartupAsync fatal:\n{msg}");
+            string detail = ex.Message;
+            Debug.WriteLine($"[App] LoadLibraryAsync fatal:\n{FormatException(ex)}");
 
             await Dispatcher.InvokeAsync(() =>
             {
-                ShowErrorDialog("Startup Error", msg);
+                var dlg = new ConfirmDialog(
+                    Strings.Splash_UnexpectedError_Title,
+                    string.Format(Strings.Splash_UnexpectedError_Message, detail),
+                    Strings.Splash_UnexpectedError_Quit);
+                dlg.ShowDialog();
                 Shutdown(1);
             });
         }

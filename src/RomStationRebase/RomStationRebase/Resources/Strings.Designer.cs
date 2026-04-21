@@ -545,5 +545,37 @@ namespace RomStationRebase.Resources {
         public static string Settings_About_OpenRepository {
             get { return ResourceManager.GetString("Settings_About_OpenRepository", resourceCulture); }
         }
+
+        public static string Splash_DBNotInitialized_Title {
+            get { return ResourceManager.GetString("Splash_DBNotInitialized_Title", resourceCulture); }
+        }
+
+        public static string Splash_DBNotInitialized_Message {
+            get { return ResourceManager.GetString("Splash_DBNotInitialized_Message", resourceCulture); }
+        }
+
+        public static string Splash_DBNotInitialized_StepLabel {
+            get { return ResourceManager.GetString("Splash_DBNotInitialized_StepLabel", resourceCulture); }
+        }
+
+        public static string Splash_DBNotInitialized_Quit {
+            get { return ResourceManager.GetString("Splash_DBNotInitialized_Quit", resourceCulture); }
+        }
+
+        public static string Splash_DBCorrupted_Title {
+            get { return ResourceManager.GetString("Splash_DBCorrupted_Title", resourceCulture); }
+        }
+
+        public static string Splash_UnexpectedError_Title {
+            get { return ResourceManager.GetString("Splash_UnexpectedError_Title", resourceCulture); }
+        }
+
+        public static string Splash_UnexpectedError_Message {
+            get { return ResourceManager.GetString("Splash_UnexpectedError_Message", resourceCulture); }
+        }
+
+        public static string Splash_UnexpectedError_Quit {
+            get { return ResourceManager.GetString("Splash_UnexpectedError_Quit", resourceCulture); }
+        }
     }
 }

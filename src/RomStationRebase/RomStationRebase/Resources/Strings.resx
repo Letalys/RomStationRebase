@@ -128,7 +128,7 @@
     <value>RomStation is open — copy may be incomplete</value>
   </data>
   <data name="Splash_DBCorrupted" xml:space="preserve">
-    <value>Database appears corrupted. Close RomStation and sync again.</value>
+    <value>RomStation's database appears corrupted or incomplete. Launch RomStation to let it check and restore the database, then restart RomStation Rebase.</value>
   </data>
   <data name="Splash_ConfigCorrupted_State" xml:space="preserve">
     <value>app-state.json is corrupted. RSRebase needs to recreate it.
@@ -442,9 +442,9 @@ Check the table for error details.</value>
     <value>Quit</value>
   </data>
   <data name="Splash_RSNotFound_InvalidFolder" xml:space="preserve">
-    <value>This folder does not contain a valid RomStation installation. The folder must contain the "app\database" sub-folder and the "app\RomStation.cfg" file.
+    <value>This folder does not contain a valid RomStation installation.
 
-If RomStation was just installed, please launch it at least once before using RomStation Rebase — the database is created on first startup.</value>
+Please select another folder.</value>
   </data>
   <data name="Splash_RSNotFound_SelectFolder" xml:space="preserve">
     <value>Select the RomStation installation folder</value>
@@ -452,6 +452,36 @@ If RomStation was just installed, please launch it at least once before using Ro
   <data name="Splash_RSNotFound_StepFailed" xml:space="preserve">
     <value>RomStation not found — install RomStation or manually indicate its location.</value>
   </data>
+  <data name="Splash_DBNotInitialized_Title" xml:space="preserve">
+    <value>RomStation database not found</value>
+  </data>
+  <data name="Splash_DBNotInitialized_Message" xml:space="preserve">
+    <value>RomStation's database has not been initialized.
+
+Launch RomStation at least once to let it initialize its database, then restart RomStation Rebase.</value>
+  </data>
+  <data name="Splash_DBNotInitialized_StepLabel" xml:space="preserve">
+    <value>RomStation database not initialized</value>
+  </data>
+  <data name="Splash_DBNotInitialized_Quit" xml:space="preserve">
+    <value>Quit</value>
+  </data>
+  <data name="Splash_DBCorrupted_Title" xml:space="preserve">
+    <value>RomStation database corrupted</value>
+  </data>
+  <data name="Splash_UnexpectedError_Title" xml:space="preserve">
+    <value>Unexpected error</value>
+  </data>
+  <data name="Splash_UnexpectedError_Message" xml:space="preserve">
+    <value>An unexpected error occurred while starting RomStation Rebase. The application will close.
+
+Technical details:
+{0}</value>
+  </data>
+  <data name="Splash_UnexpectedError_Quit" xml:space="preserve">
+    <value>Quit</value>
+  </data>
+
   <data name="Settings_Section_About" xml:space="preserve">
     <value>ABOUT</value>
   </data>

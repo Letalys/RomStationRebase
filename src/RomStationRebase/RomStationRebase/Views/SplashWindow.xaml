@@ -236,6 +236,7 @@
                              Style="{StaticResource SplashProgressBar}"/>
 
                 <!-- ── Footer ── -->
+                <!-- Le splash est passif — toutes les interactions passent par des ConfirmDialog -->
                 <Grid Grid.Row="3" Margin="16,0">
                     <TextBlock Text="{Binding SplashStatusText}"
                                FontSize="11"
@@ -243,24 +244,6 @@
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis"/>
-
-                    <!-- Bouton Quit — visible uniquement en cas d'erreur -->
-                    <Button HorizontalAlignment="Right"
-                            VerticalAlignment="Center"
-                            Command="{Binding QuitCommand}"
-                            Padding="14,5">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Setter Property="Content"    Value="Quit"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasError}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
                 </Grid>
 
             </Grid>

@@ -57,12 +57,30 @@ public class RomStationService
     // ── Validation du dossier ─────────────────────────────────────────────
 
     /// <summary>
-    /// Vérifie que le dossier contient bien app/database et app/RomStation.cfg.
+    /// Vérifie qu'il s'agit bien d'une installation RomStation.
+    /// Seul marqueur discriminant : présence de app\RomStation.cfg.
+    /// La vérification de la base Derby se fait au step 3, pas ici.
     /// </summary>
     public bool ValidateRomStationPath(string path)
         => SystemDirectory.Exists(path)
-        && SystemDirectory.Exists(SystemPath.Combine(path, DatabaseSubPath))
         && SystemFile.Exists(SystemPath.Combine(path, ConfigSubPath));
+
+    /// <summary>
+    /// Vérifie si la base Derby de RomStation a été initialisée.
+    /// Une install neuve n'a pas encore de dossier app\database\seg0\ :
+    /// il est créé par RomStation à son premier lancement.
+    /// </summary>
+    public bool IsDatabaseInitialized(string romStationPath)
+        => SystemDirectory.Exists(SystemPath.Combine(romStationPath, DatabaseSubPath, "seg0"));
+
+    /// <summary>
+    /// Vérifie la présence des fichiers internes critiques de Derby.
+    /// service.properties est créé en même temps que seg0\ au premier
+    /// lancement de RomStation. Son absence (alors que seg0\ est là)
+    /// signale une anomalie (corruption, manipulation manuelle).
+    /// </summary>
+    public bool IsDatabaseFilesComplete(string romStationPath)
+        => SystemFile.Exists(SystemPath.Combine(romStationPath, DatabaseSubPath, "service.properties"));
 
     // ── Lecture de la configuration INI ──────────────────────────────────
 
