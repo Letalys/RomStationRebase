@@ -129,6 +129,10 @@ public class ConfigService
         // ThumbnailSize : normalisé en silence plutôt que rejeté (préférence visuelle sans impact critique)
         if (prefs.ThumbnailSize != "Normal" && prefs.ThumbnailSize != "Grand")
             prefs.ThumbnailSize = "Normal";
+
+        // LastSortCriteria : normalisé en silence — préférence visuelle sans impact critique
+        if (prefs.LastSortCriteria != "Title" && prefs.LastSortCriteria != "System")
+            prefs.LastSortCriteria = "Title";
     }
 
     // ── AppMetadata ───────────────────────────────────────────────────────

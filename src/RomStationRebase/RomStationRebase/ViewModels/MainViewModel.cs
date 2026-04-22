@@ -161,6 +161,9 @@ public class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(TitleSortArrow));
                 OnPropertyChanged(nameof(SystemSortArrow));
                 OnPropertyChanged(nameof(FilesSortArrow));
+                // Notifie SortCriteria — permet à la ComboBox toolbar de refléter un changement
+                // déclenché par un clic sur un en-tête de colonne (synchro bidirectionnelle).
+                OnPropertyChanged(nameof(SortCriteria));
                 // Recalcul de l'abécédaire — le changement de colonne de tri peut activer ou
                 // désactiver l'ensemble des lettres (abécédaire inopérant hors tri alphabétique).
                 UpdateAlphabetStates();
@@ -191,6 +194,22 @@ public class MainViewModel : ViewModelBase
 
     /// <summary>Flèche de tri bindée dans l'en-tête de la colonne Fichiers.</summary>
     public string FilesSortArrow  => _sortColumn == "Files"  ? (_sortAscending ? "↑" : "↓") : "";
+
+    /// <summary>
+    /// Point de liaison pour la ComboBox "Trier par" de la toolbar.
+    /// Lecture : expose SortColumn pour que la ComboBox reflète l'état courant (y compris
+    /// les changements via les en-têtes de colonnes cliquables).
+    /// Écriture : appelle SetSortCriteria — force le sens ascendant et persiste la préférence.
+    /// </summary>
+    public string SortCriteria
+    {
+        get => _sortColumn;
+        set
+        {
+            if (_sortColumn != value)
+                SetSortCriteria(value);
+        }
+    }
 
     /// <summary>Quand true, seuls les jeux présentant un problème (fichier ou jaquette manquants) sont affichés.</summary>
     public bool ShowIssuesOnly
@@ -276,6 +295,8 @@ public class MainViewModel : ViewModelBase
         _isMosaicView  = preferences.LastViewMode != "List";
         // Initialisation directe sur le champ pour éviter un SaveThumbnailSizePreference inutile au démarrage
         _thumbnailSize = preferences.ThumbnailSize;
+        // Initialisation directe sur le champ pour éviter un SaveSortCriteriaPreference inutile au démarrage
+        _sortColumn    = preferences.LastSortCriteria;
 
         // Initialisation de l'abécédaire — 26 lettres A-Z + # (tous désactivés par défaut)
         AlphabetItems = new ObservableCollection<AlphaItemViewModel>();
@@ -704,6 +725,31 @@ public class MainViewModel : ViewModelBase
         try
         {
             _preferences.ThumbnailSize = _thumbnailSize;
+            _config.SaveUserPreferences(_preferences);
+        }
+        catch
+        {
+            // Ne pas bloquer l'UI si l'écriture disque échoue
+        }
+    }
+
+    // Utilisé UNIQUEMENT par la ComboBox "Trier par" dans la toolbar.
+    // Distinct de SetSort qui gère le toggle asc/desc des en-têtes de
+    // colonnes cliquables. Force toujours le sens ascendant.
+    private void SetSortCriteria(string column)
+    {
+        SortColumn    = column;   // INPC + arrows + SortCriteria + UpdateAlphabetStates()
+        SortAscending = true;     // force ascendant
+        ApplySort();
+        SaveSortCriteriaPreference();
+    }
+
+    /// <summary>Sauvegarde le critère de tri dans UserPreferences. Silencieux en cas d'erreur.</summary>
+    private void SaveSortCriteriaPreference()
+    {
+        try
+        {
+            _preferences.LastSortCriteria = _sortColumn;
             _config.SaveUserPreferences(_preferences);
         }
         catch

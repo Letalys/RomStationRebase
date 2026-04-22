@@ -527,4 +527,13 @@ Détails techniques :
   <data name="Main_ThumbnailSize_Label" xml:space="preserve">
     <value>Taille&#160;:</value>
   </data>
+  <data name="Main_SortBy_Label" xml:space="preserve">
+    <value>Trier&#160;:</value>
+  </data>
+  <data name="Main_SortBy_Title" xml:space="preserve">
+    <value>Titre</value>
+  </data>
+  <data name="Main_SortBy_System" xml:space="preserve">
+    <value>Système</value>
+  </data>
 </root>

@@ -739,9 +739,24 @@
                             </TextBox.Style>
                         </TextBox>
 
-                        <!-- Toggle vue + sélecteur de taille des vignettes -->
+                        <!-- Toggle vue + sélecteurs de tri et de taille des vignettes -->
                         <StackPanel Grid.Column="4" Orientation="Horizontal"
                                     VerticalAlignment="Center">
+                            <!-- Sélecteur de tri global — label + ComboBox Titre / Système -->
+                            <TextBlock Text="{x:Static res:Strings.Main_SortBy_Label}"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12"
+                                       Margin="0,0,6,0"/>
+                            <ComboBox SelectedValue="{Binding SortCriteria, Mode=TwoWay}"
+                                      SelectedValuePath="Tag"
+                                      MinWidth="100"
+                                      VerticalAlignment="Center">
+                                <ComboBoxItem Content="{x:Static res:Strings.Main_SortBy_Title}"  Tag="Title"/>
+                                <ComboBoxItem Content="{x:Static res:Strings.Main_SortBy_System}" Tag="System"/>
+                            </ComboBox>
+                            <!-- Séparateur entre les deux ComboBox -->
+                            <Rectangle Width="1" Fill="{StaticResource BorderBrush}" Margin="8,4"/>
                             <!-- Sélecteur de taille — label + ComboBox à deux entrées (Normal / Grand) -->
                             <TextBlock Text="{x:Static res:Strings.Main_ThumbnailSize_Label}"
                                        VerticalAlignment="Center"
@@ -924,22 +939,17 @@
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
 
-                            <!-- Col 4 : Fichiers (Auto, min 70px) — triable, FileCountConverter pour tous les jeux -->
+                            <!-- Col 4 : Fichiers (Auto, min 70px) — non-triable (tri par fichiers retiré,
+                                 seuls Titre et Système sont exposés dans la ComboBox de la toolbar) -->
                             <GridViewColumn Width="Auto">
                                 <GridViewColumn.HeaderContainerStyle>
                                     <Style TargetType="GridViewColumnHeader" BasedOn="{StaticResource ListColumnHeaderStyle}">
-                                        <Setter Property="Tag"      Value="Files"/>
                                         <Setter Property="MinWidth" Value="70"/>
                                     </Style>
                                 </GridViewColumn.HeaderContainerStyle>
                                 <GridViewColumn.HeaderTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{x:Static res:Strings.Column_Files}" VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding DataContext.FilesSortArrow, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
-                                                       Foreground="{StaticResource AccentBrush}"
-                                                       FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                                        </StackPanel>
+                                        <TextBlock Text="{x:Static res:Strings.Column_Files}" VerticalAlignment="Center"/>
                                     </DataTemplate>
                                 </GridViewColumn.HeaderTemplate>
                                 <GridViewColumn.CellTemplate>

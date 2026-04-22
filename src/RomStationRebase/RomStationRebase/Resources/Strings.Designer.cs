@@ -597,6 +597,18 @@ namespace RomStationRebase.Resources {
             get { return ResourceManager.GetString("Main_ThumbnailSize_Label", resourceCulture); }
         }
 
+        public static string Main_SortBy_Label {
+            get { return ResourceManager.GetString("Main_SortBy_Label", resourceCulture); }
+        }
+
+        public static string Main_SortBy_Title {
+            get { return ResourceManager.GetString("Main_SortBy_Title", resourceCulture); }
+        }
+
+        public static string Main_SortBy_System {
+            get { return ResourceManager.GetString("Main_SortBy_System", resourceCulture); }
+        }
+
         public static string Sync_Confirm_Title {
             get { return ResourceManager.GetString("Sync_Confirm_Title", resourceCulture); }
         }

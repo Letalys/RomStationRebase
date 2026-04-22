@@ -41,4 +41,7 @@ public class UserPreferences
 
     /// <summary>Taille des vignettes de jeu dans MainWindow : "Normal" (défaut, dimensions actuelles) ou "Grand".</summary>
     public string ThumbnailSize { get; set; } = "Normal";
+
+    /// <summary>Critère de tri global sélectionné par l'utilisateur. Valeurs : "Title" (défaut) ou "System".</summary>
+    public string LastSortCriteria { get; set; } = "Title";
 }
