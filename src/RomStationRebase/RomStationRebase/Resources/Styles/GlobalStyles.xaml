@@ -12,12 +12,13 @@
 
     <!-- Button base -->
     <Style TargetType="Button">
-        <Setter Property="Background"   Value="Transparent"/>
-        <Setter Property="BorderBrush"  Value="{StaticResource BorderBrush}"/>
+        <Setter Property="Background"      Value="Transparent"/>
+        <!-- Bordure plus visible qu'avant (#E0E0E0) pour distinguer les boutons du fond -->
+        <Setter Property="BorderBrush"     Value="#BDBDBD"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding"      Value="8,4"/>
-        <Setter Property="Cursor"       Value="Hand"/>
-        <Setter Property="Foreground"   Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Padding"         Value="8,4"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -42,6 +43,17 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <!-- Retour coloré au hover/clic — direction validée par pré-test visuel -->
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background"  Value="#F0EBFD"/>
+                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background"  Value="#E4D9FB"/>
+                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- PrimaryButton -->
@@ -50,6 +62,20 @@
         <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
         <Setter Property="Foreground"  Value="White"/>
         <Setter Property="Padding"     Value="10,6"/>
+        <!-- Hover/Pressed explicites : sans eux, PrimaryButton hériterait des triggers de la base
+             et le texte blanc deviendrait illisible sur le fond pâle #F0EBFD. -->
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background"  Value="#F0EBFD"/>
+                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                <Setter Property="Foreground"  Value="{StaticResource AccentBrush}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background"  Value="#E4D9FB"/>
+                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                <Setter Property="Foreground"  Value="{StaticResource AccentBrush}"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- TextBox -->
