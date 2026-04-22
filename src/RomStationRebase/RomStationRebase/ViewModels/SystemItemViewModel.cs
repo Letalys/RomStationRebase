@@ -4,7 +4,7 @@ namespace RomStationRebase.ViewModels;
 public class SystemItemViewModel : ViewModelBase
 {
     private readonly Action _onFilterChanged;
-    private bool _isChecked = true;
+    private bool _isChecked;
 
     /// <summary>Nom du système tel qu'il apparaît dans la base RomStation.</summary>
     public string Name { get; }
@@ -29,12 +29,16 @@ public class SystemItemViewModel : ViewModelBase
     /// <param name="imagePath">Chemin de l'image système.</param>
     /// <param name="gameCount">Nombre de jeux.</param>
     /// <param name="onFilterChanged">Callback appelé quand IsChecked change.</param>
-    public SystemItemViewModel(string name, string? imagePath, int gameCount, Action onFilterChanged)
+    /// <param name="initialIsChecked">initialIsChecked permet d'initialiser la case à cocher directement
+    /// à la construction, évitant un flash visuel lors d'un rechargement avec filtres préservés.</param>
+    public SystemItemViewModel(string name, string? imagePath, int gameCount, Action onFilterChanged,
+        bool initialIsChecked = true)
     {
         Name      = name;
         ImagePath = imagePath;
         GameCount = gameCount;
         _onFilterChanged = onFilterChanged;
+        _isChecked = initialIsChecked;
     }
 
     /// <summary>

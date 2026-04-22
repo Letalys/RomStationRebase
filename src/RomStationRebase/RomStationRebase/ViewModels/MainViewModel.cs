@@ -362,7 +362,10 @@ public class MainViewModel : ViewModelBase
     /// </summary>
     /// <param name="dbCopyPath">Chemin de la copie locale de la base Derby.</param>
     /// <param name="romStationPath">Chemin de l'installation RomStation (pour les images).</param>
-    public async Task LoadLibraryAsync(string dbCopyPath, string romStationPath)
+    /// <param name="systemsToCheck">systemsToCheck null → tous cochés (démarrage applicatif).
+    /// HashSet fourni → coché uniquement si le nom y figure (restauration après Sync).</param>
+    public async Task LoadLibraryAsync(string dbCopyPath, string romStationPath,
+        HashSet<string>? systemsToCheck = null)
     {
         _romStationPath   = romStationPath;
         _dbCopyPath       = dbCopyPath;
@@ -393,7 +396,8 @@ public class MainViewModel : ViewModelBase
             foreach (var sys in systems)
             {
                 int count = countBySystem.TryGetValue(sys.Name, out int c) ? c : 0;
-                Systems.Add(new SystemItemViewModel(sys.Name, sys.ImagePath, count, RefreshFilter));
+                bool isChecked = systemsToCheck == null || systemsToCheck.Contains(sys.Name);
+                Systems.Add(new SystemItemViewModel(sys.Name, sys.ImagePath, count, RefreshFilter, isChecked));
             }
 
             var gameVms = games.Select(g => new GameItemViewModel(
@@ -462,8 +466,8 @@ public class MainViewModel : ViewModelBase
 
     /// <summary>
     /// Resynchronise la base Derby depuis RomStation sans quitter l'application.
-    /// Affiche l'overlay de chargement, recopie la base, supprime db.lck de la copie,
-    /// puis recharge systèmes et jeux via LoadLibraryAsync.
+    /// Affiche une popup de confirmation, affiche l'overlay de chargement, recopie la base,
+    /// puis recharge systèmes et jeux via LoadLibraryAsync en préservant le filtre système.
     /// </summary>
     public async Task SyncDbAsync()
     {
@@ -471,6 +475,24 @@ public class MainViewModel : ViewModelBase
 
         if (string.IsNullOrWhiteSpace(_romStationPath) || string.IsNullOrWhiteSpace(_dbCopyPath))
             return;
+
+        // Confirmation avant Sync — prévient l'utilisateur que sa sélection sera perdue.
+        // Filtres systèmes préservés, sélection perdue (inévitable).
+        string libelle = SelectedGameCount == 1
+            ? Strings.Sync_Confirm_Singular
+            : Strings.Sync_Confirm_Plural;
+        string message = SelectedGameCount > 0
+            ? string.Format(Strings.Sync_Confirm_MessageWithSelection, SelectedGameCount, libelle)
+            : Strings.Sync_Confirm_Message;
+
+        var confirm = new ConfirmDialog(
+            Strings.Sync_Confirm_Title,
+            message,
+            Strings.Sync_Confirm_Proceed,
+            Strings.Sync_Confirm_Cancel)
+            { Owner = Application.Current.MainWindow };
+        confirm.ShowDialog();
+        if (!confirm.Result) return;
 
         IsLoading         = true;
         LoadingStatusText = Strings.Sync_InProgress;
@@ -505,6 +527,12 @@ public class MainViewModel : ViewModelBase
             return;
         }
 
+        // Capture des systèmes cochés avant Clear — préservés par nom après rechargement
+        var systemesPreserves = Systems
+            .Where(s => s.IsChecked)
+            .Select(s => s.Name)
+            .ToHashSet();
+
         // Vider les collections existantes avant le rechargement
         await Application.Current.Dispatcher.InvokeAsync(() =>
         {
@@ -513,9 +541,9 @@ public class MainViewModel : ViewModelBase
             FilteredGames = new ObservableCollection<GameItemViewModel>();
         });
 
-        // Rechargement complet — IsLoading sera remis à false en fin de LoadLibraryAsync,
-        // LastSyncText sera automatiquement mis à jour via OnPropertyChanged
-        await LoadLibraryAsync(_dbCopyPath, _romStationPath);
+        // Rechargement complet avec état des filtres pré-configuré — IsLoading sera remis à
+        // false en fin de LoadLibraryAsync, LastSyncText sera automatiquement mis à jour.
+        await LoadLibraryAsync(_dbCopyPath, _romStationPath, systemesPreserves);
     }
 
     // ── Filtrage ──────────────────────────────────────────────────────────

@@ -596,5 +596,33 @@ namespace RomStationRebase.Resources {
         public static string Main_ThumbnailSize_Label {
             get { return ResourceManager.GetString("Main_ThumbnailSize_Label", resourceCulture); }
         }
+
+        public static string Sync_Confirm_Title {
+            get { return ResourceManager.GetString("Sync_Confirm_Title", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Message {
+            get { return ResourceManager.GetString("Sync_Confirm_Message", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_MessageWithSelection {
+            get { return ResourceManager.GetString("Sync_Confirm_MessageWithSelection", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Singular {
+            get { return ResourceManager.GetString("Sync_Confirm_Singular", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Plural {
+            get { return ResourceManager.GetString("Sync_Confirm_Plural", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Proceed {
+            get { return ResourceManager.GetString("Sync_Confirm_Proceed", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Cancel {
+            get { return ResourceManager.GetString("Sync_Confirm_Cancel", resourceCulture); }
+        }
     }
 }
