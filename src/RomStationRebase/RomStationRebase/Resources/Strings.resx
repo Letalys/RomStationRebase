@@ -426,6 +426,9 @@ Check the table for error details.</value>
   <data name="Rebase_Error_InvalidDriveLetter" xml:space="preserve">
     <value>The specified drive letter does not exist. Connect the corresponding device or choose another location.</value>
   </data>
+  <data name="Rebase_Error_FolderNotExist" xml:space="preserve">
+    <value>The specified folder does not exist.</value>
+  </data>
   <data name="Rebase_Validation_PathNotAbsolute" xml:space="preserve">
     <value>The destination path must be complete and absolute (example: C:\My ROMs or E:\roms). Please enter a complete path or use the Browse button.</value>
   </data>

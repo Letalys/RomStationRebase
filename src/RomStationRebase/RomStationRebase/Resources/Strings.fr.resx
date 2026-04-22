@@ -426,6 +426,9 @@ Consulte le tableau pour le détail des erreurs.</value>
   <data name="Rebase_Error_InvalidDriveLetter" xml:space="preserve">
     <value>La lettre de lecteur spécifiée n'existe pas. Branchez le support correspondant ou choisissez un autre emplacement.</value>
   </data>
+  <data name="Rebase_Error_FolderNotExist" xml:space="preserve">
+    <value>Le dossier spécifié n'existe pas.</value>
+  </data>
   <data name="Rebase_Validation_PathNotAbsolute" xml:space="preserve">
     <value>Le chemin de destination doit être complet et absolu (exemple : C:\Mes ROMs ou E:\roms). Veuillez saisir un chemin complet ou utiliser le bouton Parcourir.</value>
   </data>

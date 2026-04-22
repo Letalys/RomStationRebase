@@ -512,6 +512,9 @@ namespace RomStationRebase.Resources {
         public static string Rebase_Error_InvalidDriveLetter {
             get { return ResourceManager.GetString("Rebase_Error_InvalidDriveLetter", resourceCulture); }
         }
+        public static string Rebase_Error_FolderNotExist {
+            get { return ResourceManager.GetString("Rebase_Error_FolderNotExist", resourceCulture); }
+        }
         public static string Rebase_Validation_PathNotAbsolute {
             get { return ResourceManager.GetString("Rebase_Validation_PathNotAbsolute", resourceCulture); }
         }
