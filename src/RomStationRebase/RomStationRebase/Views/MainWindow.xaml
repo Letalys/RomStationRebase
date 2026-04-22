@@ -346,6 +346,50 @@
             </Setter>
         </Style>
 
+        <!-- Style bouton abécédaire (24×24) — ControlTemplate standalone pour supporter CornerRadius=6.
+             Hover violet cohérent avec les autres boutons de l'app (#F0EBFD + AccentBrush).
+             Disabled à 40% d'opacité = lettre inactive (aucun jeu commençant par cette lettre). -->
+        <Style x:Key="AlphaButton" TargetType="Button">
+            <Setter Property="Width"           Value="24"/>
+            <Setter Property="Height"          Value="24"/>
+            <Setter Property="FontSize"        Value="13"/>
+            <Setter Property="FontWeight"      Value="SemiBold"/>
+            <Setter Property="Padding"         Value="0"/>
+            <Setter Property="Margin"          Value="1"/>
+            <Setter Property="Background"      Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush"     Value="#BDBDBD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background"   Value="#F0EBFD"/>
+                                <Setter TargetName="border" Property="BorderBrush"  Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background"   Value="#E4D9FB"/>
+                                <Setter TargetName="border" Property="BorderBrush"  Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Window.Resources>
 
     <Grid>
@@ -613,9 +657,14 @@
                     <RowDefinition Height="44"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <!-- Colonne abécédaire — largeur Auto, s'adapte au nombre de colonnes du WrapPanel -->
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                <!-- Header contenu -->
-                <Border Grid.Row="0"
+                <!-- Header contenu — ColumnSpan="2" pour couvrir la colonne abécédaire -->
+                <Border Grid.Row="0" Grid.ColumnSpan="2"
                         Background="{StaticResource SurfaceBrush}"
                         BorderBrush="{StaticResource BorderBrush}"
                         BorderThickness="0,0,0,1">
@@ -1016,6 +1065,40 @@
 
                     </StackPanel>
                 </Grid>
+
+                <!-- ── Abécédaire de navigation rapide ──────────────────────────────
+                     Panneau vertical à droite — clic = scroll instantané vers le premier
+                     jeu de la lettre. Multi-colonnes dynamique via WrapPanel Vertical.
+                     Inopérant (toutes lettres désactivées) si tri != alphabétique par titre. -->
+                <Border x:Name="AlphabetBorder"
+                        Grid.Row="1" Grid.Column="1"
+                        Background="#FAFAFA"
+                        BorderBrush="#D0D0D0"
+                        BorderThickness="1,0,0,0">
+                    <ItemsControl ItemsSource="{Binding AlphabetItems}"
+                                  Margin="6">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <!-- Height bindée sur le Border parent — détermine la hauteur d'une colonne
+                                     et donc quand le WrapPanel crée une nouvelle colonne de lettres. -->
+                                <WrapPanel Orientation="Vertical"
+                                           Height="{Binding ActualHeight,
+                                                   RelativeSource={RelativeSource AncestorType=Border}}"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource AlphaButton}"
+                                        Content="{Binding Letter}"
+                                        IsEnabled="{Binding IsEnabled}"
+                                        Command="{Binding DataContext.JumpToLetterCommand,
+                                                 RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding Letter}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
             </Grid>
         </DockPanel>
 

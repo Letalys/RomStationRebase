@@ -40,6 +40,9 @@ public partial class MainWindow : Window
         {
             vm.PropertyChanged += OnMainViewModelPropertyChanged;
             ApplyThumbnailSize(vm.ThumbnailSize);
+            // Injection du callback de scroll — délègue la mécanique WPF (non-DP) au code-behind.
+            // Pattern identique à ConfirmCancel dans RebaseWindow.
+            vm.ScrollToLetter = ScrollToLetter;
         }
 
         // Quand MosaicListView redevient visible (bascule Liste→Mosaïque), le VirtualizingWrapPanel
@@ -120,6 +123,64 @@ public partial class MainWindow : Window
     /// Le Tag du GridViewColumnHeader porte le nom de la colonne ("Title", "System", "Files").
     /// e.OriginalSource garantit le bon ciblage même avec le routing WPF.
     /// </summary>
+    // Saut instantané vers la première occurrence de la lettre.
+    // Calcul d'offset direct (ScrollToVerticalOffset) plutôt que
+    // ScrollIntoView : (1) positionne l'item en HAUT de la zone visible
+    // au lieu du comportement "minimal" de ScrollIntoView ;
+    // (2) évite le coût de matérialisation des conteneurs intermédiaires
+    // avec VirtualizingWrapPanel en mode mosaïque.
+    private void ScrollToLetter(string letter)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        // 1) Identifier l'index du premier jeu correspondant à la lettre
+        int targetIndex = -1;
+        var games = vm.FilteredGames;
+        for (int i = 0; i < games.Count; i++)
+        {
+            if (string.IsNullOrEmpty(games[i].Title)) continue;
+
+            char premiere = games[i].Title[0];
+            string bucket = char.IsLetter(premiere) && char.ToUpper(premiere) is >= 'A' and <= 'Z'
+                ? char.ToUpper(premiere).ToString()
+                : "#";
+
+            if (bucket == letter) { targetIndex = i; break; }
+        }
+        if (targetIndex < 0) return;
+
+        // 2) Identifier le ListView actif et son ScrollViewer
+        ListView listView = vm.IsMosaicView ? MosaicListView : ListListView;
+        var scrollViewer = FindVisualChild<ScrollViewer>(listView);
+        if (scrollViewer == null) return;
+
+        // 3) Calcul de l'offset vertical selon le mode d'affichage
+        double targetOffset;
+        if (vm.IsMosaicView)
+        {
+            // Wrap panel multi-colonnes : pixel-based, calcul colonnes × lignes.
+            // Note : la ligne contenant le premier item cible est placée en haut de la
+            // zone visible. Si l'item cible n'est pas en début de ligne (autres lettres
+            // à sa gauche), celles-ci restent visibles — comportement standard d'une
+            // grille, cohérent avec le layout en colonnes.
+            int columnsPerRow = Math.Max(1, (int)(scrollViewer.ViewportWidth / vm.MosaicItemWidth));
+            int row = targetIndex / columnsPerRow;
+            targetOffset = row * vm.MosaicItemHeight;
+        }
+        else
+        {
+            // Mode liste : item-based (VirtualizingStackPanel, ScrollUnit.Item par défaut).
+            // ScrollToVerticalOffset interprète son argument comme un index, pas des pixels.
+            targetOffset = targetIndex;
+        }
+
+        // 4) Plafonner pour ne pas dépasser la fin de liste
+        targetOffset = Math.Clamp(targetOffset, 0, scrollViewer.ScrollableHeight);
+
+        // 5) Scroll direct sans matérialisation des conteneurs intermédiaires
+        scrollViewer.ScrollToVerticalOffset(targetOffset);
+    }
+
     private void ListViewColumnHeader_Click(object sender, RoutedEventArgs e)
     {
         if (e.OriginalSource is GridViewColumnHeader header &&

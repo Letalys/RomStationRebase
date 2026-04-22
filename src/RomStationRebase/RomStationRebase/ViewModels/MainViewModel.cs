@@ -52,6 +52,12 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    /// <summary>Items de l'abécédaire — 26 lettres A-Z + #, état activé selon FilteredGames et SortColumn.</summary>
+    public ObservableCollection<AlphaItemViewModel> AlphabetItems { get; private set; } = null!;
+
+    /// <summary>Callback injecté par MainWindow.xaml.cs — effectue le scroll vers la première occurrence de la lettre.</summary>
+    public Action<string>? ScrollToLetter { get; set; }
+
     // ── Propriétés bindées ────────────────────────────────────────────────
 
     /// <summary>Texte saisi dans la barre de recherche — déclenche le filtrage à chaque frappe.</summary>
@@ -155,6 +161,9 @@ public class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(TitleSortArrow));
                 OnPropertyChanged(nameof(SystemSortArrow));
                 OnPropertyChanged(nameof(FilesSortArrow));
+                // Recalcul de l'abécédaire — le changement de colonne de tri peut activer ou
+                // désactiver l'ensemble des lettres (abécédaire inopérant hors tri alphabétique).
+                UpdateAlphabetStates();
             }
         }
     }
@@ -250,6 +259,9 @@ public class MainViewModel : ViewModelBase
     /// <summary>Ouvre la fenêtre Paramètres en modal.</summary>
     public ICommand SettingsCommand { get; private set; } = null!;
 
+    /// <summary>Scrolle vers le premier jeu dont le titre commence par la lettre passée en paramètre.</summary>
+    public ICommand JumpToLetterCommand { get; private set; } = null!;
+
     // ── Constructeur ─────────────────────────────────────────────────────
 
     /// <summary>
@@ -264,6 +276,13 @@ public class MainViewModel : ViewModelBase
         _isMosaicView  = preferences.LastViewMode != "List";
         // Initialisation directe sur le champ pour éviter un SaveThumbnailSizePreference inutile au démarrage
         _thumbnailSize = preferences.ThumbnailSize;
+
+        // Initialisation de l'abécédaire — 26 lettres A-Z + # (tous désactivés par défaut)
+        AlphabetItems = new ObservableCollection<AlphaItemViewModel>();
+        for (char c = 'A'; c <= 'Z'; c++)
+            AlphabetItems.Add(new AlphaItemViewModel(c.ToString()));
+        AlphabetItems.Add(new AlphaItemViewModel("#"));
+
         InitCommands();
     }
 
@@ -314,6 +333,16 @@ public class MainViewModel : ViewModelBase
             canExecute: () => !_isLoading);
 
         SettingsCommand = new RelayCommand(OpenSettings);
+
+        // Délégation du scroll vers la View via le callback injecté (ScrollToLetter).
+        // CanExecute bloqué si le tri n'est pas alphabétique par titre — l'abécédaire est inopérant dans ce cas.
+        JumpToLetterCommand = new RelayCommand<string>(
+            execute: letter =>
+            {
+                if (string.IsNullOrEmpty(letter)) return;
+                ScrollToLetter?.Invoke(letter);
+            },
+            canExecute: _ => _sortColumn == "Title");
     }
 
     /// <summary>
@@ -602,12 +631,47 @@ public class MainViewModel : ViewModelBase
             }
 
             RefreshSelectedCount();
+            UpdateAlphabetStates();
         });
     }
 
     /// <summary>Recalcule le nombre de jeux sélectionnés à partir de la liste complète.</summary>
     private void RefreshSelectedCount()
         => SelectedGameCount = Games.Count(g => g.IsSelected);
+
+    /// <summary>
+    /// Met à jour l'état IsEnabled de chaque item de l'abécédaire selon le contenu courant de FilteredGames.
+    /// Désactive toutes les lettres si le tri actif n'est pas alphabétique par titre.
+    /// </summary>
+    private void UpdateAlphabetStates()
+    {
+        bool triAlphabetique = _sortColumn == "Title";
+
+        if (!triAlphabetique)
+        {
+            // Tri non alphabétique : abécédaire entièrement désactivé
+            foreach (var item in AlphabetItems)
+                item.IsEnabled = false;
+            return;
+        }
+
+        // Construction du set des lettres représentées dans FilteredGames
+        var lettresPresentes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var game in FilteredGames)
+        {
+            if (string.IsNullOrEmpty(game.Title)) continue;
+
+            char premiere = game.Title[0];
+            string bucket = char.IsLetter(premiere) && char.ToUpper(premiere) is >= 'A' and <= 'Z'
+                ? char.ToUpper(premiere).ToString()
+                : "#";
+
+            lettresPresentes.Add(bucket);
+        }
+
+        foreach (var item in AlphabetItems)
+            item.IsEnabled = lettresPresentes.Contains(item.Letter);
+    }
 
     /// <summary>Ouvre le panneau de paramètres en modal.</summary>
     private void OpenSettings()
