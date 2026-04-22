@@ -75,7 +75,7 @@ public partial class MainWindow : Window
             panel.ItemSize = grand ? new Size(320, 419) : new Size(216, 295);
 
         // GridViewColumn.Width — non-DP : binding XAML impossible
-        CoverColumn.Width = grand ? 68 : 52;
+        CoverColumn.Width = grand ? 108 : 52;
     }
 
     /// <summary>Traverse l'arbre visuel en profondeur pour trouver le premier enfant du type T.</summary>
