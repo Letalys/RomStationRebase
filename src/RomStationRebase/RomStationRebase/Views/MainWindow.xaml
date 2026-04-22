@@ -257,8 +257,12 @@
 
                         <!-- Zone info bas de carte -->
                         <StackPanel Margin="8,6,8,8">
-                            <!-- Titre — tronqué si trop long ; MaxWidth suit la largeur de la jaquette -->
+                            <!-- Titre — tronqué si trop long ; MaxWidth suit la largeur de la jaquette.
+                                 ToolTip affiché au survol — contient le titre complet, utile pour les
+                                 titres tronqués par TextTrimming. Pattern standard WPF (identique à
+                                 Visual Studio et File Explorer). -->
                             <TextBlock Text="{Binding Title}"
+                                       ToolTip="{Binding Title}"
                                        FontSize="11" FontWeight="Medium"
                                        Foreground="{StaticResource TextPrimaryBrush}"
                                        MaxWidth="{Binding DataContext.MosaicCardWidth, RelativeSource={RelativeSource AncestorType=ListView}}"
