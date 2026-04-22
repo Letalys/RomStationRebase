@@ -125,6 +125,10 @@ public class ConfigService
         if (prefs.Theme != "Light")
             throw new ConfigCorruptedException("user-preferences.json",
                 $"Theme='{prefs.Theme}' invalide (valeurs acceptées : Light)");
+
+        // ThumbnailSize : normalisé en silence plutôt que rejeté (préférence visuelle sans impact critique)
+        if (prefs.ThumbnailSize != "Normal" && prefs.ThumbnailSize != "Grand")
+            prefs.ThumbnailSize = "Normal";
     }
 
     // ── AppMetadata ───────────────────────────────────────────────────────

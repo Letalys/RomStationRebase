@@ -580,5 +580,21 @@ namespace RomStationRebase.Resources {
         public static string Splash_UnexpectedError_Quit {
             get { return ResourceManager.GetString("Splash_UnexpectedError_Quit", resourceCulture); }
         }
+
+        public static string Main_SizeNormal {
+            get { return ResourceManager.GetString("Main_SizeNormal", resourceCulture); }
+        }
+
+        public static string Main_SizeLarge {
+            get { return ResourceManager.GetString("Main_SizeLarge", resourceCulture); }
+        }
+
+        public static string Main_ThumbnailSize_Tooltip {
+            get { return ResourceManager.GetString("Main_ThumbnailSize_Tooltip", resourceCulture); }
+        }
+
+        public static string Main_ThumbnailSize_Label {
+            get { return ResourceManager.GetString("Main_ThumbnailSize_Label", resourceCulture); }
+        }
     }
 }

@@ -22,6 +22,7 @@ public class MainViewModel : ViewModelBase
     private string    _searchText        = string.Empty;
     private bool      _isMosaicView      = true;
     private bool      _showIssuesOnly    = false;
+    private string    _thumbnailSize     = "Normal";
     private bool      _isLoading         = true;   // true par défaut — overlay visible jusqu'à la fin de LoadLibraryAsync
     private int       _selectedGameCount;
     private DateTime? _lastSyncDate;
@@ -95,6 +96,53 @@ public class MainViewModel : ViewModelBase
 
     /// <summary>Inverse de IsMosaicView — utilisé pour la visibilité de la vue liste.</summary>
     public bool IsListView => !_isMosaicView;
+
+    /// <summary>Taille des vignettes : "Normal" (défaut) ou "Grand". Déclenche le recalcul des dimensions bindées.</summary>
+    public string ThumbnailSize
+    {
+        get => _thumbnailSize;
+        set
+        {
+            if (SetProperty(ref _thumbnailSize, value))
+            {
+                OnPropertyChanged(nameof(MosaicCardWidth));
+                OnPropertyChanged(nameof(MosaicCardHeight));
+                OnPropertyChanged(nameof(MosaicItemWidth));
+                OnPropertyChanged(nameof(MosaicItemHeight));
+                OnPropertyChanged(nameof(ListThumbWidth));
+                OnPropertyChanged(nameof(ListThumbHeight));
+                OnPropertyChanged(nameof(ListColumnWidth));
+                OnPropertyChanged(nameof(ListRowHeight));
+                SaveThumbnailSizePreference();
+            }
+        }
+    }
+
+    // ── Dimensions calculées selon ThumbnailSize ──────────────────────────
+
+    /// <summary>Largeur de la jaquette en mode mosaïque.</summary>
+    public double MosaicCardWidth  => _thumbnailSize == "Grand" ? 288 : 184;
+
+    /// <summary>Hauteur de la jaquette en mode mosaïque.</summary>
+    public double MosaicCardHeight => _thumbnailSize == "Grand" ? 344 : 220;
+
+    /// <summary>Largeur du conteneur item (jaquette + marges) pour VirtualizingWrapPanel.</summary>
+    public double MosaicItemWidth  => MosaicCardWidth  + 32;
+
+    /// <summary>Hauteur du conteneur item (jaquette + zone info + marges) pour VirtualizingWrapPanel.</summary>
+    public double MosaicItemHeight => MosaicCardHeight + 75;
+
+    /// <summary>Largeur/hauteur de la miniature en mode liste.</summary>
+    public double ListThumbWidth   => _thumbnailSize == "Grand" ? 96 : 40;
+
+    /// <summary>Hauteur de la miniature en mode liste (carré).</summary>
+    public double ListThumbHeight  => ListThumbWidth;
+
+    /// <summary>Largeur de la colonne miniature en mode liste (miniature + marges).</summary>
+    public double ListColumnWidth  => ListThumbWidth + 12;
+
+    /// <summary>Hauteur de ligne en mode liste — s'adapte à la miniature.</summary>
+    public double ListRowHeight    => _thumbnailSize == "Grand" ? 108 : 44;
 
     /// <summary>Colonne de tri active — "Title", "System" ou "Files". Déclenche le retri via ApplySort().</summary>
     public string SortColumn
@@ -211,9 +259,11 @@ public class MainViewModel : ViewModelBase
     /// </summary>
     public MainViewModel(UserPreferences preferences)
     {
-        _preferences  = preferences;
+        _preferences   = preferences;
         // Initialisation du mode d'affichage depuis les préférences — défaut "Mosaic"
-        _isMosaicView = preferences.LastViewMode != "List";
+        _isMosaicView  = preferences.LastViewMode != "List";
+        // Initialisation directe sur le champ pour éviter un SaveThumbnailSizePreference inutile au démarrage
+        _thumbnailSize = preferences.ThumbnailSize;
         InitCommands();
     }
 
@@ -548,6 +598,20 @@ public class MainViewModel : ViewModelBase
         try
         {
             _preferences.LastViewMode = _isMosaicView ? "Mosaic" : "List";
+            _config.SaveUserPreferences(_preferences);
+        }
+        catch
+        {
+            // Ne pas bloquer l'UI si l'écriture disque échoue
+        }
+    }
+
+    /// <summary>Sauvegarde la taille des vignettes dans UserPreferences. Silencieux en cas d'erreur.</summary>
+    private void SaveThumbnailSizePreference()
+    {
+        try
+        {
+            _preferences.ThumbnailSize = _thumbnailSize;
             _config.SaveUserPreferences(_preferences);
         }
         catch

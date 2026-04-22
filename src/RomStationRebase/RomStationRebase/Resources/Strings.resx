@@ -494,4 +494,16 @@ Technical details:
   <data name="Settings_About_OpenRepository" xml:space="preserve">
     <value>View project on GitHub</value>
   </data>
+  <data name="Main_SizeNormal" xml:space="preserve">
+    <value>Normal</value>
+  </data>
+  <data name="Main_SizeLarge" xml:space="preserve">
+    <value>Large</value>
+  </data>
+  <data name="Main_ThumbnailSize_Tooltip" xml:space="preserve">
+    <value>Thumbnail size</value>
+  </data>
+  <data name="Main_ThumbnailSize_Label" xml:space="preserve">
+    <value>Size:</value>
+  </data>
 </root>

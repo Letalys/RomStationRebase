@@ -38,4 +38,7 @@ public class UserPreferences
 
     /// <summary>Dernière valeur du toggle "Générer M3U" dans RebaseWindow.</summary>
     public bool LastRebaseGenerateM3U { get; set; } = false;
+
+    /// <summary>Taille des vignettes de jeu dans MainWindow : "Normal" (défaut, dimensions actuelles) ou "Grand".</summary>
+    public string ThumbnailSize { get; set; } = "Normal";
 }

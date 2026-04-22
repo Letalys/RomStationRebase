@@ -234,7 +234,10 @@
                         <!-- Zone jaquette 184×220 — carré avec bordure ou placeholder -->
                         <Grid HorizontalAlignment="Center" Margin="0,10,0,6">
                             <!-- Placeholder : fond gris + nom système, visible si CoverExists = false -->
-                            <Border Width="184" Height="220" Background="#EBEBEB" CornerRadius="4"
+                            <!-- Width/Height bindés sur MosaicCardWidth/Height du MainViewModel via le ListView parent -->
+                            <Border Width="{Binding DataContext.MosaicCardWidth, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                    Height="{Binding DataContext.MosaicCardHeight, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                    Background="#EBEBEB" CornerRadius="4"
                                     Visibility="{Binding CoverExists, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                                 <TextBlock Text="{Binding SystemName}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -242,7 +245,9 @@
                                            Foreground="{StaticResource TextSecondaryBrush}"/>
                             </Border>
                             <!-- Jaquette — Stretch=Uniform, fond blanc, sans bordure -->
-                            <Border Width="184" Height="220" Background="White" CornerRadius="4"
+                            <Border Width="{Binding DataContext.MosaicCardWidth, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                    Height="{Binding DataContext.MosaicCardHeight, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                    Background="White" CornerRadius="4"
                                     Visibility="{Binding CoverExists, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <Image Source="{Binding CoverPath, Converter={StaticResource StringToImageSourceConverter}}"
                                        Stretch="Uniform"
@@ -252,11 +257,11 @@
 
                         <!-- Zone info bas de carte -->
                         <StackPanel Margin="8,6,8,8">
-                            <!-- Titre — tronqué si trop long -->
+                            <!-- Titre — tronqué si trop long ; MaxWidth suit la largeur de la jaquette -->
                             <TextBlock Text="{Binding Title}"
                                        FontSize="11" FontWeight="Medium"
                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                       MaxWidth="184"
+                                       MaxWidth="{Binding DataContext.MosaicCardWidth, RelativeSource={RelativeSource AncestorType=ListView}}"
                                        TextTrimming="CharacterEllipsis"
                                        TextWrapping="NoWrap"/>
                             <!-- Ligne système + compteur fichiers (si multi-disques) -->
@@ -670,9 +675,25 @@
                             </TextBox.Style>
                         </TextBox>
 
-                        <!-- Toggle vue — état actif géré par DataTrigger sur IsMosaicView -->
+                        <!-- Toggle vue + sélecteur de taille des vignettes -->
                         <StackPanel Grid.Column="4" Orientation="Horizontal"
                                     VerticalAlignment="Center">
+                            <!-- Sélecteur de taille — label + ComboBox à deux entrées (Normal / Grand) -->
+                            <TextBlock Text="{x:Static res:Strings.Main_ThumbnailSize_Label}"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12"
+                                       Margin="0,0,6,0"/>
+                            <ComboBox SelectedValue="{Binding ThumbnailSize, Mode=TwoWay}"
+                                      SelectedValuePath="Tag"
+                                      MinWidth="100"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,0,0">
+                                <ComboBoxItem Content="{x:Static res:Strings.Main_SizeNormal}" Tag="Normal"/>
+                                <ComboBoxItem Content="{x:Static res:Strings.Main_SizeLarge}"  Tag="Grand"/>
+                            </ComboBox>
+                            <!-- Séparateur entre le sélecteur de taille et le toggle mosaïque/liste -->
+                            <Rectangle Width="1" Fill="{StaticResource BorderBrush}" Margin="8,4"/>
                             <Button x:Name="ViewMosaicButton"
                                     Style="{StaticResource ViewToggleMosaicButton}"
                                     Command="{Binding SwitchToMosaicCommand}"
@@ -735,12 +756,16 @@
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
 
-                            <!-- Col 1 : miniature jaquette (52px, pas d'en-tête) -->
-                            <GridViewColumn Width="52">
+                            <!-- Col 1 : miniature jaquette — largeur pilotée depuis le code-behind (GridViewColumn non-DP) -->
+                            <GridViewColumn x:Name="CoverColumn" Width="52">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Width="40" Height="40" CornerRadius="4"
+                                        <!-- Width/Height/VerticalAlignment bindés sur le MainViewModel via le ListView parent -->
+                                        <Border Width="{Binding DataContext.ListThumbWidth, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                Height="{Binding DataContext.ListThumbHeight, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                CornerRadius="4"
                                                 HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
                                                 ClipToBounds="True">
                                             <Grid>
                                                 <Grid x:Name="CoverPlaceholder">
@@ -752,8 +777,11 @@
                                                 </Grid>
                                                 <Image x:Name="CoverImage"
                                                        Source="{Binding CoverPath, Converter={StaticResource StringToImageSourceConverter}}"
-                                                       Width="40" Height="40"
-                                                       Stretch="UniformToFill"
+                                                       Width="{Binding DataContext.ListThumbWidth, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                       Height="{Binding DataContext.ListThumbHeight, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                       Stretch="Uniform"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
                                                        RenderOptions.BitmapScalingMode="LowQuality"
                                                        Visibility="Collapsed"/>
                                             </Grid>
@@ -908,7 +936,13 @@
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                            <Setter Property="Height"                     Value="44"/>
+                            <!-- Hauteur bindée sur ListRowHeight — s'adapte quand la miniature passe en Grand -->
+                            <Setter Property="Height">
+                                <Setter.Value>
+                                    <Binding Path="DataContext.ListRowHeight"
+                                             RelativeSource="{RelativeSource AncestorType={x:Type ListView}}"/>
+                                </Setter.Value>
+                            </Setter>
                             <Setter Property="Background"                 Value="Transparent"/>
                             <Setter Property="Template">
                                 <Setter.Value>
