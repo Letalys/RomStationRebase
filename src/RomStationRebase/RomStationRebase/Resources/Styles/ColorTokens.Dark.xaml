@@ -1,0 +1,104 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         PALETTE DE BASE
+         Les 7 brushes fondamentaux de l'application (déplacés depuis GlobalStyles.xaml).
+         Ces valeurs définissent le thème Dark. Le thème Light les redéfinit toutes.
+         ══════════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="AccentBrush"        Color="#5B3FE0"/>
+    <SolidColorBrush x:Key="AccentLightBrush"   Color="#2E2846"/>
+    <SolidColorBrush x:Key="BackgroundBrush"    Color="#1C1B22"/>
+    <SolidColorBrush x:Key="SurfaceBrush"       Color="#26252E"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush"   Color="#EAE9F0"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#9B99A8"/>
+    <SolidColorBrush x:Key="BorderBrush"        Color="#3A3944"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         COULEURS SÉMANTIQUES PLEINES
+         États fonctionnels : succès, avertissement, erreur.
+         Communes à toutes les vues — identiques en light et dark (ou légèrement adaptées).
+         ══════════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="SuccessBrush"   Color="#4DD599"/>
+    <SolidColorBrush x:Key="WarningBrush"   Color="#F5B547"/>
+    <SolidColorBrush x:Key="ErrorBrush"     Color="#F26563"/>
+    <SolidColorBrush x:Key="ErrorTextBrush" Color="#F08080"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SEMI-TRANSPARENCES CONVERTIES EN VALEURS OPAQUES / DÉDIÉES
+         Les overlays #20XXXXXX sont convertis en valeurs opaques calculées sur fond sombre.
+         En dark mode, ces tokens sont redéfinis pour le fond sombre.
+         CheckboxOverlayBrush conserve une transparence car composé sur image de jaquette.
+         ══════════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="FileMissingBadgeBackgroundBrush"  Color="#3A1F1F"/>
+    <SolidColorBrush x:Key="CoverMissingBadgeBackgroundBrush" Color="#3A2A18"/>
+    <SolidColorBrush x:Key="CheckboxOverlayBrush"             Color="#D9000000"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         COMPOSANTS GLOBAUX (GlobalStyles.xaml)
+         Couleurs pour les styles de contrôles de base : Button, ScrollBar, ToggleSwitch.
+         Tokens distincts des tokens MainWindow pour permettre une divergence future.
+         ══════════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="ButtonBorderBrush"            Color="#3A3944"/>
+    <SolidColorBrush x:Key="ButtonHoverBackgroundBrush"   Color="#2E2D37"/>
+    <SolidColorBrush x:Key="ButtonPressedBackgroundBrush" Color="#3A3944"/>
+    <SolidColorBrush x:Key="ScrollbarThumbBrush"          Color="#3A3944"/>
+    <SolidColorBrush x:Key="ScrollbarThumbHoverBrush"     Color="#555362"/>
+    <SolidColorBrush x:Key="ToggleSwitchTrackBrush"       Color="#555362"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         COMPOSANTS — MainWindow
+         ══════════════════════════════════════════════════════════════════ -->
+    <!-- Titlebar et StatusBar -->
+    <SolidColorBrush x:Key="StatusSeparatorBrush"    Color="#7B6FD0"/>
+    <SolidColorBrush x:Key="StatusBarSyncedDotBrush" Color="#4DD599"/>
+    <!-- Bouton fermer (rouge au hover) -->
+    <SolidColorBrush x:Key="CloseButtonHoverBrush"   Color="#F26563"/>
+    <!-- Case à cocher des jeux (mode mosaïque et liste) -->
+    <SolidColorBrush x:Key="CheckboxBackgroundBrush" Color="#26252E"/>
+    <SolidColorBrush x:Key="CheckboxBorderBrush"     Color="#555362"/>
+    <!-- Jaquettes — fond placeholder et fond jaquette présente -->
+    <SolidColorBrush x:Key="CoverPlaceholderBrush"   Color="#2E2D37"/>
+    <SolidColorBrush x:Key="CoverBackgroundBrush"    Color="#26252E"/>
+    <!-- Badge "exporté" en overlay mosaïque -->
+    <SolidColorBrush x:Key="ExportBadgeBrush"        Color="#4DD599"/>
+    <!-- Abécédaire de navigation rapide -->
+    <SolidColorBrush x:Key="AlphaButtonBorderBrush"   Color="#555362"/>
+    <SolidColorBrush x:Key="AlphaButtonHoverBrush"    Color="#2E2846"/>
+    <SolidColorBrush x:Key="AlphaButtonPressedBrush"  Color="#3A2E5F"/>
+    <!-- Miniature en mode liste -->
+    <SolidColorBrush x:Key="ListThumbnailPlaceholderBrush" Color="#2E2D37"/>
+    <!-- ListView — survol et sélection de ligne -->
+    <SolidColorBrush x:Key="ListViewRowHoverBrush"    Color="#2A2636"/>
+    <SolidColorBrush x:Key="ListViewRowSelectedBrush" Color="#2E2846"/>
+    <!-- Panneau abécédaire latéral -->
+    <SolidColorBrush x:Key="AlphabetPanelBackgroundBrush" Color="#201F28"/>
+    <SolidColorBrush x:Key="AlphabetPanelBorderBrush"     Color="#3A3944"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         COMPOSANTS — SplashWindow
+         ══════════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="SplashProgressBarTrackBrush" Color="#3A3944"/>
+    <SolidColorBrush x:Key="PendingStepIconBrush"        Color="#555362"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         COMPOSANTS — RebaseWindow (DataGrid)
+         ══════════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="DataGridBackgroundBrush"       Color="#26252E"/>
+    <SolidColorBrush x:Key="DataGridAlternatingRowBrush"   Color="#201F28"/>
+    <SolidColorBrush x:Key="DataGridGridLinesBrush"        Color="#3A3944"/>
+    <SolidColorBrush x:Key="DataGridColumnHeaderBrush"     Color="#2E2D37"/>
+    <SolidColorBrush x:Key="DataGridCellSelectedBrush"     Color="#3A2E5F"/>
+    <SolidColorBrush x:Key="DataGridRowFailedBrush"        Color="#3A1F1F"/>
+    <SolidColorBrush x:Key="DataGridRowSkippedBrush"       Color="#1C1B22"/>
+    <SolidColorBrush x:Key="DataGridCoverPlaceholderBrush" Color="#2E2D37"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         PROGRESSBARS
+         Tokens distincts d'AccentBrush/BorderBrush pour permettre une
+         différenciation indépendante en dark mode si nécessaire.
+         ══════════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="ProgressBarFillBrush"  Color="#5B3FE0"/>
+    <SolidColorBrush x:Key="ProgressBarTrackBrush" Color="#3A3944"/>
+
+</ResourceDictionary>

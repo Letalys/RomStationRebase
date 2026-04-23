@@ -423,6 +423,9 @@ Consulte le tableau pour le détail des erreurs.</value>
   <data name="Settings_Theme_Light" xml:space="preserve">
     <value>Clair</value>
   </data>
+  <data name="Settings_Theme_Dark" xml:space="preserve">
+    <value>Sombre</value>
+  </data>
   <data name="Settings_RestartRequired" xml:space="preserve">
     <value>Redémarrez l'application pour appliquer la nouvelle langue.</value>
   </data>

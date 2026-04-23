@@ -653,6 +653,10 @@
 
             <!-- ── Zone de contenu ── -->
             <Grid Background="{DynamicResource BackgroundBrush}">
+                <Grid.Resources>
+                    <!-- Style implicite ScrollBar dans l'ancêtre logique direct — propagé aux ListView internes -->
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+                </Grid.Resources>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="44"/>
                     <RowDefinition Height="*"/>

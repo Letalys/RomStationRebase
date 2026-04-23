@@ -29,6 +29,7 @@ public partial class App : Application
         catch { /* sera traité par SplashViewModel */ }
 
         ApplyCulture(prefs);
+        ApplyTheme(prefs);
         RunStartupAsync();
     }
 
@@ -117,6 +118,9 @@ public partial class App : Application
     /// Applique la culture de l'interface selon UserPreferences.AppLanguage.
     /// "auto" → détection système, "fr" → fr-FR, "en" (ou autre) → en.
     /// </summary>
+    private static void ApplyTheme(UserPreferences? prefs)
+        => ThemeService.Apply(prefs?.Theme ?? "Light");
+
     private static void ApplyCulture(UserPreferences? prefs)
     {
         string langCode;

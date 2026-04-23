@@ -62,6 +62,9 @@
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               Padding="28,20,28,12">
+                    <ScrollViewer.Resources>
+                        <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+                    </ScrollViewer.Resources>
 
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -137,6 +140,7 @@
                                   SelectedValuePath="Tag"
                                   HorizontalAlignment="Stretch">
                             <ComboBoxItem Tag="Light" Content="{x:Static res:Strings.Settings_Theme_Light}"/>
+                            <ComboBoxItem Tag="Dark"  Content="{x:Static res:Strings.Settings_Theme_Dark}"/>
                         </ComboBox>
 
                         <!-- Header EMPLACEMENTS (span 2 colonnes) -->

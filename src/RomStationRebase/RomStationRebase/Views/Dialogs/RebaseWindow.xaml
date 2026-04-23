@@ -330,6 +330,10 @@
                   CanUserSortColumns="True"
                   CanUserResizeRows="False"
                   Margin="0">
+            <DataGrid.Resources>
+                <!-- Style implicite ScrollBar dans l'ancêtre logique direct du DataGrid -->
+                <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+            </DataGrid.Resources>
             <DataGrid.Columns>
 
                 <!-- Jaquette 36×36 -->

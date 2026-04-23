@@ -488,6 +488,9 @@ namespace RomStationRebase.Resources {
         public static string Settings_Theme_Light {
             get { return ResourceManager.GetString("Settings_Theme_Light", resourceCulture); }
         }
+        public static string Settings_Theme_Dark {
+            get { return ResourceManager.GetString("Settings_Theme_Dark", resourceCulture); }
+        }
         public static string Settings_RestartRequired {
             get { return ResourceManager.GetString("Settings_RestartRequired", resourceCulture); }
         }

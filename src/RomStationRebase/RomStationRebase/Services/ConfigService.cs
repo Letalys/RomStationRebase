@@ -122,9 +122,10 @@ public class ConfigService
             throw new ConfigCorruptedException("user-preferences.json",
                 $"LastViewMode='{prefs.LastViewMode}' invalide (valeurs acceptées : Mosaic, List)");
 
-        if (prefs.Theme != "Light")
-            throw new ConfigCorruptedException("user-preferences.json",
-                $"Theme='{prefs.Theme}' invalide (valeurs acceptées : Light)");
+        // Theme : normalisé en silence — préférence visuelle sans impact critique
+        var validThemes = new[] { "Light", "Dark" };
+        if (!validThemes.Contains(prefs.Theme))
+            prefs.Theme = "Light";
 
         // ThumbnailSize : normalisé en silence plutôt que rejeté (préférence visuelle sans impact critique)
         if (prefs.ThumbnailSize != "Normal" && prefs.ThumbnailSize != "Grand")
