@@ -10,7 +10,7 @@
         mc:Ignorable="d"
         Title="RomStation Rebase" Height="680" Width="1100"
         WindowStyle="None" AllowsTransparency="False" ResizeMode="CanResizeWithGrip"
-        Background="{StaticResource BackgroundBrush}"
+        Background="{DynamicResource BackgroundBrush}"
         Icon="/Resources/Images/rsr-logo.png">
 
     <Window.Resources>
@@ -18,7 +18,7 @@
         <Style x:Key="StatusSeparator" TargetType="Rectangle">
             <Setter Property="Width"   Value="1"/>
             <Setter Property="Margin"  Value="10,6"/>
-            <Setter Property="Fill"    Value="#7B6FD0"/>
+            <Setter Property="Fill"    Value="{DynamicResource StatusSeparatorBrush}"/>
         </Style>
 
         <!-- Bouton fenêtre (chrome) : fond transparent, 46x40, pas de bordure -->
@@ -27,7 +27,7 @@
             <Setter Property="Height"           Value="40"/>
             <Setter Property="BorderThickness"  Value="0"/>
             <Setter Property="Background"       Value="Transparent"/>
-            <Setter Property="Foreground"       Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Foreground"       Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="FontSize"         Value="12"/>
         </Style>
 
@@ -35,7 +35,7 @@
         <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E24B4A"/>
+                    <Setter Property="Background" Value="{DynamicResource CloseButtonHoverBrush}"/>
                     <Setter Property="Foreground" Value="White"/>
                     <Setter Property="Opacity"    Value="1"/>
                 </Trigger>
@@ -46,7 +46,7 @@
         <Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Padding"   Value="10,5"/>
             <Setter Property="FontSize"  Value="12"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         </Style>
 
         <!-- Toggle vue — template commun aux deux boutons.
@@ -59,7 +59,7 @@
             <Setter Property="Height"          Value="28"/>
             <Setter Property="Padding"         Value="4"/>
             <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="BorderBrush"     Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="0.5"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -84,7 +84,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <DataTrigger Binding="{Binding IsMosaicView}" Value="True">
-                                <Setter TargetName="Bd"          Property="Background"      Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Bd"          Property="Background"      Value="{DynamicResource AccentBrush}"/>
                                 <Setter TargetName="Bd"          Property="BorderThickness" Value="0"/>
                                 <Setter TargetName="ColoredIcon" Property="Visibility"      Value="Collapsed"/>
                                 <Setter TargetName="WhiteIcon"   Property="Visibility"      Value="Visible"/>
@@ -107,7 +107,7 @@
             <Setter Property="Height"          Value="28"/>
             <Setter Property="Padding"         Value="4"/>
             <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="BorderBrush"     Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="0.5"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -132,7 +132,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <DataTrigger Binding="{Binding IsMosaicView}" Value="False">
-                                <Setter TargetName="Bd"          Property="Background"      Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Bd"          Property="Background"      Value="{DynamicResource AccentBrush}"/>
                                 <Setter TargetName="Bd"          Property="BorderThickness" Value="0"/>
                                 <Setter TargetName="ColoredIcon" Property="Visibility"      Value="Collapsed"/>
                                 <Setter TargetName="WhiteIcon"   Property="Visibility"      Value="Visible"/>
@@ -152,7 +152,7 @@
         <!-- Label section sidebar -->
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize"   Value="10"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="Margin"     Value="14,14,14,8"/>
         </Style>
 
@@ -171,9 +171,9 @@
 
         <!-- En-tête de colonne GridView (vue liste) -->
         <Style x:Key="ListColumnHeaderStyle" TargetType="GridViewColumnHeader">
-            <Setter Property="Background"                 Value="{StaticResource SurfaceBrush}"/>
-            <Setter Property="Foreground"                 Value="{StaticResource TextSecondaryBrush}"/>
-            <Setter Property="BorderBrush"                Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Background"                 Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground"                 Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="BorderBrush"                Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness"            Value="0,0,0,1"/>
             <Setter Property="Padding"                    Value="8,0"/>
             <Setter Property="Height"                     Value="30"/>
@@ -194,8 +194,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="CbBorder" Width="18" Height="18" CornerRadius="4"
-                                Background="White"
-                                BorderBrush="#AAAAAA"
+                                Background="{DynamicResource CheckboxBackgroundBrush}"
+                                BorderBrush="{DynamicResource CheckboxBorderBrush}"
                                 BorderThickness="1.5">
                             <!-- Checkmark blanc — visible quand IsSelected = true -->
                             <Path x:Name="CbCheck"
@@ -208,8 +208,8 @@
                         <ControlTemplate.Triggers>
                             <!-- Le DataContext du bouton est GameItemViewModel (hérité du DataTemplate) -->
                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                <Setter TargetName="CbBorder" Property="Background"  Value="{StaticResource AccentBrush}"/>
-                                <Setter TargetName="CbBorder" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="CbBorder" Property="Background"  Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="CbBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                 <Setter TargetName="CbCheck"  Property="Visibility"  Value="Visible"/>
                             </DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -226,8 +226,8 @@
              ══════════════════════════════════════════════════════ -->
         <DataTemplate x:Key="MosaicGameTemplate">
             <Border x:Name="CardBorder" CornerRadius="8"
-                    BorderThickness="0.5" BorderBrush="{StaticResource BorderBrush}"
-                    Background="{StaticResource SurfaceBrush}"
+                    BorderThickness="0.5" BorderBrush="{DynamicResource BorderBrush}"
+                    Background="{DynamicResource SurfaceBrush}"
                     Margin="8">
                 <Grid>
                     <StackPanel>
@@ -237,17 +237,17 @@
                             <!-- Width/Height bindés sur MosaicCardWidth/Height du MainViewModel via le ListView parent -->
                             <Border Width="{Binding DataContext.MosaicCardWidth, RelativeSource={RelativeSource AncestorType=ListView}}"
                                     Height="{Binding DataContext.MosaicCardHeight, RelativeSource={RelativeSource AncestorType=ListView}}"
-                                    Background="#EBEBEB" CornerRadius="4"
+                                    Background="{DynamicResource CoverPlaceholderBrush}" CornerRadius="4"
                                     Visibility="{Binding CoverExists, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                                 <TextBlock Text="{Binding SystemName}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                            FontSize="11"
-                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </Border>
                             <!-- Jaquette — Stretch=Uniform, fond blanc, sans bordure -->
                             <Border Width="{Binding DataContext.MosaicCardWidth, RelativeSource={RelativeSource AncestorType=ListView}}"
                                     Height="{Binding DataContext.MosaicCardHeight, RelativeSource={RelativeSource AncestorType=ListView}}"
-                                    Background="White" CornerRadius="4"
+                                    Background="{DynamicResource CoverBackgroundBrush}" CornerRadius="4"
                                     Visibility="{Binding CoverExists, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <Image Source="{Binding CoverPath, Converter={StaticResource StringToImageSourceConverter}}"
                                        Stretch="Uniform"
@@ -264,7 +264,7 @@
                             <TextBlock Text="{Binding Title}"
                                        ToolTip="{Binding Title}"
                                        FontSize="11" FontWeight="Medium"
-                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                        MaxWidth="{Binding DataContext.MosaicCardWidth, RelativeSource={RelativeSource AncestorType=ListView}}"
                                        TextTrimming="CharacterEllipsis"
                                        TextWrapping="NoWrap"/>
@@ -275,21 +275,21 @@
                                        Margin="0,0,4,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding SystemName}"
                                            FontSize="10"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
                                            TextTrimming="CharacterEllipsis"/>
                                 <TextBlock Text=" • " FontSize="10"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
                                            Visibility="{Binding HasMultipleFiles, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                 <TextBlock Text="{Binding FileCount, Converter={StaticResource FileCountConverter}}"
                                            FontSize="10"
-                                           Foreground="{StaticResource AccentBrush}"
+                                           Foreground="{DynamicResource AccentBrush}"
                                            Visibility="{Binding HasMultipleFiles, Converter={StaticResource BoolToVisibilityConverter}}"/>
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
 
                     <!-- Case à cocher en overlay haut-gauche — backdrop semi-transparent pour lisibilité sur jaquette -->
-                    <Border Background="#80FFFFFF" CornerRadius="4"
+                    <Border Background="{DynamicResource CheckboxOverlayBrush}" CornerRadius="4"
                             HorizontalAlignment="Left" VerticalAlignment="Top"
                             Margin="8,8,0,0" Padding="2">
                         <Button Style="{StaticResource GameCheckboxButton}"
@@ -300,7 +300,7 @@
                     <Grid x:Name="MosaicExportBadge" Width="18" Height="18"
                           HorizontalAlignment="Right" VerticalAlignment="Top"
                           Margin="0,8,8,0" Visibility="Collapsed">
-                        <Ellipse Fill="#2EB67D"/>
+                        <Ellipse Fill="{DynamicResource ExportBadgeBrush}"/>
                         <Path Data="M 4,9 L 7,12 L 14,5"
                               Stroke="White" StrokeThickness="1.5"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round"
@@ -312,11 +312,11 @@
             <DataTemplate.Triggers>
                 <!-- Hover : bordure AccentBrush fine -->
                 <Trigger SourceName="CardBorder" Property="IsMouseOver" Value="True">
-                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                 </Trigger>
                 <!-- Sélection : bordure AccentBrush épaisse (priorité sur hover) -->
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                    <Setter TargetName="CardBorder" Property="BorderBrush"     Value="{StaticResource AccentBrush}"/>
+                    <Setter TargetName="CardBorder" Property="BorderBrush"     Value="{DynamicResource AccentBrush}"/>
                     <Setter TargetName="CardBorder" Property="BorderThickness" Value="1.5"/>
                 </DataTrigger>
                 <!-- Badge exporté -->
@@ -347,7 +347,7 @@
         </Style>
 
         <!-- Style bouton abécédaire (24×24) — ControlTemplate standalone pour supporter CornerRadius=6.
-             Hover violet cohérent avec les autres boutons de l'app (#F0EBFD + AccentBrush).
+             Hover violet cohérent avec les autres boutons de l'app (AlphaButtonHoverBrush + AccentBrush).
              Disabled à 40% d'opacité = lettre inactive (aucun jeu commençant par cette lettre). -->
         <Style x:Key="AlphaButton" TargetType="Button">
             <Setter Property="Width"           Value="24"/>
@@ -356,10 +356,10 @@
             <Setter Property="FontWeight"      Value="SemiBold"/>
             <Setter Property="Padding"         Value="0"/>
             <Setter Property="Margin"          Value="1"/>
-            <Setter Property="Background"      Value="{StaticResource SurfaceBrush}"/>
-            <Setter Property="BorderBrush"     Value="#BDBDBD"/>
+            <Setter Property="Background"      Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource AlphaButtonBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Foreground"      Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="Cursor"          Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -374,12 +374,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background"   Value="#F0EBFD"/>
-                                <Setter TargetName="border" Property="BorderBrush"  Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="border" Property="Background"   Value="{DynamicResource AlphaButtonHoverBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush"  Value="{DynamicResource AccentBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background"   Value="#E4D9FB"/>
-                                <Setter TargetName="border" Property="BorderBrush"  Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="border" Property="Background"   Value="{DynamicResource AlphaButtonPressedBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush"  Value="{DynamicResource AccentBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.4"/>
@@ -404,8 +404,8 @@
              1. TITLEBAR
              ═══════════════════════════════════════════════════ -->
         <Border Grid.Row="0"
-                Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
                 MouseLeftButtonDown="Titlebar_MouseLeftButtonDown">
             <Grid>
@@ -419,15 +419,15 @@
                            RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock Text="RomStation "
                                FontSize="13" FontWeight="Medium"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <TextBlock Text="Rebase"
                                FontSize="13" FontWeight="Medium"
-                               Foreground="{StaticResource AccentBrush}"
+                               Foreground="{DynamicResource AccentBrush}"
                                VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding AppVersion}"
                                FontSize="11"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"
                                Margin="6,0,0,0"/>
                 </StackPanel>
@@ -451,8 +451,8 @@
              2. TOOLBAR
              ═══════════════════════════════════════════════════ -->
         <Border Grid.Row="1"
-                Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <Grid Margin="14,0">
                 <Grid.ColumnDefinitions>
@@ -472,14 +472,14 @@
                     <WrapPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0">
                         <TextBlock Text="RomStation "
                                    FontSize="18" FontWeight="Medium"
-                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <TextBlock Text="Rebase"
                                    FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"/>
+                                   Foreground="{DynamicResource AccentBrush}"/>
                     </WrapPanel>
                     <!-- Séparateur entre la marque et les boutons d'action -->
                     <Rectangle Width="1" Height="32"
-                               Fill="{StaticResource BorderBrush}"
+                               Fill="{DynamicResource BorderBrush}"
                                Margin="16,0,16,0"
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -550,8 +550,8 @@
 
             <!-- ── Sidebar ── -->
             <Border DockPanel.Dock="Left" Width="220"
-                    Background="{StaticResource SurfaceBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,0,1,0">
                 <!-- Scrollbar slim appliquée implicitement à tous les ScrollBar de la sidebar -->
                 <Border.Resources>
@@ -595,12 +595,12 @@
                                             <TextBlock Grid.Column="2"
                                                        Text="{Binding Name}"
                                                        FontSize="12"
-                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"/>
                                             <TextBlock Grid.Column="3"
                                                        Text="{Binding GameCount}"
                                                        FontSize="11"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                                        VerticalAlignment="Center"
                                                        Margin="6,0,0,0"/>
                                         </Grid>
@@ -612,7 +612,7 @@
 
                     <!-- Actions bas de sidebar — bordure haute + alignement bas -->
                     <Border Grid.Row="1"
-                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,1,0,0"
                             VerticalAlignment="Bottom">
                         <StackPanel Margin="14,8">
@@ -620,14 +620,14 @@
                             <CheckBox Content="{x:Static res:Strings.Issues_FilterLabel}"
                                       IsChecked="{Binding ShowIssuesOnly}"
                                       FontSize="12"
-                                      Foreground="{StaticResource TextPrimaryBrush}"
+                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                       Margin="0,0,0,6"/>
                             <!-- Liens cocher/décocher tous les systèmes -->
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock x:Name="CheckAllSystemsLink"
                                            Text="{x:Static res:Strings.CheckAll}"
                                            FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
                                            Cursor="Hand"
                                            Margin="0,0,12,0">
                                     <TextBlock.InputBindings>
@@ -638,7 +638,7 @@
                                 <TextBlock x:Name="UncheckAllSystemsLink"
                                            Text="{x:Static res:Strings.UncheckAll}"
                                            FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
                                            Cursor="Hand">
                                     <TextBlock.InputBindings>
                                         <MouseBinding Command="{Binding UncheckAllSystemsCommand}"
@@ -652,7 +652,7 @@
             </Border>
 
             <!-- ── Zone de contenu ── -->
-            <Grid Background="{StaticResource BackgroundBrush}">
+            <Grid Background="{DynamicResource BackgroundBrush}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="44"/>
                     <RowDefinition Height="*"/>
@@ -665,8 +665,8 @@
 
                 <!-- Header contenu — ColumnSpan="2" pour couvrir la colonne abécédaire -->
                 <Border Grid.Row="0" Grid.ColumnSpan="2"
-                        Background="{StaticResource SurfaceBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,0,0,1">
                     <Grid Margin="16,0">
                         <Grid.ColumnDefinitions>
@@ -683,15 +683,15 @@
                                    Text="{x:Static res:Strings.AllGames}"
                                    FontSize="13"
                                    FontWeight="Medium"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center"
                                    Margin="0,0,10,0"/>
 
                         <!-- Compteur -->
                         <Border x:Name="ContentCount"
                                 Grid.Column="1"
-                                Background="{StaticResource BackgroundBrush}"
-                                BorderBrush="{StaticResource BorderBrush}"
+                                Background="{DynamicResource BackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10"
                                 Padding="8,2"
@@ -700,7 +700,7 @@
                             <TextBlock x:Name="ContentCountText"
                                        Text="{Binding FilteredGameCount}"
                                        FontSize="11"
-                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </Border>
 
                         <!-- Filtres actifs -->
@@ -722,7 +722,7 @@
                                         <VisualBrush x:Key="SearchPlaceholderBrush" AlignmentX="Left" AlignmentY="Center" Stretch="None">
                                             <VisualBrush.Visual>
                                                 <TextBlock Text="{x:Static res:Strings.SearchPlaceholder}"
-                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
                                                            FontSize="12" Margin="2,0,0,0"/>
                                             </VisualBrush.Visual>
                                         </VisualBrush>
@@ -732,7 +732,7 @@
                                             <Setter Property="Background" Value="{StaticResource SearchPlaceholderBrush}"/>
                                         </Trigger>
                                         <Trigger Property="IsFocused" Value="True">
-                                            <Setter Property="Background" Value="White"/>
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
@@ -745,7 +745,7 @@
                             <!-- Sélecteur de tri global — label + ComboBox Titre / Système -->
                             <TextBlock Text="{x:Static res:Strings.Main_SortBy_Label}"
                                        VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="12"
                                        Margin="0,0,6,0"/>
                             <ComboBox SelectedValue="{Binding SortCriteria, Mode=TwoWay}"
@@ -756,11 +756,11 @@
                                 <ComboBoxItem Content="{x:Static res:Strings.Main_SortBy_System}" Tag="System"/>
                             </ComboBox>
                             <!-- Séparateur entre les deux ComboBox -->
-                            <Rectangle Width="1" Fill="{StaticResource BorderBrush}" Margin="8,4"/>
+                            <Rectangle Width="1" Fill="{DynamicResource BorderBrush}" Margin="8,4"/>
                             <!-- Sélecteur de taille — label + ComboBox à deux entrées (Normal / Grand) -->
                             <TextBlock Text="{x:Static res:Strings.Main_ThumbnailSize_Label}"
                                        VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="12"
                                        Margin="0,0,6,0"/>
                             <ComboBox SelectedValue="{Binding ThumbnailSize, Mode=TwoWay}"
@@ -772,7 +772,7 @@
                                 <ComboBoxItem Content="{x:Static res:Strings.Main_SizeLarge}"  Tag="Grand"/>
                             </ComboBox>
                             <!-- Séparateur entre le sélecteur de taille et le toggle mosaïque/liste -->
-                            <Rectangle Width="1" Fill="{StaticResource BorderBrush}" Margin="8,4"/>
+                            <Rectangle Width="1" Fill="{DynamicResource BorderBrush}" Margin="8,4"/>
                             <Button x:Name="ViewMosaicButton"
                                     Style="{StaticResource ViewToggleMosaicButton}"
                                     Command="{Binding SwitchToMosaicCommand}"
@@ -848,10 +848,10 @@
                                                 ClipToBounds="True">
                                             <Grid>
                                                 <Grid x:Name="CoverPlaceholder">
-                                                    <Rectangle Fill="#E8E8E8"/>
+                                                    <Rectangle Fill="{DynamicResource ListThumbnailPlaceholderBrush}"/>
                                                     <TextBlock Text="{Binding SystemName, Converter={StaticResource SystemInitialsConverter}}"
                                                                FontSize="9" FontWeight="Medium"
-                                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Grid>
                                                 <Image x:Name="CoverImage"
@@ -888,7 +888,7 @@
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="{x:Static res:Strings.Column_Title}" VerticalAlignment="Center"/>
                                             <TextBlock Text="{Binding DataContext.TitleSortArrow, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
-                                                       Foreground="{StaticResource AccentBrush}"
+                                                       Foreground="{DynamicResource AccentBrush}"
                                                        FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </DataTemplate>
@@ -897,7 +897,7 @@
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Title}"
                                                    FontSize="13" FontWeight="Medium"
-                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                                    TextTrimming="CharacterEllipsis"
                                                    VerticalAlignment="Center" Margin="4,0"/>
                                     </DataTemplate>
@@ -917,7 +917,7 @@
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="{x:Static res:Strings.Column_System}" VerticalAlignment="Center"/>
                                             <TextBlock Text="{Binding DataContext.SystemSortArrow, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
-                                                       Foreground="{StaticResource AccentBrush}"
+                                                       Foreground="{DynamicResource AccentBrush}"
                                                        FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </DataTemplate>
@@ -932,7 +932,7 @@
                                                    Margin="0,0,6,0" VerticalAlignment="Center"/>
                                             <TextBlock Text="{Binding SystemName}"
                                                        FontSize="12"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                                        VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </DataTemplate>
@@ -956,7 +956,7 @@
                                     <DataTemplate>
                                         <TextBlock Text="{Binding FileCount, Converter={StaticResource FileCountConverter}}"
                                                    FontSize="11"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                                    HorizontalAlignment="Left" VerticalAlignment="Center"
                                                    Margin="4,0"/>
                                     </DataTemplate>
@@ -979,18 +979,18 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
                                             <Border x:Name="FileMissingBadge"
-                                                    Background="#20E24B4A" CornerRadius="3"
+                                                    Background="{DynamicResource FileMissingBadgeBackgroundBrush}" CornerRadius="3"
                                                     Padding="4,2" Margin="0,0,3,0"
                                                     Visibility="Collapsed">
                                                 <TextBlock Text="{x:Static res:Strings.Badge_FilesMissing}"
-                                                           FontSize="9" Foreground="#E24B4A"/>
+                                                           FontSize="9" Foreground="{DynamicResource ErrorBrush}"/>
                                             </Border>
                                             <Border x:Name="CoverMissingBadge"
-                                                    Background="#20F5A623" CornerRadius="3"
+                                                    Background="{DynamicResource CoverMissingBadgeBackgroundBrush}" CornerRadius="3"
                                                     Padding="4,2"
                                                     Visibility="Collapsed">
                                                 <TextBlock Text="{x:Static res:Strings.Badge_CoverMissing}"
-                                                           FontSize="9" Foreground="#F5A623"/>
+                                                           FontSize="9" Foreground="{DynamicResource WarningBrush}"/>
                                             </Border>
                                         </StackPanel>
                                         <DataTemplate.Triggers>
@@ -1023,21 +1023,21 @@
                                     <ControlTemplate TargetType="ListViewItem">
                                         <Border x:Name="RowBorder"
                                                 Background="{TemplateBinding Background}"
-                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderBrush="{DynamicResource BorderBrush}"
                                                 BorderThickness="0,0,0,0.5">
                                             <GridViewRowPresenter VerticalAlignment="Center"/>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="RowBorder" Property="Background" Value="#F5F3FF"/>
+                                                <Setter TargetName="RowBorder" Property="Background" Value="{DynamicResource ListViewRowHoverBrush}"/>
                                             </Trigger>
                                             <!-- Alternance : ligne impaire (index=1) légèrement grisée -->
                                             <Trigger Property="ItemsControl.AlternationIndex" Value="1">
-                                                <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                                                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                                             </Trigger>
                                             <!-- Sélection via GameItemViewModel.IsSelected -->
                                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                <Setter TargetName="RowBorder" Property="Background" Value="#EDE9FF"/>
+                                                <Setter TargetName="RowBorder" Property="Background" Value="{DynamicResource ListViewRowSelectedBrush}"/>
                                             </DataTrigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -1049,7 +1049,7 @@
 
                 <!-- LoadingOverlay — plein écran, visible pendant LoadLibraryAsync() -->
                 <Grid x:Name="LoadingOverlay" Grid.Row="1" Panel.ZIndex="10"
-                      Background="{StaticResource BackgroundBrush}"
+                      Background="{DynamicResource BackgroundBrush}"
                       Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
 
@@ -1060,7 +1060,7 @@
 
                         <TextBlock Text="{Binding LoadingStatusText}"
                                    FontSize="14"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,16"/>
 
@@ -1068,8 +1068,8 @@
                                      Value="{Binding LoadingProgress, Mode=OneWay}"
                                      Minimum="0" Maximum="100"
                                      Width="400" Height="6"
-                                     Foreground="#5B3FE0"
-                                     Background="#E0E0E0"
+                                     Foreground="{DynamicResource ProgressBarFillBrush}"
+                                     Background="{DynamicResource ProgressBarTrackBrush}"
                                      BorderThickness="0"/>
 
 
@@ -1082,8 +1082,8 @@
                      Inopérant (toutes lettres désactivées) si tri != alphabétique par titre. -->
                 <Border x:Name="AlphabetBorder"
                         Grid.Row="1" Grid.Column="1"
-                        Background="#FAFAFA"
-                        BorderBrush="#D0D0D0"
+                        Background="{DynamicResource AlphabetPanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource AlphabetPanelBorderBrush}"
                         BorderThickness="1,0,0,0">
                     <ItemsControl ItemsSource="{Binding AlphabetItems}"
                                   Margin="6">
@@ -1116,7 +1116,7 @@
              4. STATUSBAR
              ═══════════════════════════════════════════════════ -->
         <Border Grid.Row="3"
-                Background="{StaticResource AccentBrush}">
+                Background="{DynamicResource AccentBrush}">
             <StackPanel Orientation="Horizontal"
                         VerticalAlignment="Center"
                         Margin="14,0">
@@ -1140,7 +1140,7 @@
                 <Rectangle Style="{StaticResource StatusSeparator}"/>
 
                 <Ellipse Width="8" Height="8"
-                         Fill="#2EB67D"
+                         Fill="{DynamicResource StatusBarSyncedDotBrush}"
                          VerticalAlignment="Center"
                          Margin="0,0,6,0"/>
                 <TextBlock Text="{x:Static res:Strings.DbSynced}"

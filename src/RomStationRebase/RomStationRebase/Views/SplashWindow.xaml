@@ -17,10 +17,10 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ProgressBar">
                         <Grid>
-                            <Border Background="#E0E0E0" Height="4"/>
-                            <Border x:Name="PART_Track" Background="#E0E0E0" Height="4"/>
+                            <Border Background="{DynamicResource SplashProgressBarTrackBrush}" Height="4"/>
+                            <Border x:Name="PART_Track" Background="{DynamicResource SplashProgressBarTrackBrush}" Height="4"/>
                             <Grid x:Name="PART_Indicator" ClipToBounds="True" HorizontalAlignment="Left">
-                                <Border Background="{StaticResource AccentBrush}" Height="4"/>
+                                <Border Background="{DynamicResource AccentBrush}" Height="4"/>
                             </Grid>
                         </Grid>
                     </ControlTemplate>
@@ -32,7 +32,7 @@
     <!-- Padding externe pour que l'ombre portée soit visible -->
     <Border Padding="12" MouseLeftButtonDown="Window_MouseLeftButtonDown" Cursor="SizeAll">
         <Border CornerRadius="12"
-                Background="{StaticResource SurfaceBrush}"
+                Background="{DynamicResource SurfaceBrush}"
                 ClipToBounds="True">
             <Border.Effect>
                 <DropShadowEffect Color="Black" Opacity="0.18"
@@ -48,7 +48,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- ── Zone logo (fond AccentBrush) ── -->
-                <Border Grid.Row="0" Background="{StaticResource AccentBrush}">
+                <Border Grid.Row="0" Background="{DynamicResource AccentBrush}">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <Image Source="pack://application:,,,/Resources/Images/rsr-logo.png"
                                Width="64" Height="64"
@@ -95,13 +95,13 @@
                                         <!-- Pending : anneau gris -->
                                         <Ellipse x:Name="PendingIcon"
                                                  Width="14" Height="14"
-                                                 Stroke="#CCCCCC" StrokeThickness="1.5"
+                                                 Stroke="{DynamicResource PendingStepIconBrush}" StrokeThickness="1.5"
                                                  Fill="Transparent"/>
 
                                         <!-- Running : anneau accent en pointillés + rotation -->
                                         <Ellipse x:Name="RunningIcon"
                                                  Width="14" Height="14"
-                                                 Stroke="{StaticResource AccentBrush}"
+                                                 Stroke="{DynamicResource AccentBrush}"
                                                  StrokeThickness="2"
                                                  StrokeDashArray="3 3"
                                                  Fill="Transparent"
@@ -115,7 +115,7 @@
                                         <!-- Success : cercle vert -->
                                         <Ellipse x:Name="SuccessBg"
                                                  Width="14" Height="14"
-                                                 Fill="#2EB67D"
+                                                 Fill="{DynamicResource SuccessBrush}"
                                                  Visibility="Collapsed"/>
                                         <Path x:Name="SuccessCheck"
                                               Data="M 3,7 L 5.5,9.5 L 11,4"
@@ -128,7 +128,7 @@
                                         <!-- Warning : cercle orange -->
                                         <Ellipse x:Name="WarningBg"
                                                  Width="14" Height="14"
-                                                 Fill="#F5A623"
+                                                 Fill="{DynamicResource WarningBrush}"
                                                  Visibility="Collapsed"/>
                                         <Path x:Name="WarningPath"
                                               Data="M 7,3.5 L 7,8 M 7,10 L 7,10.5"
@@ -140,7 +140,7 @@
                                         <!-- Error : cercle rouge -->
                                         <Ellipse x:Name="ErrorBg"
                                                  Width="14" Height="14"
-                                                 Fill="#E24B4A"
+                                                 Fill="{DynamicResource ErrorBrush}"
                                                  Visibility="Collapsed"/>
                                         <Path x:Name="ErrorPath"
                                               Data="M 4.5,4.5 L 9.5,9.5 M 9.5,4.5 L 4.5,9.5"
@@ -156,11 +156,11 @@
                                                 VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Label}"
                                                    FontSize="13"
-                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
                                         <!-- Détail de l'étape — visible uniquement si Detail est non null -->
                                         <TextBlock Text="{Binding Detail}"
                                                    FontSize="11"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                                    TextWrapping="Wrap"
                                                    Margin="0,1,0,0">
                                             <TextBlock.Style>
@@ -240,7 +240,7 @@
                 <Grid Grid.Row="3" Margin="16,0">
                     <TextBlock Text="{Binding SplashStatusText}"
                                FontSize="11"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis"/>
