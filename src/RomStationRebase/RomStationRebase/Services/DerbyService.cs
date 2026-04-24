@@ -129,19 +129,17 @@ public class DerbyService
         while (rs.next())
         {
             string? gameDirectory    = rs.getString("GAME_DIRECTORY");
-            string? sysImageRaw     = rs.getString("SYSTEM_IMAGE_PATH");
-            string? sysImagePath    = BuildSystemImagePath(sysImageRaw, romStationPath);
-            string? coverPath       = BuildCoverPath(gameDirectory, romStationPath);
-            string  gameName        = rs.getString("GAME_NAME") ?? string.Empty;
-
-            if (sysImagePath is null)
-                Debug.WriteLine($"[DerbyService] SystemImagePath null pour le jeu : {gameName} (SYSTEM_IMAGE_PATH brut = '{sysImageRaw}')");
+            string? sysImageRaw      = rs.getString("SYSTEM_IMAGE_PATH");
+            string  gameName         = rs.getString("GAME_NAME")   ?? string.Empty;
+            string  sysName          = rs.getString("SYSTEM_NAME") ?? string.Empty;
+            string  sysImagePath     = BuildSystemImagePath(sysImageRaw, romStationPath, sysName);
+            string? coverPath        = BuildCoverPath(gameDirectory, romStationPath);
 
             games.Add(new GameRecord
             {
                 Id              = rs.getInt("ID"),
                 Title           = gameName,
-                SystemName      = rs.getString("SYSTEM_NAME")       ?? string.Empty,
+                SystemName      = sysName,
                 SystemImagePath = sysImagePath,
                 GameDirectory   = gameDirectory                      ?? string.Empty,
                 FileCount       = rs.getInt("FILE_COUNT"),
@@ -182,10 +180,7 @@ public class DerbyService
         {
             string  name         = rs.getString("NAME")       ?? string.Empty;
             string? imageRaw     = rs.getString("IMAGE_PATH");
-            string? imagePath    = BuildSystemImagePath(imageRaw, romStationPath);
-
-            if (imagePath is null)
-                Debug.WriteLine($"[DerbyService] ImagePath null pour le système : {name} (IMAGE_PATH brut = '{imageRaw}')");
+            string  imagePath    = BuildSystemImagePath(imageRaw, romStationPath, name);
 
             systems.Add(new SystemRecord
             {
@@ -198,6 +193,335 @@ public class DerbyService
         rs.close();
         stmt.close();
         return systems;
+    }
+
+    // ── Fiche détail jeu ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Retourne la fiche complète d'un jeu depuis la base Derby.
+    /// Locale supportée : "en" ou "fr". Tout autre tag est normalisé vers "en".
+    /// La description et les genres utilisent un fallback vers "en" si la locale demandée est absente.
+    /// Retourne null si le jeu est introuvable ou si la connexion échoue.
+    /// </summary>
+    /// <param name="dbCopyPath">Chemin du dossier de la copie de la base Derby.</param>
+    /// <param name="romStationPath">Chemin de l'installation RomStation.</param>
+    /// <param name="gameId">Identifiant Derby du jeu.</param>
+    /// <param name="localeTag">Tag de locale ("en" ou "fr").</param>
+    public GameDetail? GetGameDetail(string dbCopyPath, string romStationPath, int gameId, string localeTag)
+    {
+        // Normalisation de la locale : seuls "en" et "fr" sont supportés
+        string locale = localeTag == "fr" ? "fr" : "en";
+
+        using var conn = OpenConnection(dbCopyPath);
+        if (conn is null) return null;
+
+        try
+        {
+            // ── Requête 1 : données principales ──────────────────────────
+            string? title         = null;
+            int?    year          = null;
+            int?    players       = null;
+            string? developerName = null;
+            string? publisherName = null;
+            string? systemName    = null;
+            string? systemImagePath = null;
+            string? coverPath     = null;
+            bool    coverExists   = false;
+            string? gameDirectory = null;
+            int?    descI18nId    = null;
+
+            const string sqlMain = """
+                SELECT g.TITLE,
+                       g."YEAR",
+                       g.PLAYERS,
+                       g.DIRECTORY,
+                       g.DESCRIPTION_I18N_ID,
+                       d.NAME  AS DEVELOPER_NAME,
+                       p.NAME  AS PUBLISHER_NAME,
+                       s.NAME  AS SYSTEM_NAME,
+                       si.PATH AS SYSTEM_IMAGE_PATH,
+                       gi.PATH AS COVER_IMAGE_PATH
+                FROM APP.GAME g
+                LEFT JOIN APP.DEVELOPER d  ON d.ID = g.DEVELOPER_ID
+                LEFT JOIN APP.PUBLISHER p  ON p.ID = g.PUBLISHER_ID
+                JOIN  APP.SYSTEM s         ON s.ID = g.SYSTEM_ID
+                LEFT JOIN APP.IMAGE si     ON si.ID = s.GRAPHIC_IMAGE_ID
+                LEFT JOIN APP.IMAGE gi     ON gi.ID = g.GRAPHIC_IMAGE_ID
+                WHERE g.ID = ?
+                """;
+
+            var ps1 = conn.prepareStatement(sqlMain);
+            ps1.setInt(1, gameId);
+            var rs1 = ps1.executeQuery();
+
+            if (!rs1.next())
+            {
+                rs1.close(); ps1.close();
+                Debug.WriteLine($"[DerbyService] GetGameDetail : jeu ID={gameId} introuvable.");
+                return null;
+            }
+
+            title         = rs1.getString("TITLE")          ?? string.Empty;
+            gameDirectory = rs1.getString("DIRECTORY")      ?? string.Empty;
+            developerName = rs1.getString("DEVELOPER_NAME");
+            publisherName = rs1.getString("PUBLISHER_NAME");
+            systemName    = rs1.getString("SYSTEM_NAME")    ?? string.Empty;
+
+            int rawYear    = rs1.getInt("YEAR");
+            year           = rs1.wasNull() ? (int?)null : rawYear;
+            int rawPlayers = rs1.getInt("PLAYERS");
+            players        = rs1.wasNull() ? (int?)null : rawPlayers;
+            int rawDescId  = rs1.getInt("DESCRIPTION_I18N_ID");
+            descI18nId     = rs1.wasNull() ? (int?)null : rawDescId;
+
+            string? sysImgRaw  = rs1.getString("SYSTEM_IMAGE_PATH");
+            string? coverImgRaw = rs1.getString("COVER_IMAGE_PATH");
+            systemImagePath    = BuildSystemImagePath(sysImgRaw, romStationPath, systemName ?? string.Empty);
+
+            // Jaquette directement depuis GAME.GRAPHIC_IMAGE_ID → IMAGE.PATH
+            if (!string.IsNullOrEmpty(coverImgRaw))
+            {
+                coverPath   = SystemPath.Combine(romStationPath, "app", coverImgRaw);
+                coverExists = SystemFile.Exists(coverPath);
+            }
+
+            rs1.close(); ps1.close();
+
+            // ── Requête 2 : description avec fallback ─────────────────────
+            string? description        = null;
+            bool    descriptionIsFallback = false;
+
+            if (descI18nId.HasValue)
+            {
+                const string sqlDesc = """
+                    SELECT loc.TAG, t.STRING
+                    FROM APP."TRANSLATION" t
+                    JOIN APP.LOCALE loc ON loc.ID = t.LOCALE_ID
+                    WHERE t.I18N_ID = ?
+                    """;
+
+                var ps2 = conn.prepareStatement(sqlDesc);
+                ps2.setInt(1, descI18nId.Value);
+                var rs2 = ps2.executeQuery();
+
+                string? descLocale = null;
+                string? descEn     = null;
+
+                while (rs2.next())
+                {
+                    string tag  = rs2.getString("TAG") ?? string.Empty;
+                    string text = rs2.getString("STRING") ?? string.Empty;
+                    if (tag == locale) descLocale = text;
+                    if (tag == "en")   descEn     = text;
+                }
+
+                rs2.close(); ps2.close();
+
+                if (descLocale != null)
+                {
+                    description = descLocale;
+                }
+                else if (descEn != null)
+                {
+                    description        = descEn;
+                    descriptionIsFallback = locale != "en";
+                }
+            }
+
+            // ── Requête 3 : genres avec fallback par genre ─────────────────
+            const string sqlGenres = """
+                SELECT gen.NAME_I18N_ID
+                FROM APP.GAME_GENRE gg
+                JOIN APP.GENRE gen ON gen.ID = gg.GENRE_ID
+                WHERE gg.GAME_ID = ?
+                """;
+
+            var ps3 = conn.prepareStatement(sqlGenres);
+            ps3.setInt(1, gameId);
+            var rs3 = ps3.executeQuery();
+
+            var genreI18nIds = new List<int>();
+            while (rs3.next())
+                genreI18nIds.Add(rs3.getInt(1));
+            rs3.close(); ps3.close();
+
+            var    genres          = new List<string>();
+            bool   genresFallback  = false;
+
+            const string sqlGenreName = """
+                SELECT loc.TAG, t.STRING
+                FROM APP."TRANSLATION" t
+                JOIN APP.LOCALE loc ON loc.ID = t.LOCALE_ID
+                WHERE t.I18N_ID = ?
+                """;
+
+            foreach (int i18nId in genreI18nIds)
+            {
+                var ps3b = conn.prepareStatement(sqlGenreName);
+                ps3b.setInt(1, i18nId);
+                var rs3b = ps3b.executeQuery();
+
+                string? nameLocale = null;
+                string? nameEn     = null;
+
+                while (rs3b.next())
+                {
+                    string tag  = rs3b.getString("TAG")    ?? string.Empty;
+                    string text = rs3b.getString("STRING") ?? string.Empty;
+                    if (tag == locale) nameLocale = text;
+                    if (tag == "en")   nameEn     = text;
+                }
+
+                rs3b.close(); ps3b.close();
+
+                if (nameLocale != null)
+                {
+                    genres.Add(nameLocale);
+                }
+                else if (nameEn != null)
+                {
+                    genres.Add(nameEn);
+                    if (locale != "en") genresFallback = true;
+                }
+            }
+
+            genres.Sort(StringComparer.OrdinalIgnoreCase);
+
+            // ── Requête 4 : langues du jeu ────────────────────────────────
+            // La langue dont l'ID Derby correspond à la locale demandée (en=1, fr=2) est placée en tête.
+            const string sqlLangs = """
+                SELECT l.ID, l.NAME_I18N_ID, i.PATH AS FLAG_PATH
+                FROM APP.GAME_LANGUAGE gl
+                JOIN APP.LANGUAGE l    ON l.ID = gl.LANGUAGE_ID
+                LEFT JOIN APP.IMAGE i  ON i.ID = l.GRAPHIC_IMAGE_ID
+                WHERE gl.GAME_ID = ?
+                ORDER BY l.ID
+                """;
+
+            var ps4 = conn.prepareStatement(sqlLangs);
+            ps4.setInt(1, gameId);
+            var rs4 = ps4.executeQuery();
+
+            // Récupération des lignes brutes
+            var langRows = new List<(int id, int nameI18nId, string? flagRaw)>();
+            while (rs4.next())
+            {
+                langRows.Add((
+                    rs4.getInt("ID"),
+                    rs4.getInt("NAME_I18N_ID"),
+                    rs4.getString("FLAG_PATH")
+                ));
+            }
+            rs4.close(); ps4.close();
+
+            // ID Derby de la langue "en" = 1, "fr" = 2
+            int localeFirstId = locale == "fr" ? 2 : 1;
+
+            // Tri : locale en tête, puis ID croissant (déjà trié par Derby)
+            langRows.Sort((a, b) =>
+            {
+                bool aFirst = a.id == localeFirstId;
+                bool bFirst = b.id == localeFirstId;
+                if (aFirst != bFirst) return aFirst ? -1 : 1;
+                return a.id.CompareTo(b.id);
+            });
+
+            const string sqlLangName = """
+                SELECT loc.TAG, t.STRING
+                FROM APP."TRANSLATION" t
+                JOIN APP.LOCALE loc ON loc.ID = t.LOCALE_ID
+                WHERE t.I18N_ID = ?
+                """;
+
+            var languages = new List<GameLanguageInfo>();
+
+            foreach (var (langId, nameI18nId, flagRaw) in langRows)
+            {
+                var ps4b = conn.prepareStatement(sqlLangName);
+                ps4b.setInt(1, nameI18nId);
+                var rs4b = ps4b.executeQuery();
+
+                string? nameLocale = null;
+                string? nameEn     = null;
+
+                while (rs4b.next())
+                {
+                    string tag  = rs4b.getString("TAG")    ?? string.Empty;
+                    string text = rs4b.getString("STRING") ?? string.Empty;
+                    if (tag == locale) nameLocale = text;
+                    if (tag == "en")   nameEn     = text;
+                }
+
+                rs4b.close(); ps4b.close();
+
+                string langName = nameLocale ?? nameEn ?? string.Empty;
+
+                string? flagPath  = null;
+                bool    flagExists = false;
+                if (!string.IsNullOrEmpty(flagRaw))
+                {
+                    flagPath  = SystemPath.Combine(romStationPath, "app", flagRaw);
+                    flagExists = SystemFile.Exists(flagPath);
+                }
+
+                languages.Add(new GameLanguageInfo
+                {
+                    Id            = langId,
+                    Name          = langName,
+                    FlagImagePath = flagPath,
+                    FlagExists    = flagExists,
+                });
+            }
+
+            // ── Requête 5 : URL RomStation (lien EXTERNAL=false) ──────────
+            string? romStationUrl = null;
+
+            const string sqlUrl = """
+                SELECT l.LOCATION
+                FROM APP.GAME_LINK gl
+                JOIN APP.LINK l ON l.ID = gl.LINK_ID
+                WHERE gl.GAME_ID = ?
+                  AND l."EXTERNAL" = false
+                FETCH FIRST 1 ROWS ONLY
+                """;
+
+            var ps5 = conn.prepareStatement(sqlUrl);
+            ps5.setInt(1, gameId);
+            var rs5 = ps5.executeQuery();
+
+            if (rs5.next())
+                romStationUrl = rs5.getString("LOCATION");
+
+            rs5.close(); ps5.close();
+
+            // ── Construction du résultat ───────────────────────────────────
+            return new GameDetail
+            {
+                Id                   = gameId,
+                Title                = title,
+                Year                 = year,
+                Players              = players,
+                DeveloperName        = developerName,
+                PublisherName        = publisherName,
+                SystemName           = systemName ?? string.Empty,
+                SystemImagePath      = systemImagePath,
+                CoverPath            = coverPath,
+                CoverExists          = coverExists,
+                Directory            = gameDirectory,
+                Description          = description,
+                Genres               = genres.AsReadOnly(),
+                Languages            = languages.AsReadOnly(),
+                RomStationUrl        = romStationUrl,
+                RequestedLocale      = locale,
+                DescriptionIsFallback = descriptionIsFallback,
+                GenresHasFallback    = genresFallback,
+            };
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[DerbyService] GetGameDetail ID={gameId} erreur : {ex.Message}");
+            return null;
+        }
     }
 
     // ── Helpers chemins ───────────────────────────────────────────────────
@@ -228,13 +552,29 @@ public class DerbyService
     }
 
     /// <summary>
-    /// Construit le chemin absolu vers l'image d'un système à partir du PATH Derby.
-    /// Retourne null si le chemin Derby est vide.
+    /// Résout le chemin d'icône d'un système selon 4 règles de priorité décroissante.
+    /// Règle 1 : Windows → icône embarquée (win.png RomStation est blanc transparent).
+    /// Règle 2 : macOS   → icône embarquée (osx.png RomStation est blanc transparent).
+    /// Règle 3 : icône Derby si le fichier physique existe.
+    /// Règle 4 : icône générique embarquée (fallback garanti, ne retourne jamais null).
     /// </summary>
-    private static string? BuildSystemImagePath(string? derbyImagePath, string romStationPath)
+    private static string BuildSystemImagePath(string? derbyImagePath, string romStationPath, string systemName)
     {
-        if (string.IsNullOrEmpty(derbyImagePath)) return null;
-        return SystemPath.Combine(romStationPath, "app", derbyImagePath);
+        if (string.Equals(systemName, "Windows", StringComparison.OrdinalIgnoreCase))
+            return "pack://application:,,,/Resources/Icons/icon-system-windows.png";
+
+        if (systemName.IndexOf("macos", StringComparison.OrdinalIgnoreCase) >= 0)
+            return "pack://application:,,,/Resources/Icons/icon-system-apple.png";
+
+        if (!string.IsNullOrEmpty(derbyImagePath))
+        {
+            string normalizedPath = derbyImagePath.Replace('/', SystemPath.DirectorySeparatorChar);
+            string fullPath = SystemPath.Combine(romStationPath, "app", normalizedPath);
+            if (SystemFile.Exists(fullPath))
+                return fullPath;
+        }
+
+        return "pack://application:,,,/Resources/Icons/icon-system-default.png";
     }
 
     // ── Connexion JDBC ────────────────────────────────────────────────────

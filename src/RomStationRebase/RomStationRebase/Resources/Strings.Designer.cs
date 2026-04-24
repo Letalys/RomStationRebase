@@ -488,6 +488,9 @@ namespace RomStationRebase.Resources {
         public static string Settings_Theme_Light {
             get { return ResourceManager.GetString("Settings_Theme_Light", resourceCulture); }
         }
+        public static string Settings_Theme_Dark {
+            get { return ResourceManager.GetString("Settings_Theme_Dark", resourceCulture); }
+        }
         public static string Settings_RestartRequired {
             get { return ResourceManager.GetString("Settings_RestartRequired", resourceCulture); }
         }
@@ -511,6 +514,9 @@ namespace RomStationRebase.Resources {
         }
         public static string Rebase_Error_InvalidDriveLetter {
             get { return ResourceManager.GetString("Rebase_Error_InvalidDriveLetter", resourceCulture); }
+        }
+        public static string Rebase_Error_FolderNotExist {
+            get { return ResourceManager.GetString("Rebase_Error_FolderNotExist", resourceCulture); }
         }
         public static string Rebase_Validation_PathNotAbsolute {
             get { return ResourceManager.GetString("Rebase_Validation_PathNotAbsolute", resourceCulture); }
@@ -544,6 +550,162 @@ namespace RomStationRebase.Resources {
         }
         public static string Settings_About_OpenRepository {
             get { return ResourceManager.GetString("Settings_About_OpenRepository", resourceCulture); }
+        }
+
+        public static string Splash_DBNotInitialized_Title {
+            get { return ResourceManager.GetString("Splash_DBNotInitialized_Title", resourceCulture); }
+        }
+
+        public static string Splash_DBNotInitialized_Message {
+            get { return ResourceManager.GetString("Splash_DBNotInitialized_Message", resourceCulture); }
+        }
+
+        public static string Splash_DBNotInitialized_StepLabel {
+            get { return ResourceManager.GetString("Splash_DBNotInitialized_StepLabel", resourceCulture); }
+        }
+
+        public static string Splash_DBNotInitialized_Quit {
+            get { return ResourceManager.GetString("Splash_DBNotInitialized_Quit", resourceCulture); }
+        }
+
+        public static string Splash_DBCorrupted_Title {
+            get { return ResourceManager.GetString("Splash_DBCorrupted_Title", resourceCulture); }
+        }
+
+        public static string Splash_UnexpectedError_Title {
+            get { return ResourceManager.GetString("Splash_UnexpectedError_Title", resourceCulture); }
+        }
+
+        public static string Splash_UnexpectedError_Message {
+            get { return ResourceManager.GetString("Splash_UnexpectedError_Message", resourceCulture); }
+        }
+
+        public static string Splash_UnexpectedError_Quit {
+            get { return ResourceManager.GetString("Splash_UnexpectedError_Quit", resourceCulture); }
+        }
+
+        public static string Main_SizeNormal {
+            get { return ResourceManager.GetString("Main_SizeNormal", resourceCulture); }
+        }
+
+        public static string Main_SizeLarge {
+            get { return ResourceManager.GetString("Main_SizeLarge", resourceCulture); }
+        }
+
+        public static string Main_ThumbnailSize_Tooltip {
+            get { return ResourceManager.GetString("Main_ThumbnailSize_Tooltip", resourceCulture); }
+        }
+
+        public static string Main_ThumbnailSize_Label {
+            get { return ResourceManager.GetString("Main_ThumbnailSize_Label", resourceCulture); }
+        }
+
+        public static string Main_SortBy_Label {
+            get { return ResourceManager.GetString("Main_SortBy_Label", resourceCulture); }
+        }
+
+        public static string Main_SortBy_Title {
+            get { return ResourceManager.GetString("Main_SortBy_Title", resourceCulture); }
+        }
+
+        public static string Main_SortBy_System {
+            get { return ResourceManager.GetString("Main_SortBy_System", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Title {
+            get { return ResourceManager.GetString("Sync_Confirm_Title", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Message {
+            get { return ResourceManager.GetString("Sync_Confirm_Message", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_MessageWithSelection {
+            get { return ResourceManager.GetString("Sync_Confirm_MessageWithSelection", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Singular {
+            get { return ResourceManager.GetString("Sync_Confirm_Singular", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Plural {
+            get { return ResourceManager.GetString("Sync_Confirm_Plural", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Proceed {
+            get { return ResourceManager.GetString("Sync_Confirm_Proceed", resourceCulture); }
+        }
+
+        public static string Sync_Confirm_Cancel {
+            get { return ResourceManager.GetString("Sync_Confirm_Cancel", resourceCulture); }
+        }
+
+        public static string GameDetail_Title {
+            get { return ResourceManager.GetString("GameDetail_Title", resourceCulture); }
+        }
+
+        public static string GameDetail_Close {
+            get { return ResourceManager.GetString("GameDetail_Close", resourceCulture); }
+        }
+
+        public static string GameDetail_OpenFolder {
+            get { return ResourceManager.GetString("GameDetail_OpenFolder", resourceCulture); }
+        }
+
+        public static string GameDetail_OpenRomStation {
+            get { return ResourceManager.GetString("GameDetail_OpenRomStation", resourceCulture); }
+        }
+
+        public static string GameDetail_Error_FolderNotFound {
+            get { return ResourceManager.GetString("GameDetail_Error_FolderNotFound", resourceCulture); }
+        }
+
+        public static string GameDetail_System {
+            get { return ResourceManager.GetString("GameDetail_System", resourceCulture); }
+        }
+
+        public static string GameDetail_Year {
+            get { return ResourceManager.GetString("GameDetail_Year", resourceCulture); }
+        }
+
+        public static string GameDetail_Developer {
+            get { return ResourceManager.GetString("GameDetail_Developer", resourceCulture); }
+        }
+
+        public static string GameDetail_Publisher {
+            get { return ResourceManager.GetString("GameDetail_Publisher", resourceCulture); }
+        }
+
+        public static string GameDetail_Players {
+            get { return ResourceManager.GetString("GameDetail_Players", resourceCulture); }
+        }
+
+        public static string GameDetail_Genres {
+            get { return ResourceManager.GetString("GameDetail_Genres", resourceCulture); }
+        }
+
+        public static string GameDetail_Languages {
+            get { return ResourceManager.GetString("GameDetail_Languages", resourceCulture); }
+        }
+
+        public static string GameDetail_Description {
+            get { return ResourceManager.GetString("GameDetail_Description", resourceCulture); }
+        }
+
+        public static string GameDetail_FallbackTooltip_Fr {
+            get { return ResourceManager.GetString("GameDetail_FallbackTooltip_Fr", resourceCulture); }
+        }
+
+        public static string GameDetail_FallbackTooltip_En {
+            get { return ResourceManager.GetString("GameDetail_FallbackTooltip_En", resourceCulture); }
+        }
+
+        public static string Game_ViewDetail {
+            get { return ResourceManager.GetString("Game_ViewDetail", resourceCulture); }
+        }
+
+        public static string Sidebar_ShowEmptySystems {
+            get { return ResourceManager.GetString("Sidebar_ShowEmptySystems", resourceCulture); }
         }
     }
 }

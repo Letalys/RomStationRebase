@@ -1,30 +1,44 @@
 using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Windows;
-using System.Windows.Input;
 using RomStationRebase.Helpers;
-using RomStationRebase.Models;   // AppState, UserPreferences
+using RomStationRebase.Models;
 using RomStationRebase.Resources;
 using RomStationRebase.Services;
 using RomStationRebase.Views.Dialogs;
 
 namespace RomStationRebase.ViewModels;
 
+/// <summary>Résultat de la séquence de démarrage, transmis à App.xaml.cs pour piloter la suite.</summary>
+public enum StartupResult
+{
+    /// <summary>Toutes les étapes ont réussi — MainWindow peut s'ouvrir.</summary>
+    Success,
+    /// <summary>La base Derby est corrompue (test de connexion step 5 échoué).</summary>
+    DatabaseCorrupted,
+    /// <summary>La base Derby n'est pas encore initialisée — RomStation jamais lancé (step 3 échoué).</summary>
+    DatabaseNotInitialized,
+    /// <summary>Une erreur technique non récupérable s'est produite (step 2 ou step 4).</summary>
+    Failed,
+    /// <summary>L'utilisateur a cliqué Quitter dans un dialog — Shutdown() a déjà été appelé.</summary>
+    ShuttingDown
+}
+
 /// <summary>
 /// ViewModel de la fenêtre de démarrage.
 /// Pilote la séquence d'initialisation : config, détection RS, copie DB, chargement bibliothèque.
+/// Le splash est passif : toutes les interactions utilisateur passent par des dialogs ConfirmDialog.
 /// </summary>
 public class SplashViewModel : ViewModelBase
 {
-    private readonly ConfigService       _config   = new();
-    private readonly RomStationService   _rs       = new();
-    private readonly DerbyService        _derby    = new();
+    private readonly ConfigService     _config = new();
+    private readonly RomStationService _rs     = new();
+    private readonly DerbyService      _derby  = new();
 
-    private double  _splashProgress;
-    private string  _splashStatusText = string.Empty;
-    private bool    _hasError;
+    private double _splashProgress;
+    private string _splashStatusText = string.Empty;
 
-    // ── Collections et propriétés bindées ────────────────────────────────
+    // ── Collections et propriétés bindées ────────────────────────────────────
 
     /// <summary>Liste des étapes de démarrage affichées dans la SplashWindow.</summary>
     public ObservableCollection<SplashStep> Steps { get; } = new();
@@ -43,18 +57,11 @@ public class SplashViewModel : ViewModelBase
         set => SetProperty(ref _splashStatusText, value);
     }
 
-    /// <summary>True si une étape a échoué — rend le bouton Quit visible.</summary>
-    public bool HasError
-    {
-        get => _hasError;
-        set => SetProperty(ref _hasError, value);
-    }
-
     /// <summary>Version de l'application lue depuis l'assembly — affichée dans la SplashWindow.</summary>
     public string AppVersion { get; } =
         "v" + (Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "0.1.0");
 
-    // ── Données chargées (accédées par App.xaml.cs après succès) ─────────
+    // ── Données chargées (accédées par App.xaml.cs après succès) ─────────────
 
     /// <summary>Chemin de la copie locale de la base Derby — disponible après RunStartupSequence.</summary>
     public string DbCopyPath { get; private set; } = string.Empty;
@@ -68,13 +75,7 @@ public class SplashViewModel : ViewModelBase
     /// <summary>Préférences utilisateur chargées pendant la séquence.</summary>
     public UserPreferences LoadedPreferences { get; private set; } = new();
 
-    // ── Commandes ─────────────────────────────────────────────────────────
-
-    /// <summary>Ferme proprement l'application depuis la SplashWindow (cas d'erreur).</summary>
-    public ICommand QuitCommand { get; } =
-        new RelayCommand(() => Application.Current.Shutdown());
-
-    // ── Initialisation ────────────────────────────────────────────────────
+    // ── Initialisation ────────────────────────────────────────────────────────
 
     public SplashViewModel()
     {
@@ -87,15 +88,14 @@ public class SplashViewModel : ViewModelBase
         Steps.Add(new SplashStep(Strings.Splash_Starting));
     }
 
-    // ── Séquence de démarrage ─────────────────────────────────────────────
+    // ── Séquence de démarrage ─────────────────────────────────────────────────
 
     /// <summary>
     /// Exécute les 7 étapes de démarrage dans l'ordre.
-    /// Les mises à jour UI se font sur le thread appelant (thread UI).
-    /// Les opérations I/O lourdes sont enveloppées dans Task.Run.
-    /// Retourne true si toutes les étapes critiques ont réussi.
+    /// Retourne Success si tout a réussi, DatabaseCorrupted si le test Derby a échoué,
+    /// Failed pour toute autre erreur technique, ShuttingDown si l'utilisateur a quitté.
     /// </summary>
-    public async Task<bool> RunStartupSequence()
+    public async Task<StartupResult> RunStartupSequence()
     {
         const int total = 7;
 
@@ -118,12 +118,12 @@ public class SplashViewModel : ViewModelBase
         }
         void Fail(int i, string detail)
         {
+            // Marque l'étape en erreur (icône rouge) — le splash passif n'a plus de bouton Quit
             Steps[i].Status = SplashStepStatus.Error;
             Steps[i].Detail = detail;
-            HasError        = true;
         }
 
-        // ── Étape 0 : Chargement configuration ───────────────────────────
+        // ── Étape 0 : Chargement configuration ───────────────────────────────
         SetRunning(0);
         SplashStatusText = Strings.Splash_LoadingConfig + "…";
 
@@ -141,7 +141,12 @@ public class SplashViewModel : ViewModelBase
                 string.Format(Strings.Splash_ConfigCorrupted_State, ex.Detail),
                 "Continue", "Quit");
             dlg.ShowDialog();
-            if (!dlg.Result) { Fail(0, ex.Detail); return false; }
+            if (!dlg.Result)
+            {
+                // L'utilisateur refuse la réinitialisation — fermeture immédiate
+                Application.Current.Shutdown();
+                return StartupResult.ShuttingDown;
+            }
             _config.DeleteAppState();
             appState = new AppState();
         }
@@ -157,7 +162,11 @@ public class SplashViewModel : ViewModelBase
                 string.Format(Strings.Splash_ConfigCorrupted_Prefs, ex.Detail),
                 "Reset", "Quit");
             dlg.ShowDialog();
-            if (!dlg.Result) { Fail(0, ex.Detail); return false; }
+            if (!dlg.Result)
+            {
+                Application.Current.Shutdown();
+                return StartupResult.ShuttingDown;
+            }
             _config.DeleteUserPreferences();
             prefs = new UserPreferences();
         }
@@ -165,48 +174,29 @@ public class SplashViewModel : ViewModelBase
         LoadedPreferences = prefs;
         SetSuccess(0);
 
-        // ── Étape 1 : Détection RomStation ───────────────────────────────
+        // ── Étape 1 : Détection RomStation ───────────────────────────────────
         SetRunning(1);
         SplashStatusText = Strings.Splash_DetectingRS + "…";
 
-        string? rsPath = appState.RomStationPath;
-        bool pathValid = rsPath != null
-            && await Task.Run(() => _rs.ValidateRomStationPath(rsPath));
+        string? rsPath = await ResolveRomStationPathAsync(appState);
 
-        if (!pathValid)
+        if (rsPath is null)
         {
-            // 1. Tentative via le registre Windows
-            rsPath = await Task.Run(() => _rs.DetectRomStationPath());
-
-            // 2. Si échec registre : proposer la sélection manuelle (installation ZIP portable)
-            if (rsPath is null)
-            {
-                rsPath = await PromptForManualRomStationPathAsync();
-
-                if (rsPath is null)
-                {
-                    // L'utilisateur a cliqué "Quitter" ou annulé — étape marquée en échec
-                    Fail(1, Strings.Splash_RSNotFound_StepFailed);
-                    return false;
-                }
-
-                // Sauvegarder le chemin choisi manuellement pour les prochains lancements
-                appState.RomStationPath = rsPath;
-            }
+            // ResolveRomStationPathAsync a appelé Shutdown() suite au clic Quitter de l'utilisateur
+            return StartupResult.ShuttingDown;
         }
 
-        appState.RomStationPath = rsPath;
-        RomStationPath = rsPath!;
+        RomStationPath = rsPath;
         SetSuccess(1, string.Format(Strings.Splash_RSFound, rsPath));
 
-        // ── Étape 2 : Lecture de RomStation.cfg ──────────────────────────
+        // ── Étape 2 : Lecture de RomStation.cfg ──────────────────────────────
         SetRunning(2);
         SplashStatusText = Strings.Splash_ReadingConfig + "…";
 
         try
         {
             var (version, derbyVer) = await Task.Run(
-                () => _rs.ParseRomStationConfig(rsPath!));
+                () => _rs.ParseRomStationConfig(rsPath));
             appState.RomStationVersion = version;
             appState.DerbyVersion      = derbyVer;
             await Task.Run(() => _config.SaveAppState(appState));
@@ -215,20 +205,37 @@ public class SplashViewModel : ViewModelBase
         catch (Exception ex)
         {
             Fail(2, ex.Message);
-            return false;
+            return StartupResult.Failed;
         }
 
-        // ── Étape 3 : Vérification du verrou ─────────────────────────────
+        // ── Étape 3 : Vérification de la base de données ─────────────────────
         SetRunning(3);
         SplashStatusText = Strings.Splash_CheckingDB + "…";
 
-        bool locked = await Task.Run(() => _rs.IsDatabaseLocked(rsPath!));
+        // Vérification 3a — La base Derby a-t-elle été initialisée ?
+        bool initialized = await Task.Run(() => _rs.IsDatabaseInitialized(rsPath));
+        if (!initialized)
+        {
+            Fail(3, Strings.Splash_DBNotInitialized_StepLabel);
+            return StartupResult.DatabaseNotInitialized;
+        }
+
+        // Vérification 3b — Les fichiers internes Derby sont-ils complets ?
+        bool filesComplete = await Task.Run(() => _rs.IsDatabaseFilesComplete(rsPath));
+        if (!filesComplete)
+        {
+            Fail(3, Strings.Splash_DBCorrupted);
+            return StartupResult.DatabaseCorrupted;
+        }
+
+        // Vérification 3c — La base est-elle verrouillée (RomStation ouvert en parallèle) ?
+        bool locked = await Task.Run(() => _rs.IsDatabaseLocked(rsPath));
         if (locked)
             SetWarning(3, Strings.Splash_RSOpen);
         else
             SetSuccess(3);
 
-        // ── Étape 4 : Copie de la base ────────────────────────────────────
+        // ── Étape 4 : Copie de la base ────────────────────────────────────────
         SetRunning(4);
         SplashStatusText = Strings.Splash_CopyingDB + "…";
 
@@ -237,15 +244,19 @@ public class SplashViewModel : ViewModelBase
             "RomStationRebase", "database");
 
         var copyProgress = new Progress<string>(msg => SplashStatusText = msg);
-        bool copyOk = await _rs.CopyDatabaseAsync(rsPath!, dbCopyPath, copyProgress);
+        bool copyOk = await _rs.CopyDatabaseAsync(rsPath, dbCopyPath, copyProgress);
 
-        if (!copyOk) { Fail(4, Strings.Splash_DBLocked); return false; }
+        if (!copyOk)
+        {
+            Fail(4, Strings.Splash_DBLocked);
+            return StartupResult.Failed;
+        }
 
         appState.DatabaseCopyPath = dbCopyPath;
         DbCopyPath = dbCopyPath;
         SetSuccess(4);
 
-        // ── Étape 5 : Vérification intégrité ─────────────────────────────
+        // ── Étape 5 : Vérification intégrité ─────────────────────────────────
         SetRunning(5);
         SplashStatusText = Strings.Splash_VerifyingDB + "…";
 
@@ -253,7 +264,7 @@ public class SplashViewModel : ViewModelBase
         if (!connOk)
         {
             Fail(5, Strings.Splash_DBCorrupted);
-            return false;
+            return StartupResult.DatabaseCorrupted;
         }
 
         // Enregistre la date de sync — le chargement réel de la bibliothèque se fait dans MainWindow
@@ -263,7 +274,7 @@ public class SplashViewModel : ViewModelBase
         LoadedAppState = appState;
         SetSuccess(5);
 
-        // ── Étape 6 : Démarrage (cosmétique) ─────────────────────────────
+        // ── Étape 6 : Démarrage (cosmétique) ─────────────────────────────────
         // Donne le temps à l'utilisateur de lire les étapes et à la barre d'atteindre 95%.
         SetRunning(6);
         SplashStatusText = Strings.Splash_Starting;
@@ -275,71 +286,110 @@ public class SplashViewModel : ViewModelBase
         SplashProgress = 100;
         await Task.Delay(200);
 
-        return true;
+        return StartupResult.Success;
+    }
+
+    // ── Résolution du chemin RomStation ──────────────────────────────────────
+
+    /// <summary>
+    /// Résout le chemin d'installation RomStation en trois phases :
+    ///   Phase 1 : vérification silencieuse du chemin persisté dans AppState.
+    ///   Phase 2 : vérification silencieuse du chemin détecté dans le registre Windows.
+    ///   Phase 3 : boucle interactive — dialogs Parcourir/Quitter jusqu'à un chemin valide.
+    /// Critère unique : présence de app\RomStation.cfg (marqueur d'une installation RS).
+    /// La vérification de la base Derby est déléguée au step 3.
+    /// Retourne le chemin validé, ou null si Shutdown() a été appelé (clic Quitter de l'utilisateur).
+    /// Met à jour AppState.RomStationPath avec le chemin final.
+    /// </summary>
+    private async Task<string?> ResolveRomStationPathAsync(AppState appState)
+    {
+        // ── Phase 1 : chemin persisté dans AppState ───────────────────────────
+        if (appState.RomStationPath is not null)
+        {
+            bool valid = await Task.Run(() => _rs.ValidateRomStationPath(appState.RomStationPath));
+            if (valid)
+                return appState.RomStationPath;
+        }
+
+        // ── Phase 2 : détection via le registre Windows ───────────────────────
+        string? registryPath = await Task.Run(() => _rs.DetectRomStationPath());
+        if (registryPath is not null)
+        {
+            bool valid = await Task.Run(() => _rs.ValidateRomStationPath(registryPath));
+            if (valid)
+            {
+                appState.RomStationPath = registryPath;
+                return registryPath;
+            }
+        }
+
+        // ── Phase 3 : boucle interactive ─────────────────────────────────────
+        string dialogTitle   = Strings.Splash_RSNotFound_Title;
+        string dialogMessage = Strings.Splash_RSNotFound_Message;
+
+        while (true)
+        {
+            // Afficher le dialog Parcourir/Quitter et attendre le choix de l'utilisateur
+            string? selectedPath = await ShowBrowseOrQuitDialogAsync(dialogTitle, dialogMessage);
+
+            if (selectedPath is null)
+                return null; // Shutdown() déjà appelé
+
+            bool valid = await Task.Run(() => _rs.ValidateRomStationPath(selectedPath));
+
+            if (valid)
+            {
+                appState.RomStationPath = selectedPath;
+                return selectedPath;
+            }
+
+            // Dossier sélectionné ne contient pas RomStation.cfg
+            dialogTitle   = Strings.Splash_RSNotFound_Title;
+            dialogMessage = Strings.Splash_RSNotFound_InvalidFolder;
+        }
     }
 
     /// <summary>
-    /// Affiche un popup invitant l'utilisateur à sélectionner manuellement le dossier RomStation.
-    /// Cas typique : installation via ZIP portable, pas d'entrée dans le registre Windows.
-    /// Retourne le chemin validé, ou null si l'utilisateur choisit de quitter.
-    /// Boucle jusqu'à ce qu'un dossier valide soit sélectionné ou que l'utilisateur quitte.
+    /// Affiche un dialog Parcourir/Quitter, puis ouvre le sélecteur de dossier si Parcourir est cliqué.
+    /// Retourne le chemin sélectionné (non vide), ou null si Quitter a été cliqué
+    /// (dans ce cas Application.Current.Shutdown() a déjà été appelé).
+    /// Boucle si l'utilisateur ferme le sélecteur sans choisir de dossier.
     /// </summary>
-    private async Task<string?> PromptForManualRomStationPathAsync()
+    private async Task<string?> ShowBrowseOrQuitDialogAsync(string title, string message)
     {
         while (true)
         {
-            // Afficher le popup principal : "Parcourir..." ou "Quitter"
+            // Afficher le dialog principal avec les boutons Parcourir et Quitter
             bool browseRequested = await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                var dlg = new Views.Dialogs.ConfirmDialog(
-                    Strings.Splash_RSNotFound_Title,
-                    Strings.Splash_RSNotFound_Message,
+                var dlg = new ConfirmDialog(title, message,
                     primaryLabel:   Strings.Splash_RSNotFound_Browse,
                     secondaryLabel: Strings.Splash_RSNotFound_Quit)
-                {
-                    Owner = Application.Current.MainWindow,
-                };
+                { Owner = Application.Current.MainWindow };
                 dlg.ShowDialog();
                 return dlg.Result;
             });
 
-            // L'utilisateur a cliqué "Quitter"
             if (!browseRequested)
+            {
+                // L'utilisateur a cliqué Quitter — fermeture immédiate sans retour au splash
+                Application.Current.Shutdown();
                 return null;
+            }
 
-            // L'utilisateur a cliqué "Parcourir" — afficher le sélecteur de dossier natif WPF
+            // Ouvrir le sélecteur de dossier natif WPF
             string? selectedPath = await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 var folderDialog = new Microsoft.Win32.OpenFolderDialog
-                {
-                    Title = Strings.Splash_RSNotFound_SelectFolder,
-                };
+                { Title = Strings.Splash_RSNotFound_SelectFolder };
                 bool? r = folderDialog.ShowDialog();
                 return r == true ? folderDialog.FolderName : null;
             });
 
-            // L'utilisateur a annulé le sélecteur — retour au popup initial
-            if (string.IsNullOrEmpty(selectedPath))
-                continue;
-
-            // Valider que le dossier contient bien app/database et app/RomStation.cfg
-            bool valid = await Task.Run(() => _rs.ValidateRomStationPath(selectedPath));
-
-            if (valid)
+            if (!string.IsNullOrEmpty(selectedPath))
                 return selectedPath;
 
-            // Dossier invalide : popup d'erreur, puis retour au popup initial
-            await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                var errorDlg = new Views.Dialogs.ConfirmDialog(
-                    Strings.Splash_RSNotFound_Title,
-                    Strings.Splash_RSNotFound_InvalidFolder,
-                    primaryLabel: "OK")
-                {
-                    Owner = Application.Current.MainWindow,
-                };
-                errorDlg.ShowDialog();
-            });
+            // L'utilisateur a annulé le sélecteur de dossier — re-afficher le même dialog
         }
     }
 }

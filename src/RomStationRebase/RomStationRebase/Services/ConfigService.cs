@@ -122,9 +122,18 @@ public class ConfigService
             throw new ConfigCorruptedException("user-preferences.json",
                 $"LastViewMode='{prefs.LastViewMode}' invalide (valeurs acceptées : Mosaic, List)");
 
-        if (prefs.Theme != "Light")
-            throw new ConfigCorruptedException("user-preferences.json",
-                $"Theme='{prefs.Theme}' invalide (valeurs acceptées : Light)");
+        // Theme : normalisé en silence — préférence visuelle sans impact critique
+        var validThemes = new[] { "Light", "Dark" };
+        if (!validThemes.Contains(prefs.Theme))
+            prefs.Theme = "Light";
+
+        // ThumbnailSize : normalisé en silence plutôt que rejeté (préférence visuelle sans impact critique)
+        if (prefs.ThumbnailSize != "Normal" && prefs.ThumbnailSize != "Grand")
+            prefs.ThumbnailSize = "Normal";
+
+        // LastSortCriteria : normalisé en silence — préférence visuelle sans impact critique
+        if (prefs.LastSortCriteria != "Title" && prefs.LastSortCriteria != "System")
+            prefs.LastSortCriteria = "Title";
     }
 
     // ── AppMetadata ───────────────────────────────────────────────────────
@@ -184,8 +193,9 @@ public class ConfigService
         // Fallback : valeurs codées en dur + reconstruction du fichier
         var fallback = new WindowDefaults
         {
-            MainWindow   = new WindowSize { Width = 1280, Height = 800 },
-            RebaseWindow = new WindowSize { Width = 1100, Height = 720 },
+            MainWindow       = new WindowSize { Width = 1280, Height = 800  },
+            RebaseWindow     = new WindowSize { Width = 1100, Height = 720  },
+            GameDetailWindow = new WindowSize { Width = 700,  Height = 820  },
         };
 
         try
@@ -206,6 +216,7 @@ public class ConfigService
 
     /// <summary>Valide que les tailles sont dans une plage raisonnable (évite un JSON avec width=0).</summary>
     private static bool IsValid(WindowDefaults d)
-        => d.MainWindow.Width   >= 400 && d.MainWindow.Height   >= 300
-        && d.RebaseWindow.Width >= 400 && d.RebaseWindow.Height >= 300;
+        => d.MainWindow.Width        >= 400 && d.MainWindow.Height        >= 300
+        && d.RebaseWindow.Width      >= 400 && d.RebaseWindow.Height      >= 300
+        && d.GameDetailWindow.Width  >= 400 && d.GameDetailWindow.Height  >= 300;
 }

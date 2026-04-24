@@ -14,7 +14,7 @@
         MinHeight="560" MinWidth="720"
         WindowStyle="None" AllowsTransparency="False"
         ResizeMode="CanResizeWithGrip"
-        Background="{StaticResource BackgroundBrush}"
+        Background="{DynamicResource BackgroundBrush}"
         d:DataContext="{d:DesignInstance Type=vm:RebaseViewModel, IsDesignTimeCreatable=False}">
 
     <Window.Resources>
@@ -32,7 +32,7 @@
         <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E24B4A"/>
+                    <Setter Property="Background" Value="{DynamicResource CloseButtonHoverBrush}"/>
                     <Setter Property="Opacity"    Value="1"/>
                 </Trigger>
             </Style.Triggers>
@@ -40,12 +40,13 @@
 
         <!-- DataGrid épuré -->
         <Style TargetType="DataGrid">
-            <Setter Property="Background"               Value="White"/>
-            <Setter Property="BorderBrush"              Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Background"               Value="{DynamicResource DataGridBackgroundBrush}"/>
+            <Setter Property="Foreground"               Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush"              Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness"          Value="1"/>
-            <Setter Property="RowBackground"            Value="White"/>
-            <Setter Property="AlternatingRowBackground" Value="#FAFAFA"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#EEEEEE"/>
+            <Setter Property="RowBackground"            Value="{DynamicResource DataGridBackgroundBrush}"/>
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource DataGridAlternatingRowBrush}"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource DataGridGridLinesBrush}"/>
             <Setter Property="VerticalGridLinesBrush"   Value="Transparent"/>
             <Setter Property="FontSize"                 Value="12"/>
             <Setter Property="SelectionMode"            Value="Single"/>
@@ -53,12 +54,12 @@
             <Setter Property="RowHeight"                Value="44"/>
         </Style>
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background"      Value="#F0F0F0"/>
-            <Setter Property="Foreground"      Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Background"      Value="{DynamicResource DataGridColumnHeaderBrush}"/>
+            <Setter Property="Foreground"      Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="FontSize"        Value="11"/>
             <Setter Property="FontWeight"      Value="SemiBold"/>
             <Setter Property="Padding"         Value="8,5"/>
-            <Setter Property="BorderBrush"     Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
         </Style>
         <Style TargetType="DataGridCell">
@@ -76,8 +77,8 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#EBE6FC"/>
-                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource DataGridCellSelectedBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -91,7 +92,7 @@
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize"   Value="11"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="Margin"     Value="0,0,0,4"/>
         </Style>
 
@@ -99,13 +100,13 @@
         <Style TargetType="DataGridRow">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Status}" Value="{x:Static models:RebaseItemStatus.Copying}">
-                    <Setter Property="Background" Value="{StaticResource AccentLightBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="{x:Static models:RebaseItemStatus.Failed}">
-                    <Setter Property="Background" Value="#FFF0F0"/>
+                    <Setter Property="Background" Value="{DynamicResource DataGridRowFailedBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="{x:Static models:RebaseItemStatus.Skipped}">
-                    <Setter Property="Background" Value="#F5F5F5"/>
+                    <Setter Property="Background" Value="{DynamicResource DataGridRowSkippedBrush}"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -123,7 +124,7 @@
         </Grid.RowDefinitions>
 
         <!-- ── Titlebar ── -->
-        <Border Grid.Row="0" Background="{StaticResource AccentBrush}"
+        <Border Grid.Row="0" Background="{DynamicResource AccentBrush}"
                 MouseLeftButtonDown="Titlebar_MouseLeftButtonDown">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -197,7 +198,7 @@
                         <ToggleButton IsChecked="{Binding GenerateM3U}"
                                       Style="{StaticResource ToggleSwitchButton}"/>
                         <TextBlock Text="M3U" FontSize="12"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="6,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBlock Grid.Column="2"
@@ -238,7 +239,8 @@
                     <TextBlock Grid.Row="0" Grid.Column="2"
                                Text="{Binding MaxParallelCopies}"
                                Width="32" TextAlignment="Center"
-                               VerticalAlignment="Center" FontSize="13" Margin="4,0"/>
+                               VerticalAlignment="Center" FontSize="13" Margin="4,0"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <Button Grid.Row="0" Grid.Column="3"
                             Content="+" Width="22" Height="22" Padding="0" FontSize="14"
                             Command="{Binding IncrementParallelCommand}"/>
@@ -254,7 +256,8 @@
                     <TextBlock Grid.Row="1" Grid.Column="2"
                                Text="{Binding RetryCount}"
                                Width="32" TextAlignment="Center"
-                               VerticalAlignment="Center" FontSize="13" Margin="4,6,4,0"/>
+                               VerticalAlignment="Center" FontSize="13" Margin="4,6,4,0"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <Button Grid.Row="1" Grid.Column="3"
                             Content="+" Width="22" Height="22" Padding="0" FontSize="14" Margin="0,6,0,0"
                             Command="{Binding IncrementRetryCommand}"/>
@@ -270,21 +273,22 @@
                     <TextBlock Grid.Row="2" Grid.Column="2"
                                Text="{Binding RetryDelay}"
                                Width="32" TextAlignment="Center"
-                               VerticalAlignment="Center" FontSize="13" Margin="4,6,4,0"/>
+                               VerticalAlignment="Center" FontSize="13" Margin="4,6,4,0"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <Button Grid.Row="2" Grid.Column="3"
                             Content="+" Width="22" Height="22" Padding="0" FontSize="14" Margin="0,6,0,0"
                             Command="{Binding IncrementRetryDelayCommand}"/>
                     <TextBlock Grid.Row="2" Grid.Column="4"
                                Text="{x:Static res:Strings.Rebase_RetryDelayUnit}"
                                VerticalAlignment="Center" FontSize="12"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                Margin="6,6,0,0"/>
                 </Grid>
             </StackPanel>
         </Grid>
 
         <!-- Séparateur -->
-        <Rectangle Grid.Row="2" Fill="{StaticResource BorderBrush}"/>
+        <Rectangle Grid.Row="2" Fill="{DynamicResource BorderBrush}"/>
 
         <!-- ── Barre de progression + stats ── -->
         <Grid Grid.Row="3" Margin="16,10,16,10">
@@ -296,7 +300,7 @@
             <!-- Value piloté exclusivement par BeginAnimation — pas de binding ni de Style pour éviter tout conflit -->
             <ProgressBar x:Name="RebaseProgressBar" Grid.Row="0"
                          Minimum="0" Maximum="100" Height="6"
-                         Foreground="#5B3FE0" Background="#E0E0E0" BorderThickness="0"/>
+                         Foreground="{DynamicResource ProgressBarFillBrush}" Background="{DynamicResource ProgressBarTrackBrush}" BorderThickness="0"/>
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -305,20 +309,20 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="{Binding StatusText}"
-                           FontSize="12" Foreground="{StaticResource TextPrimaryBrush}"/>
+                           FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}"/>
                 <TextBlock Grid.Column="1" Text="{Binding SpeedText}"
-                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="16,0,16,0"/>
                 <TextBlock Grid.Column="2" Text="{Binding EtaText}"
-                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBlock Grid.Column="3" Text="{Binding EstimatedSizeText}"
-                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="16,0,0,0"/>
             </Grid>
         </Grid>
 
         <!-- Séparateur -->
-        <Rectangle Grid.Row="4" Fill="{StaticResource BorderBrush}"/>
+        <Rectangle Grid.Row="4" Fill="{DynamicResource BorderBrush}"/>
 
         <!-- ── DataGrid jeux ── -->
         <DataGrid Grid.Row="5"
@@ -330,6 +334,10 @@
                   CanUserSortColumns="True"
                   CanUserResizeRows="False"
                   Margin="0">
+            <DataGrid.Resources>
+                <!-- Style implicite ScrollBar dans l'ancêtre logique direct du DataGrid -->
+                <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+            </DataGrid.Resources>
             <DataGrid.Columns>
 
                 <!-- Jaquette 36×36 -->
@@ -337,7 +345,7 @@
                                         CellStyle="{StaticResource CoverCellStyle}">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Border Width="36" Height="36" Background="#EBEBEB" CornerRadius="2">
+                            <Border Width="36" Height="36" Background="{DynamicResource DataGridCoverPlaceholderBrush}" CornerRadius="2">
                                 <Image Source="{Binding CoverPath, Converter={StaticResource StringToImageSourceConverter}}"
                                        Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </Border>
@@ -401,7 +409,7 @@
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                            <Setter Property="Foreground"   Value="#CC3333"/>
+                            <Setter Property="Foreground"   Value="{DynamicResource ErrorTextBrush}"/>
                             <Setter Property="ToolTip"      Value="{Binding ErrorDetail}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
@@ -411,8 +419,8 @@
         </DataGrid>
 
         <!-- ── Footer ── -->
-        <Border Grid.Row="6" Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="6" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
             <Grid Margin="12,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>

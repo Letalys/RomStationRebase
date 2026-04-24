@@ -38,4 +38,19 @@ public class UserPreferences
 
     /// <summary>Dernière valeur du toggle "Générer M3U" dans RebaseWindow.</summary>
     public bool LastRebaseGenerateM3U { get; set; } = false;
+
+    /// <summary>Taille des vignettes de jeu dans MainWindow : "Normal" (défaut, dimensions actuelles) ou "Grand".</summary>
+    public string ThumbnailSize { get; set; } = "Normal";
+
+    /// <summary>Critère de tri global sélectionné par l'utilisateur. Valeurs : "Title" (défaut) ou "System".</summary>
+    public string LastSortCriteria { get; set; } = "Title";
+
+    /// <summary>Bounds mémorisés de GameDetailWindow. Null au premier lancement.</summary>
+    public WindowBounds? GameDetailWindowBounds { get; set; }
+
+    /// <summary>Masque les consoles sans jeu dans le panneau de filtre latéral. Défaut : true.</summary>
+    public bool HideEmptySystems { get; set; } = true;
+
+    /// <summary>Filtre les jeux : affiche uniquement ceux présentant un problème (fichier ou jaquette manquants). Défaut : false.</summary>
+    public bool ShowIssuesOnly { get; set; } = false;
 }

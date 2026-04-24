@@ -128,7 +128,7 @@
     <value>RomStation est ouvert — la copie peut être incomplète</value>
   </data>
   <data name="Splash_DBCorrupted" xml:space="preserve">
-    <value>La base semble corrompue. Fermez RomStation et resynchronisez.</value>
+    <value>La base de données de RomStation semble corrompue ou incomplète. Lancez RomStation pour qu'il la vérifie et la restaure, puis relancez RomStation Rebase.</value>
   </data>
   <data name="Splash_ConfigCorrupted_State" xml:space="preserve">
     <value>app-state.json est corrompu. RSRebase doit le recréer.
@@ -373,6 +373,27 @@ Consulte le tableau pour le détail des erreurs.</value>
   <data name="Sync_ErrorTitle" xml:space="preserve">
     <value>Erreur de synchronisation</value>
   </data>
+  <data name="Sync_Confirm_Title" xml:space="preserve">
+    <value>Synchroniser avec RomStation ?</value>
+  </data>
+  <data name="Sync_Confirm_Message" xml:space="preserve">
+    <value>La synchronisation va recharger la bibliothèque depuis RomStation.</value>
+  </data>
+  <data name="Sync_Confirm_MessageWithSelection" xml:space="preserve">
+    <value>La synchronisation va recharger la bibliothèque depuis RomStation. Votre sélection actuelle ({0} {1}) sera perdue.</value>
+  </data>
+  <data name="Sync_Confirm_Singular" xml:space="preserve">
+    <value>jeu</value>
+  </data>
+  <data name="Sync_Confirm_Plural" xml:space="preserve">
+    <value>jeux</value>
+  </data>
+  <data name="Sync_Confirm_Proceed" xml:space="preserve">
+    <value>Synchroniser</value>
+  </data>
+  <data name="Sync_Confirm_Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
 
   <!-- ── Fenêtre Paramètres ── -->
   <data name="Settings_Title" xml:space="preserve">
@@ -402,6 +423,9 @@ Consulte le tableau pour le détail des erreurs.</value>
   <data name="Settings_Theme_Light" xml:space="preserve">
     <value>Clair</value>
   </data>
+  <data name="Settings_Theme_Dark" xml:space="preserve">
+    <value>Sombre</value>
+  </data>
   <data name="Settings_RestartRequired" xml:space="preserve">
     <value>Redémarrez l'application pour appliquer la nouvelle langue.</value>
   </data>
@@ -426,6 +450,9 @@ Consulte le tableau pour le détail des erreurs.</value>
   <data name="Rebase_Error_InvalidDriveLetter" xml:space="preserve">
     <value>La lettre de lecteur spécifiée n'existe pas. Branchez le support correspondant ou choisissez un autre emplacement.</value>
   </data>
+  <data name="Rebase_Error_FolderNotExist" xml:space="preserve">
+    <value>Le dossier spécifié n'existe pas.</value>
+  </data>
   <data name="Rebase_Validation_PathNotAbsolute" xml:space="preserve">
     <value>Le chemin de destination doit être complet et absolu (exemple : C:\Mes ROMs ou E:\roms). Veuillez saisir un chemin complet ou utiliser le bouton Parcourir.</value>
   </data>
@@ -442,9 +469,9 @@ Consulte le tableau pour le détail des erreurs.</value>
     <value>Quitter</value>
   </data>
   <data name="Splash_RSNotFound_InvalidFolder" xml:space="preserve">
-    <value>Ce dossier ne contient pas d'installation RomStation valide. Le dossier doit contenir le sous-dossier "app\database" et le fichier "app\RomStation.cfg".
+    <value>Ce dossier ne contient pas d'installation RomStation valide.
 
-Si RomStation vient d'être installé, veuillez le lancer au moins une fois avant d'utiliser RomStation Rebase — la base de données est créée au premier démarrage.</value>
+Veuillez sélectionner un autre dossier.</value>
   </data>
   <data name="Splash_RSNotFound_SelectFolder" xml:space="preserve">
     <value>Sélectionnez le dossier d'installation de RomStation</value>
@@ -452,6 +479,36 @@ Si RomStation vient d'être installé, veuillez le lancer au moins une fois avan
   <data name="Splash_RSNotFound_StepFailed" xml:space="preserve">
     <value>RomStation introuvable — installez RomStation ou indiquez manuellement son emplacement.</value>
   </data>
+  <data name="Splash_DBNotInitialized_Title" xml:space="preserve">
+    <value>Base de données RomStation introuvable</value>
+  </data>
+  <data name="Splash_DBNotInitialized_Message" xml:space="preserve">
+    <value>La base de données de RomStation n'a pas été initialisée.
+
+Lancez RomStation au moins une fois pour qu'il initialise sa base, puis relancez RomStation Rebase.</value>
+  </data>
+  <data name="Splash_DBNotInitialized_StepLabel" xml:space="preserve">
+    <value>Base RomStation non initialisée</value>
+  </data>
+  <data name="Splash_DBNotInitialized_Quit" xml:space="preserve">
+    <value>Quitter</value>
+  </data>
+  <data name="Splash_DBCorrupted_Title" xml:space="preserve">
+    <value>Base de données RomStation corrompue</value>
+  </data>
+  <data name="Splash_UnexpectedError_Title" xml:space="preserve">
+    <value>Erreur inattendue</value>
+  </data>
+  <data name="Splash_UnexpectedError_Message" xml:space="preserve">
+    <value>Une erreur inattendue s'est produite au démarrage de RomStation Rebase. L'application va se fermer.
+
+Détails techniques :
+{0}</value>
+  </data>
+  <data name="Splash_UnexpectedError_Quit" xml:space="preserve">
+    <value>Quitter</value>
+  </data>
+
   <data name="Settings_Section_About" xml:space="preserve">
     <value>À PROPOS</value>
   </data>
@@ -460,5 +517,79 @@ Si RomStation vient d'être installé, veuillez le lancer au moins une fois avan
   </data>
   <data name="Settings_About_OpenRepository" xml:space="preserve">
     <value>Voir le projet sur GitHub</value>
+  </data>
+  <data name="Main_SizeNormal" xml:space="preserve">
+    <value>Normal</value>
+  </data>
+  <data name="Main_SizeLarge" xml:space="preserve">
+    <value>Grand</value>
+  </data>
+  <data name="Main_ThumbnailSize_Tooltip" xml:space="preserve">
+    <value>Taille des vignettes</value>
+  </data>
+  <data name="Main_ThumbnailSize_Label" xml:space="preserve">
+    <value>Taille&#160;:</value>
+  </data>
+  <data name="Main_SortBy_Label" xml:space="preserve">
+    <value>Trier&#160;:</value>
+  </data>
+  <data name="Main_SortBy_Title" xml:space="preserve">
+    <value>Titre</value>
+  </data>
+  <data name="Main_SortBy_System" xml:space="preserve">
+    <value>Système</value>
+  </data>
+  <data name="GameDetail_Title" xml:space="preserve">
+    <value>Détail du jeu</value>
+  </data>
+  <data name="GameDetail_Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+
+  <!-- ── Fenêtre détail jeu ── -->
+  <data name="GameDetail_OpenFolder" xml:space="preserve">
+    <value>Ouvrir le dossier du jeu</value>
+  </data>
+  <data name="GameDetail_OpenRomStation" xml:space="preserve">
+    <value>Voir sur RomStation</value>
+  </data>
+  <data name="GameDetail_Error_FolderNotFound" xml:space="preserve">
+    <value>Le dossier du jeu est introuvable sur ce poste.</value>
+  </data>
+  <data name="GameDetail_System" xml:space="preserve">
+    <value>Système</value>
+  </data>
+  <data name="GameDetail_Year" xml:space="preserve">
+    <value>Année</value>
+  </data>
+  <data name="GameDetail_Developer" xml:space="preserve">
+    <value>Développeur</value>
+  </data>
+  <data name="GameDetail_Publisher" xml:space="preserve">
+    <value>Éditeur</value>
+  </data>
+  <data name="GameDetail_Players" xml:space="preserve">
+    <value>Joueurs</value>
+  </data>
+  <data name="GameDetail_Genres" xml:space="preserve">
+    <value>Genres</value>
+  </data>
+  <data name="GameDetail_Languages" xml:space="preserve">
+    <value>Langues</value>
+  </data>
+  <data name="GameDetail_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="GameDetail_FallbackTooltip_Fr" xml:space="preserve">
+    <value>Information non disponible en français — affichée en anglais</value>
+  </data>
+  <data name="GameDetail_FallbackTooltip_En" xml:space="preserve">
+    <value>Information non disponible en anglais</value>
+  </data>
+  <data name="Game_ViewDetail" xml:space="preserve">
+    <value>Voir détail</value>
+  </data>
+  <data name="Sidebar_ShowEmptySystems" xml:space="preserve">
+    <value>Afficher les consoles vides</value>
   </data>
 </root>

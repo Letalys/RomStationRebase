@@ -126,6 +126,7 @@ public class SettingsViewModel : ViewModelBase
             // Sauvegarde silencieuse — ne bloque pas la fermeture
         }
 
+        ThemeService.Apply(_selectedTheme);
         window?.Close();
     }
 

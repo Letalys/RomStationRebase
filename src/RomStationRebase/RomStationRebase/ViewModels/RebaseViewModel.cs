@@ -627,9 +627,10 @@ public class RebaseViewModel : ViewModelBase
 
     private void OnBrowse()
     {
+        // InitialDirectory volontairement omis : si le chemin actuel pointe vers un lecteur
+        // déconnecté (ex : F:\), Windows lève une exception à ShowDialog(). On laisse Windows
+        // choisir le dossier initial (dernier dossier utilisé ou fallback système).
         var dialog = new OpenFolderDialog { Title = Strings.Rebase_TargetPath };
-        if (!string.IsNullOrWhiteSpace(_targetPath))
-            dialog.InitialDirectory = _targetPath;
         if (dialog.ShowDialog() == true)
             TargetPath = dialog.FolderName;
     }
@@ -734,7 +735,32 @@ public class RebaseViewModel : ViewModelBase
     private void OnOpenFolder()
     {
         if (!string.IsNullOrWhiteSpace(_targetPath) && Directory.Exists(_targetPath))
+        {
             Process.Start("explorer.exe", _targetPath);
+            return;
+        }
+
+        // Le chemin est inaccessible. On distingue deux causes :
+        //   1. Le lecteur (racine du chemin) n'existe pas → message "lettre de lecteur invalide"
+        //   2. Le lecteur existe mais le dossier spécifié n'existe pas → message "dossier introuvable"
+        string? root = null;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_targetPath))
+                root = Path.GetPathRoot(_targetPath);
+        }
+        catch
+        {
+            root = null;
+        }
+
+        bool rootExists = !string.IsNullOrWhiteSpace(root) && Directory.Exists(root);
+
+        string message = rootExists
+            ? Strings.Rebase_Error_FolderNotExist
+            : Strings.Rebase_Error_InvalidDriveLetter;
+
+        ShowConfirm(Strings.Rebase_Title, message, "OK");
     }
 
     private void OnExportLog()

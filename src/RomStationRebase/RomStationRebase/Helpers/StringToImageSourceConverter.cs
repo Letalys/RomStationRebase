@@ -20,9 +20,22 @@ public class StringToImageSourceConverter : IValueConverter
 
         try
         {
-            var uri = System.IO.Path.IsPathRooted(path)
-                ? new Uri(path)
-                : new Uri(path, UriKind.Relative);
+            Uri uri;
+            if (Uri.TryCreate(path, UriKind.Absolute, out var absUri))
+            {
+                // URI absolue valide : pack://, file://, http://…
+                uri = absUri;
+            }
+            else if (System.IO.Path.IsPathRooted(path))
+            {
+                // Chemin disque absolu Windows : C:\, J:\, \\serveur\…
+                uri = new Uri(path);
+            }
+            else
+            {
+                // Chemin relatif WPF : /Resources/…
+                uri = new Uri(path, UriKind.Relative);
+            }
 
             return new BitmapImage(uri);
         }

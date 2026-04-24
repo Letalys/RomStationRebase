@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
@@ -21,7 +22,9 @@ public class MainViewModel : ViewModelBase
     private string    _dbCopyPath        = string.Empty;
     private string    _searchText        = string.Empty;
     private bool      _isMosaicView      = true;
-    private bool      _showIssuesOnly    = false;
+    private bool      _showIssuesOnly;
+    private bool      _hideEmptySystems;
+    private string    _thumbnailSize     = "Normal";
     private bool      _isLoading         = true;   // true par défaut — overlay visible jusqu'à la fin de LoadLibraryAsync
     private int       _selectedGameCount;
     private DateTime? _lastSyncDate;
@@ -32,8 +35,20 @@ public class MainViewModel : ViewModelBase
 
     // ── Collections ───────────────────────────────────────────────────────
 
-    /// <summary>Liste des systèmes affichés dans la sidebar.</summary>
+    /// <summary>Liste complète de tous les systèmes — source de vérité, non filtrée.</summary>
     public ObservableCollection<SystemItemViewModel> Systems { get; } = new();
+
+    /// <summary>Systèmes visibles dans la sidebar — filtrés selon HideEmptySystems.</summary>
+    private ObservableCollection<SystemItemViewModel> _visibleSystems = new();
+    public ObservableCollection<SystemItemViewModel> VisibleSystems
+    {
+        get => _visibleSystems;
+        private set
+        {
+            _visibleSystems = value;
+            OnPropertyChanged();
+        }
+    }
 
     /// <summary>Liste complète des jeux (source de vérité, non filtrée).</summary>
     public ObservableCollection<GameItemViewModel> Games { get; } = new();
@@ -50,6 +65,12 @@ public class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(FilteredGameCount));
         }
     }
+
+    /// <summary>Items de l'abécédaire — 26 lettres A-Z + #, état activé selon FilteredGames et SortColumn.</summary>
+    public ObservableCollection<AlphaItemViewModel> AlphabetItems { get; private set; } = null!;
+
+    /// <summary>Callback injecté par MainWindow.xaml.cs — effectue le scroll vers la première occurrence de la lettre.</summary>
+    public Action<string>? ScrollToLetter { get; set; }
 
     // ── Propriétés bindées ────────────────────────────────────────────────
 
@@ -96,6 +117,53 @@ public class MainViewModel : ViewModelBase
     /// <summary>Inverse de IsMosaicView — utilisé pour la visibilité de la vue liste.</summary>
     public bool IsListView => !_isMosaicView;
 
+    /// <summary>Taille des vignettes : "Normal" (défaut) ou "Grand". Déclenche le recalcul des dimensions bindées.</summary>
+    public string ThumbnailSize
+    {
+        get => _thumbnailSize;
+        set
+        {
+            if (SetProperty(ref _thumbnailSize, value))
+            {
+                OnPropertyChanged(nameof(MosaicCardWidth));
+                OnPropertyChanged(nameof(MosaicCardHeight));
+                OnPropertyChanged(nameof(MosaicItemWidth));
+                OnPropertyChanged(nameof(MosaicItemHeight));
+                OnPropertyChanged(nameof(ListThumbWidth));
+                OnPropertyChanged(nameof(ListThumbHeight));
+                OnPropertyChanged(nameof(ListColumnWidth));
+                OnPropertyChanged(nameof(ListRowHeight));
+                SaveThumbnailSizePreference();
+            }
+        }
+    }
+
+    // ── Dimensions calculées selon ThumbnailSize ──────────────────────────
+
+    /// <summary>Largeur de la jaquette en mode mosaïque.</summary>
+    public double MosaicCardWidth  => _thumbnailSize == "Grand" ? 288 : 184;
+
+    /// <summary>Hauteur de la jaquette en mode mosaïque.</summary>
+    public double MosaicCardHeight => _thumbnailSize == "Grand" ? 344 : 220;
+
+    /// <summary>Largeur du conteneur item (jaquette + marges) pour VirtualizingWrapPanel.</summary>
+    public double MosaicItemWidth  => MosaicCardWidth  + 32;
+
+    /// <summary>Hauteur du conteneur item (jaquette + zone info + marges) pour VirtualizingWrapPanel.</summary>
+    public double MosaicItemHeight => MosaicCardHeight + 75;
+
+    /// <summary>Largeur/hauteur de la miniature en mode liste.</summary>
+    public double ListThumbWidth   => _thumbnailSize == "Grand" ? 96 : 40;
+
+    /// <summary>Hauteur de la miniature en mode liste (carré).</summary>
+    public double ListThumbHeight  => ListThumbWidth;
+
+    /// <summary>Largeur de la colonne miniature en mode liste (miniature + marges).</summary>
+    public double ListColumnWidth  => ListThumbWidth + 12;
+
+    /// <summary>Hauteur de ligne en mode liste — s'adapte à la miniature.</summary>
+    public double ListRowHeight    => _thumbnailSize == "Grand" ? 108 : 44;
+
     /// <summary>Colonne de tri active — "Title", "System" ou "Files". Déclenche le retri via ApplySort().</summary>
     public string SortColumn
     {
@@ -107,6 +175,12 @@ public class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(TitleSortArrow));
                 OnPropertyChanged(nameof(SystemSortArrow));
                 OnPropertyChanged(nameof(FilesSortArrow));
+                // Notifie SortCriteria — permet à la ComboBox toolbar de refléter un changement
+                // déclenché par un clic sur un en-tête de colonne (synchro bidirectionnelle).
+                OnPropertyChanged(nameof(SortCriteria));
+                // Recalcul de l'abécédaire — le changement de colonne de tri peut activer ou
+                // désactiver l'ensemble des lettres (abécédaire inopérant hors tri alphabétique).
+                UpdateAlphabetStates();
             }
         }
     }
@@ -135,12 +209,52 @@ public class MainViewModel : ViewModelBase
     /// <summary>Flèche de tri bindée dans l'en-tête de la colonne Fichiers.</summary>
     public string FilesSortArrow  => _sortColumn == "Files"  ? (_sortAscending ? "↑" : "↓") : "";
 
+    /// <summary>
+    /// Point de liaison pour la ComboBox "Trier par" de la toolbar.
+    /// Lecture : expose SortColumn pour que la ComboBox reflète l'état courant (y compris
+    /// les changements via les en-têtes de colonnes cliquables).
+    /// Écriture : appelle SetSortCriteria — force le sens ascendant et persiste la préférence.
+    /// </summary>
+    public string SortCriteria
+    {
+        get => _sortColumn;
+        set
+        {
+            if (_sortColumn != value)
+                SetSortCriteria(value);
+        }
+    }
+
     /// <summary>Quand true, seuls les jeux présentant un problème (fichier ou jaquette manquants) sont affichés.</summary>
     public bool ShowIssuesOnly
     {
         get => _showIssuesOnly;
-        set { if (SetProperty(ref _showIssuesOnly, value)) RefreshFilter(); }
+        set
+        {
+            if (SetProperty(ref _showIssuesOnly, value))
+            {
+                RefreshFilter();
+                SaveShowIssuesOnlyPreference();
+            }
+        }
     }
+
+    /// <summary>Quand true, masque les consoles sans jeu dans la sidebar.</summary>
+    public bool HideEmptySystems
+    {
+        get => _hideEmptySystems;
+        set
+        {
+            if (SetProperty(ref _hideEmptySystems, value))
+            {
+                RefreshVisibleSystems();
+                SaveHideEmptySystemsPreference();
+            }
+        }
+    }
+
+    /// <summary>True si au moins un jeu de la bibliothèque présente un problème (fichier ou jaquette manquants).</summary>
+    public bool HasAnyIssues => Games.Any(g => g.HasIssues);
 
     /// <summary>True pendant LoadLibraryAsync — affiche l'overlay de chargement dans la vue.</summary>
     public bool IsLoading
@@ -202,6 +316,12 @@ public class MainViewModel : ViewModelBase
     /// <summary>Ouvre la fenêtre Paramètres en modal.</summary>
     public ICommand SettingsCommand { get; private set; } = null!;
 
+    /// <summary>Commande d'ouverture de la fiche détail — paramètre attendu : GameId (int).</summary>
+    public ICommand OpenGameDetailCommand { get; private set; } = null!;
+
+    /// <summary>Scrolle vers le premier jeu dont le titre commence par la lettre passée en paramètre.</summary>
+    public ICommand JumpToLetterCommand { get; private set; } = null!;
+
     // ── Constructeur ─────────────────────────────────────────────────────
 
     /// <summary>
@@ -211,9 +331,23 @@ public class MainViewModel : ViewModelBase
     /// </summary>
     public MainViewModel(UserPreferences preferences)
     {
-        _preferences  = preferences;
+        _preferences      = preferences;
         // Initialisation du mode d'affichage depuis les préférences — défaut "Mosaic"
-        _isMosaicView = preferences.LastViewMode != "List";
+        _isMosaicView     = preferences.LastViewMode != "List";
+        // Initialisation directe sur le champ pour éviter un SaveThumbnailSizePreference inutile au démarrage
+        _thumbnailSize    = preferences.ThumbnailSize;
+        // Initialisation directe sur le champ pour éviter un SaveSortCriteriaPreference inutile au démarrage
+        _sortColumn       = preferences.LastSortCriteria;
+        // Initialisation directe pour éviter les sauvegardes inutiles au démarrage
+        _showIssuesOnly   = preferences.ShowIssuesOnly;
+        _hideEmptySystems = preferences.HideEmptySystems;
+
+        // Initialisation de l'abécédaire — 26 lettres A-Z + # (tous désactivés par défaut)
+        AlphabetItems = new ObservableCollection<AlphaItemViewModel>();
+        for (char c = 'A'; c <= 'Z'; c++)
+            AlphabetItems.Add(new AlphaItemViewModel(c.ToString()));
+        AlphabetItems.Add(new AlphaItemViewModel("#"));
+
         InitCommands();
     }
 
@@ -264,6 +398,18 @@ public class MainViewModel : ViewModelBase
             canExecute: () => !_isLoading);
 
         SettingsCommand = new RelayCommand(OpenSettings);
+
+        OpenGameDetailCommand = new RelayCommand(param => { if (param is int id) OpenGameDetail(id); });
+
+        // Délégation du scroll vers la View via le callback injecté (ScrollToLetter).
+        // CanExecute bloqué si le tri n'est pas alphabétique par titre — l'abécédaire est inopérant dans ce cas.
+        JumpToLetterCommand = new RelayCommand<string>(
+            execute: letter =>
+            {
+                if (string.IsNullOrEmpty(letter)) return;
+                ScrollToLetter?.Invoke(letter);
+            },
+            canExecute: _ => _sortColumn == "Title");
     }
 
     /// <summary>
@@ -312,7 +458,10 @@ public class MainViewModel : ViewModelBase
     /// </summary>
     /// <param name="dbCopyPath">Chemin de la copie locale de la base Derby.</param>
     /// <param name="romStationPath">Chemin de l'installation RomStation (pour les images).</param>
-    public async Task LoadLibraryAsync(string dbCopyPath, string romStationPath)
+    /// <param name="systemsToCheck">systemsToCheck null → tous cochés (démarrage applicatif).
+    /// HashSet fourni → coché uniquement si le nom y figure (restauration après Sync).</param>
+    public async Task LoadLibraryAsync(string dbCopyPath, string romStationPath,
+        HashSet<string>? systemsToCheck = null)
     {
         _romStationPath   = romStationPath;
         _dbCopyPath       = dbCopyPath;
@@ -343,7 +492,8 @@ public class MainViewModel : ViewModelBase
             foreach (var sys in systems)
             {
                 int count = countBySystem.TryGetValue(sys.Name, out int c) ? c : 0;
-                Systems.Add(new SystemItemViewModel(sys.Name, sys.ImagePath, count, RefreshFilter));
+                bool isChecked = systemsToCheck == null || systemsToCheck.Contains(sys.Name);
+                Systems.Add(new SystemItemViewModel(sys.Name, sys.ImagePath, count, RefreshFilter, isChecked));
             }
 
             var gameVms = games.Select(g => new GameItemViewModel(
@@ -357,6 +507,15 @@ public class MainViewModel : ViewModelBase
             _lastSyncDate = DateTime.Now;
             OnPropertyChanged(nameof(LastSyncText));
             OnPropertyChanged(nameof(FilteredGameCount));
+
+            // Mise à jour du badge d'issues et auto-reset du filtre si aucun problème détecté
+            OnPropertyChanged(nameof(HasAnyIssues));
+            if (!HasAnyIssues && _showIssuesOnly)
+            {
+                _showIssuesOnly = false;
+                OnPropertyChanged(nameof(ShowIssuesOnly));
+            }
+            RefreshVisibleSystems();
 
         }, System.Windows.Threading.DispatcherPriority.Normal);
 
@@ -403,7 +562,6 @@ public class MainViewModel : ViewModelBase
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 LoadingProgress = progress;
-                System.Diagnostics.Debug.WriteLine($"[SimulateProgress] step={i}/{steps} progress={progress:F1}");
             }, System.Windows.Threading.DispatcherPriority.Render);
         }
     }
@@ -412,8 +570,8 @@ public class MainViewModel : ViewModelBase
 
     /// <summary>
     /// Resynchronise la base Derby depuis RomStation sans quitter l'application.
-    /// Affiche l'overlay de chargement, recopie la base, supprime db.lck de la copie,
-    /// puis recharge systèmes et jeux via LoadLibraryAsync.
+    /// Affiche une popup de confirmation, affiche l'overlay de chargement, recopie la base,
+    /// puis recharge systèmes et jeux via LoadLibraryAsync en préservant le filtre système.
     /// </summary>
     public async Task SyncDbAsync()
     {
@@ -421,6 +579,24 @@ public class MainViewModel : ViewModelBase
 
         if (string.IsNullOrWhiteSpace(_romStationPath) || string.IsNullOrWhiteSpace(_dbCopyPath))
             return;
+
+        // Confirmation avant Sync — prévient l'utilisateur que sa sélection sera perdue.
+        // Filtres systèmes préservés, sélection perdue (inévitable).
+        string libelle = SelectedGameCount == 1
+            ? Strings.Sync_Confirm_Singular
+            : Strings.Sync_Confirm_Plural;
+        string message = SelectedGameCount > 0
+            ? string.Format(Strings.Sync_Confirm_MessageWithSelection, SelectedGameCount, libelle)
+            : Strings.Sync_Confirm_Message;
+
+        var confirm = new ConfirmDialog(
+            Strings.Sync_Confirm_Title,
+            message,
+            Strings.Sync_Confirm_Proceed,
+            Strings.Sync_Confirm_Cancel)
+            { Owner = Application.Current.MainWindow };
+        confirm.ShowDialog();
+        if (!confirm.Result) return;
 
         IsLoading         = true;
         LoadingStatusText = Strings.Sync_InProgress;
@@ -455,17 +631,24 @@ public class MainViewModel : ViewModelBase
             return;
         }
 
+        // Capture des systèmes cochés avant Clear — préservés par nom après rechargement
+        var systemesPreserves = Systems
+            .Where(s => s.IsChecked)
+            .Select(s => s.Name)
+            .ToHashSet();
+
         // Vider les collections existantes avant le rechargement
         await Application.Current.Dispatcher.InvokeAsync(() =>
         {
             Systems.Clear();
             Games.Clear();
-            FilteredGames = new ObservableCollection<GameItemViewModel>();
+            FilteredGames    = new ObservableCollection<GameItemViewModel>();
+            VisibleSystems   = new ObservableCollection<SystemItemViewModel>();
         });
 
-        // Rechargement complet — IsLoading sera remis à false en fin de LoadLibraryAsync,
-        // LastSyncText sera automatiquement mis à jour via OnPropertyChanged
-        await LoadLibraryAsync(_dbCopyPath, _romStationPath);
+        // Rechargement complet avec état des filtres pré-configuré — IsLoading sera remis à
+        // false en fin de LoadLibraryAsync, LastSyncText sera automatiquement mis à jour.
+        await LoadLibraryAsync(_dbCopyPath, _romStationPath, systemesPreserves);
     }
 
     // ── Filtrage ──────────────────────────────────────────────────────────
@@ -524,12 +707,65 @@ public class MainViewModel : ViewModelBase
             }
 
             RefreshSelectedCount();
+            UpdateAlphabetStates();
         });
     }
 
     /// <summary>Recalcule le nombre de jeux sélectionnés à partir de la liste complète.</summary>
     private void RefreshSelectedCount()
         => SelectedGameCount = Games.Count(g => g.IsSelected);
+
+    /// <summary>
+    /// Met à jour l'état IsEnabled de chaque item de l'abécédaire selon le contenu courant de FilteredGames.
+    /// Désactive toutes les lettres si le tri actif n'est pas alphabétique par titre.
+    /// </summary>
+    private void UpdateAlphabetStates()
+    {
+        bool triAlphabetique = _sortColumn == "Title";
+
+        if (!triAlphabetique)
+        {
+            // Tri non alphabétique : abécédaire entièrement désactivé
+            foreach (var item in AlphabetItems)
+                item.IsEnabled = false;
+            return;
+        }
+
+        // Construction du set des lettres représentées dans FilteredGames
+        var lettresPresentes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var game in FilteredGames)
+        {
+            if (string.IsNullOrEmpty(game.Title)) continue;
+
+            char premiere = game.Title[0];
+            string bucket = char.IsLetter(premiere) && char.ToUpper(premiere) is >= 'A' and <= 'Z'
+                ? char.ToUpper(premiere).ToString()
+                : "#";
+
+            lettresPresentes.Add(bucket);
+        }
+
+        foreach (var item in AlphabetItems)
+            item.IsEnabled = lettresPresentes.Contains(item.Letter);
+    }
+
+    /// <summary>Ouvre la fiche détail du jeu dont l'identifiant Derby est passé en paramètre.</summary>
+    private void OpenGameDetail(int gameId)
+    {
+        var detail = _derby.GetGameDetail(_dbCopyPath, _romStationPath, gameId, ResolveLocaleTag());
+        if (detail is null) return;
+
+        var vm  = new GameDetailViewModel(detail, _romStationPath);
+        var win = new Views.Dialogs.GameDetailWindow(vm)
+        {
+            Owner = Application.Current.MainWindow,
+        };
+        win.ShowDialog();
+    }
+
+    /// <summary>Retourne le tag de locale Derby ("fr" ou "en") selon la culture courante du thread UI.</summary>
+    private static string ResolveLocaleTag()
+        => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr" ? "fr" : "en";
 
     /// <summary>Ouvre le panneau de paramètres en modal.</summary>
     private void OpenSettings()
@@ -548,6 +784,82 @@ public class MainViewModel : ViewModelBase
         try
         {
             _preferences.LastViewMode = _isMosaicView ? "Mosaic" : "List";
+            _config.SaveUserPreferences(_preferences);
+        }
+        catch
+        {
+            // Ne pas bloquer l'UI si l'écriture disque échoue
+        }
+    }
+
+    /// <summary>Sauvegarde la taille des vignettes dans UserPreferences. Silencieux en cas d'erreur.</summary>
+    private void SaveThumbnailSizePreference()
+    {
+        try
+        {
+            _preferences.ThumbnailSize = _thumbnailSize;
+            _config.SaveUserPreferences(_preferences);
+        }
+        catch
+        {
+            // Ne pas bloquer l'UI si l'écriture disque échoue
+        }
+    }
+
+    /// <summary>Reconstruit VisibleSystems depuis Systems selon le filtre HideEmptySystems.</summary>
+    private void RefreshVisibleSystems()
+    {
+        IEnumerable<SystemItemViewModel> source = _hideEmptySystems
+            ? Systems.Where(s => s.GameCount > 0)
+            : Systems;
+        VisibleSystems = new ObservableCollection<SystemItemViewModel>(source);
+    }
+
+    // Utilisé UNIQUEMENT par la ComboBox "Trier par" dans la toolbar.
+    // Distinct de SetSort qui gère le toggle asc/desc des en-têtes de
+    // colonnes cliquables. Force toujours le sens ascendant.
+    private void SetSortCriteria(string column)
+    {
+        SortColumn    = column;   // INPC + arrows + SortCriteria + UpdateAlphabetStates()
+        SortAscending = true;     // force ascendant
+        ApplySort();
+        SaveSortCriteriaPreference();
+    }
+
+    /// <summary>Sauvegarde le critère de tri dans UserPreferences. Silencieux en cas d'erreur.</summary>
+    private void SaveSortCriteriaPreference()
+    {
+        try
+        {
+            _preferences.LastSortCriteria = _sortColumn;
+            _config.SaveUserPreferences(_preferences);
+        }
+        catch
+        {
+            // Ne pas bloquer l'UI si l'écriture disque échoue
+        }
+    }
+
+    /// <summary>Sauvegarde HideEmptySystems dans UserPreferences. Silencieux en cas d'erreur.</summary>
+    private void SaveHideEmptySystemsPreference()
+    {
+        try
+        {
+            _preferences.HideEmptySystems = _hideEmptySystems;
+            _config.SaveUserPreferences(_preferences);
+        }
+        catch
+        {
+            // Ne pas bloquer l'UI si l'écriture disque échoue
+        }
+    }
+
+    /// <summary>Sauvegarde ShowIssuesOnly dans UserPreferences. Silencieux en cas d'erreur.</summary>
+    private void SaveShowIssuesOnlyPreference()
+    {
+        try
+        {
+            _preferences.ShowIssuesOnly = _showIssuesOnly;
             _config.SaveUserPreferences(_preferences);
         }
         catch

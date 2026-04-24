@@ -1,5 +1,3 @@
 <Solution>
-  <Project Path="RomStationRebase/RomStationRebase.csproj">
-    <BuildType Project="Release" />
-  </Project>
+  <Project Path="RomStationRebase/RomStationRebase.csproj" />
 </Solution>
