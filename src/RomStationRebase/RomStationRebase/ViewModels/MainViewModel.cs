@@ -22,7 +22,8 @@ public class MainViewModel : ViewModelBase
     private string    _dbCopyPath        = string.Empty;
     private string    _searchText        = string.Empty;
     private bool      _isMosaicView      = true;
-    private bool      _showIssuesOnly    = false;
+    private bool      _showIssuesOnly;
+    private bool      _hideEmptySystems;
     private string    _thumbnailSize     = "Normal";
     private bool      _isLoading         = true;   // true par défaut — overlay visible jusqu'à la fin de LoadLibraryAsync
     private int       _selectedGameCount;
@@ -34,8 +35,20 @@ public class MainViewModel : ViewModelBase
 
     // ── Collections ───────────────────────────────────────────────────────
 
-    /// <summary>Liste des systèmes affichés dans la sidebar.</summary>
+    /// <summary>Liste complète de tous les systèmes — source de vérité, non filtrée.</summary>
     public ObservableCollection<SystemItemViewModel> Systems { get; } = new();
+
+    /// <summary>Systèmes visibles dans la sidebar — filtrés selon HideEmptySystems.</summary>
+    private ObservableCollection<SystemItemViewModel> _visibleSystems = new();
+    public ObservableCollection<SystemItemViewModel> VisibleSystems
+    {
+        get => _visibleSystems;
+        private set
+        {
+            _visibleSystems = value;
+            OnPropertyChanged();
+        }
+    }
 
     /// <summary>Liste complète des jeux (source de vérité, non filtrée).</summary>
     public ObservableCollection<GameItemViewModel> Games { get; } = new();
@@ -216,8 +229,32 @@ public class MainViewModel : ViewModelBase
     public bool ShowIssuesOnly
     {
         get => _showIssuesOnly;
-        set { if (SetProperty(ref _showIssuesOnly, value)) RefreshFilter(); }
+        set
+        {
+            if (SetProperty(ref _showIssuesOnly, value))
+            {
+                RefreshFilter();
+                SaveShowIssuesOnlyPreference();
+            }
+        }
     }
+
+    /// <summary>Quand true, masque les consoles sans jeu dans la sidebar.</summary>
+    public bool HideEmptySystems
+    {
+        get => _hideEmptySystems;
+        set
+        {
+            if (SetProperty(ref _hideEmptySystems, value))
+            {
+                RefreshVisibleSystems();
+                SaveHideEmptySystemsPreference();
+            }
+        }
+    }
+
+    /// <summary>True si au moins un jeu de la bibliothèque présente un problème (fichier ou jaquette manquants).</summary>
+    public bool HasAnyIssues => Games.Any(g => g.HasIssues);
 
     /// <summary>True pendant LoadLibraryAsync — affiche l'overlay de chargement dans la vue.</summary>
     public bool IsLoading
@@ -294,13 +331,16 @@ public class MainViewModel : ViewModelBase
     /// </summary>
     public MainViewModel(UserPreferences preferences)
     {
-        _preferences   = preferences;
+        _preferences      = preferences;
         // Initialisation du mode d'affichage depuis les préférences — défaut "Mosaic"
-        _isMosaicView  = preferences.LastViewMode != "List";
+        _isMosaicView     = preferences.LastViewMode != "List";
         // Initialisation directe sur le champ pour éviter un SaveThumbnailSizePreference inutile au démarrage
-        _thumbnailSize = preferences.ThumbnailSize;
+        _thumbnailSize    = preferences.ThumbnailSize;
         // Initialisation directe sur le champ pour éviter un SaveSortCriteriaPreference inutile au démarrage
-        _sortColumn    = preferences.LastSortCriteria;
+        _sortColumn       = preferences.LastSortCriteria;
+        // Initialisation directe pour éviter les sauvegardes inutiles au démarrage
+        _showIssuesOnly   = preferences.ShowIssuesOnly;
+        _hideEmptySystems = preferences.HideEmptySystems;
 
         // Initialisation de l'abécédaire — 26 lettres A-Z + # (tous désactivés par défaut)
         AlphabetItems = new ObservableCollection<AlphaItemViewModel>();
@@ -468,6 +508,15 @@ public class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(LastSyncText));
             OnPropertyChanged(nameof(FilteredGameCount));
 
+            // Mise à jour du badge d'issues et auto-reset du filtre si aucun problème détecté
+            OnPropertyChanged(nameof(HasAnyIssues));
+            if (!HasAnyIssues && _showIssuesOnly)
+            {
+                _showIssuesOnly = false;
+                OnPropertyChanged(nameof(ShowIssuesOnly));
+            }
+            RefreshVisibleSystems();
+
         }, System.Windows.Threading.DispatcherPriority.Normal);
 
         // Étape 3b — Passer à 100% sur le thread UI au niveau Render.
@@ -594,7 +643,8 @@ public class MainViewModel : ViewModelBase
         {
             Systems.Clear();
             Games.Clear();
-            FilteredGames = new ObservableCollection<GameItemViewModel>();
+            FilteredGames    = new ObservableCollection<GameItemViewModel>();
+            VisibleSystems   = new ObservableCollection<SystemItemViewModel>();
         });
 
         // Rechargement complet avec état des filtres pré-configuré — IsLoading sera remis à
@@ -757,6 +807,15 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    /// <summary>Reconstruit VisibleSystems depuis Systems selon le filtre HideEmptySystems.</summary>
+    private void RefreshVisibleSystems()
+    {
+        IEnumerable<SystemItemViewModel> source = _hideEmptySystems
+            ? Systems.Where(s => s.GameCount > 0)
+            : Systems;
+        VisibleSystems = new ObservableCollection<SystemItemViewModel>(source);
+    }
+
     // Utilisé UNIQUEMENT par la ComboBox "Trier par" dans la toolbar.
     // Distinct de SetSort qui gère le toggle asc/desc des en-têtes de
     // colonnes cliquables. Force toujours le sens ascendant.
@@ -774,6 +833,34 @@ public class MainViewModel : ViewModelBase
         try
         {
             _preferences.LastSortCriteria = _sortColumn;
+            _config.SaveUserPreferences(_preferences);
+        }
+        catch
+        {
+            // Ne pas bloquer l'UI si l'écriture disque échoue
+        }
+    }
+
+    /// <summary>Sauvegarde HideEmptySystems dans UserPreferences. Silencieux en cas d'erreur.</summary>
+    private void SaveHideEmptySystemsPreference()
+    {
+        try
+        {
+            _preferences.HideEmptySystems = _hideEmptySystems;
+            _config.SaveUserPreferences(_preferences);
+        }
+        catch
+        {
+            // Ne pas bloquer l'UI si l'écriture disque échoue
+        }
+    }
+
+    /// <summary>Sauvegarde ShowIssuesOnly dans UserPreferences. Silencieux en cas d'erreur.</summary>
+    private void SaveShowIssuesOnlyPreference()
+    {
+        try
+        {
+            _preferences.ShowIssuesOnly = _showIssuesOnly;
             _config.SaveUserPreferences(_preferences);
         }
         catch

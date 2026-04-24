@@ -168,6 +168,8 @@
         <BooleanToVisibilityConverter         x:Key="BoolToVisibilityConverter"/>
         <!-- bool → Visibility inversé : true → Collapsed, false → Visible -->
         <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <!-- bool → bool inversé : true → false, false → true (checkbox à sémantique inversée) -->
+        <helpers:InverseBoolConverter             x:Key="InverseBoolConverter"/>
 
         <!-- En-tête de colonne GridView (vue liste) -->
         <Style x:Key="ListColumnHeaderStyle" TargetType="GridViewColumnHeader">
@@ -592,16 +594,32 @@
                 </Border.Resources>
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                    <!-- Toggle "Afficher les consoles vides" — ON = HideEmptySystems=false via InverseBoolConverter -->
+                    <Border Grid.Row="0"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="0,0,0,1"
+                            Padding="14,7">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <ToggleButton IsChecked="{Binding HideEmptySystems, Converter={StaticResource InverseBoolConverter}}"
+                                          Style="{StaticResource ToggleSwitchButton}"/>
+                            <TextBlock Text="{x:Static res:Strings.Sidebar_ShowEmptySystems}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <TextBlock Text="{x:Static res:Strings.Systems}"
                                        Style="{StaticResource SectionLabel}"/>
                             <ItemsControl x:Name="SystemsList"
-                                          ItemsSource="{Binding Systems}">
+                                          ItemsSource="{Binding VisibleSystems}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Margin="14,3">
@@ -644,17 +662,11 @@
                     </ScrollViewer>
 
                     <!-- Actions bas de sidebar — bordure haute + alignement bas -->
-                    <Border Grid.Row="1"
+                    <Border Grid.Row="2"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,1,0,0"
                             VerticalAlignment="Bottom">
                         <StackPanel Margin="14,8">
-                            <!-- Filtre "Problèmes uniquement" -->
-                            <CheckBox Content="{x:Static res:Strings.Issues_FilterLabel}"
-                                      IsChecked="{Binding ShowIssuesOnly}"
-                                      FontSize="12"
-                                      Foreground="{DynamicResource TextPrimaryBrush}"
-                                      Margin="0,0,0,6"/>
                             <!-- Liens cocher/décocher tous les systèmes -->
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock x:Name="CheckAllSystemsLink"
@@ -740,11 +752,22 @@
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </Border>
 
-                        <!-- Filtres actifs -->
+                        <!-- Filtres actifs — toggle "Problèmes uniquement" visible si HasAnyIssues -->
                         <StackPanel x:Name="ActiveFilters"
                                     Grid.Column="2"
                                     Orientation="Horizontal"
-                                    VerticalAlignment="Center"/>
+                                    VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                        Visibility="{Binding HasAnyIssues, Converter={StaticResource BoolToVisibilityConverter}}"
+                                        Margin="24,0,0,0">
+                                <ToggleButton IsChecked="{Binding ShowIssuesOnly}"
+                                              Style="{StaticResource ToggleSwitchButton}"/>
+                                <TextBlock Text="{x:Static res:Strings.Issues_FilterLabel}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </StackPanel>
 
                         <!-- Recherche avec placeholder localisé -->
                         <TextBox x:Name="SearchBox"

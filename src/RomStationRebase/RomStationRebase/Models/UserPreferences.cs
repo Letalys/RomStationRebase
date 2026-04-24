@@ -47,4 +47,10 @@ public class UserPreferences
 
     /// <summary>Bounds mémorisés de GameDetailWindow. Null au premier lancement.</summary>
     public WindowBounds? GameDetailWindowBounds { get; set; }
+
+    /// <summary>Masque les consoles sans jeu dans le panneau de filtre latéral. Défaut : true.</summary>
+    public bool HideEmptySystems { get; set; } = true;
+
+    /// <summary>Filtre les jeux : affiche uniquement ceux présentant un problème (fichier ou jaquette manquants). Défaut : false.</summary>
+    public bool ShowIssuesOnly { get; set; } = false;
 }

@@ -589,4 +589,7 @@ Technical details:
   <data name="Game_ViewDetail" xml:space="preserve">
     <value>View details</value>
   </data>
+  <data name="Sidebar_ShowEmptySystems" xml:space="preserve">
+    <value>Show empty consoles</value>
+  </data>
 </root>

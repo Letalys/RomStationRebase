@@ -703,5 +703,9 @@ namespace RomStationRebase.Resources {
         public static string Game_ViewDetail {
             get { return ResourceManager.GetString("Game_ViewDetail", resourceCulture); }
         }
+
+        public static string Sidebar_ShowEmptySystems {
+            get { return ResourceManager.GetString("Sidebar_ShowEmptySystems", resourceCulture); }
+        }
     }
 }
