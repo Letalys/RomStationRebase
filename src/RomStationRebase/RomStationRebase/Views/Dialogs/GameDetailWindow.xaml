@@ -337,7 +337,8 @@
                     <TextBlock Text="{Binding Description, Converter={StaticResource NullToEmDash}}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                FontSize="12"
-                               TextWrapping="Wrap"/>
+                               TextWrapping="Wrap"
+                               TextAlignment="Justify"/>
                 </ScrollViewer>
             </Grid>
         </Grid>

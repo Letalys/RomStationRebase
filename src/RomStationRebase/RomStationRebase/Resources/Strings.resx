@@ -586,4 +586,7 @@ Technical details:
   <data name="GameDetail_FallbackTooltip_En" xml:space="preserve">
     <value>Information not available in English</value>
   </data>
+  <data name="Game_ViewDetail" xml:space="preserve">
+    <value>View details</value>
+  </data>
 </root>

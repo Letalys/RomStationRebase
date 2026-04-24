@@ -307,6 +307,39 @@
                               StrokeLineJoin="Round"
                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
+
+                    <!-- Bouton détail en overlay haut-droite — visible uniquement au survol de la tuile -->
+                    <Button HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Margin="0,8,8,0"
+                            Width="32" Height="32"
+                            FontFamily="Segoe Fluent Icons" FontSize="16"
+                            Content="&#xE7B3;"
+                            Cursor="Hand"
+                            ToolTip="{x:Static res:Strings.Game_ViewDetail}"
+                            Command="{Binding DataContext.OpenGameDetailCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                            CommandParameter="{Binding Id}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Setter Property="Opacity"         Value="0"/>
+                                <Setter Property="Background"      Value="#CC000000"/>
+                                <Setter Property="Foreground"      Value="White"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="BorderBrush"     Value="Transparent"/>
+                                <Setter Property="Padding"         Value="0"/>
+                                <Style.Triggers>
+                                    <!-- Maintenir le fond semi-transparent au survol direct du bouton -->
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background"  Value="#CC000000"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                    </Trigger>
+                                    <!-- Révéler le bouton au survol de la tuile entière -->
+                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListViewItem}}" Value="True">
+                                        <Setter Property="Opacity" Value="1"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </Grid>
             </Border>
             <DataTemplate.Triggers>
@@ -539,10 +572,6 @@
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <!-- DEBUG F11 — bouton temporaire à retirer à l'Étape 5 -->
-                    <Button Style="{StaticResource ToolbarButton}"
-                            Command="{Binding OpenGameDetailCommand}"
-                            Content="[DEBUG] Ouvrir fiche détail"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -801,6 +830,7 @@
                           ItemTemplate="{StaticResource MosaicGameTemplate}"
                           ItemContainerStyle="{StaticResource MosaicListViewItemStyle}"
                           Visibility="{Binding IsMosaicView, Converter={StaticResource BoolToVisibilityConverter}}"
+                          MouseDoubleClick="GameListView_MouseDoubleClick"
                           Margin="8"
                           BorderThickness="0"
                           Background="Transparent"
@@ -828,6 +858,7 @@
                           VirtualizingPanel.VirtualizationMode="Recycling"
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                           ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          MouseDoubleClick="GameListView_MouseDoubleClick"
                           GridViewColumnHeader.Click="ListViewColumnHeader_Click">
                     <ListView.View>
                         <GridView ColumnHeaderContainerStyle="{StaticResource ListColumnHeaderStyle}">
@@ -843,7 +874,47 @@
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
 
-                            <!-- Col 1 : miniature jaquette — largeur pilotée depuis le code-behind (GridViewColumn non-DP) -->
+                            <!-- Col 1 : Actions (40px fixe) — bouton détail, visible au survol de la ligne -->
+                            <GridViewColumn Width="40">
+                                <GridViewColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock/>
+                                    </DataTemplate>
+                                </GridViewColumn.HeaderTemplate>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button FontFamily="Segoe Fluent Icons" FontSize="16"
+                                                Content="&#xE7B3;"
+                                                Width="24" Height="24"
+                                                Padding="0"
+                                                Cursor="Hand"
+                                                ToolTip="{x:Static res:Strings.Game_ViewDetail}"
+                                                Command="{Binding DataContext.OpenGameDetailCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                CommandParameter="{Binding Id}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Setter Property="Opacity"         Value="0"/>
+                                                    <Setter Property="Background"      Value="Transparent"/>
+                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                    <Setter Property="BorderBrush"     Value="Transparent"/>
+                                                    <Setter Property="Foreground"      Value="{DynamicResource TextPrimaryBrush}"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background"  Value="Transparent"/>
+                                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                                        </Trigger>
+                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListViewItem}}" Value="True">
+                                                            <Setter Property="Opacity" Value="1"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Col 2 : miniature jaquette — largeur pilotée depuis le code-behind (GridViewColumn non-DP) -->
                             <GridViewColumn x:Name="CoverColumn" Width="52">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>

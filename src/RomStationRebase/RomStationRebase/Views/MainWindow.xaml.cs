@@ -94,6 +94,18 @@ public partial class MainWindow : Window
         return null;
     }
 
+    /// <summary>Remonte l'arbre visuel pour trouver le premier ancêtre du type T.</summary>
+    private static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+    {
+        var parent = VisualTreeHelper.GetParent(child);
+        while (parent is not null)
+        {
+            if (parent is T found) return found;
+            parent = VisualTreeHelper.GetParent(parent);
+        }
+        return null;
+    }
+
     /// <summary>Capture et sauvegarde les bounds avant fermeture.</summary>
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
@@ -179,6 +191,26 @@ public partial class MainWindow : Window
 
         // 5) Scroll direct sans matérialisation des conteneurs intermédiaires
         scrollViewer.ScrollToVerticalOffset(targetOffset);
+    }
+
+    /// <summary>
+    /// Ouvre la fiche détail au double-clic sur une tuile ou une ligne.
+    /// Ignoré si le double-clic a eu lieu sur un Button (case à cocher, bouton œil).
+    /// </summary>
+    private void GameListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        // Ne pas déclencher si le double-clic est sur un Button ou à l'intérieur d'un Button
+        if (e.OriginalSource is DependencyObject src &&
+            (src is Button || FindVisualParent<Button>(src) is not null))
+            return;
+
+        if (e.OriginalSource is FrameworkElement fe && fe.DataContext is GameItemViewModel game)
+        {
+            vm.OpenGameDetailCommand.Execute(game.Id);
+            e.Handled = true;
+        }
     }
 
     private void ListViewColumnHeader_Click(object sender, RoutedEventArgs e)

@@ -279,7 +279,7 @@ public class MainViewModel : ViewModelBase
     /// <summary>Ouvre la fenêtre Paramètres en modal.</summary>
     public ICommand SettingsCommand { get; private set; } = null!;
 
-    /// <summary>Bouton DEBUG temporaire — ouvre GameDetailWindow avec un ViewModel vide (Étape 2 F11, retiré à l'Étape 5).</summary>
+    /// <summary>Commande d'ouverture de la fiche détail — paramètre attendu : GameId (int).</summary>
     public ICommand OpenGameDetailCommand { get; private set; } = null!;
 
     /// <summary>Scrolle vers le premier jeu dont le titre commence par la lettre passée en paramètre.</summary>
@@ -359,7 +359,7 @@ public class MainViewModel : ViewModelBase
 
         SettingsCommand = new RelayCommand(OpenSettings);
 
-        OpenGameDetailCommand = new RelayCommand(OpenGameDetailDebug);
+        OpenGameDetailCommand = new RelayCommand(param => { if (param is int id) OpenGameDetail(id); });
 
         // Délégation du scroll vers la View via le callback injecté (ScrollToLetter).
         // CanExecute bloqué si le tri n'est pas alphabétique par titre — l'abécédaire est inopérant dans ce cas.
@@ -698,19 +698,6 @@ public class MainViewModel : ViewModelBase
 
         foreach (var item in AlphabetItems)
             item.IsEnabled = lettresPresentes.Contains(item.Letter);
-    }
-
-    // Index cyclique pour le bouton DEBUG — retiré à l'Étape 4 F11
-    private int _debugGameIndex = 0;
-
-    /// <summary>Ouvre la fiche du jeu suivant dans la liste chargée — parcours cyclique (DEBUG, Étape 4 F11).</summary>
-    private void OpenGameDetailDebug()
-    {
-        if (Games.Count == 0) return;
-        _debugGameIndex %= Games.Count;
-        var gameId = Games[_debugGameIndex].Id;
-        _debugGameIndex++;
-        OpenGameDetail(gameId);
     }
 
     /// <summary>Ouvre la fiche détail du jeu dont l'identifiant Derby est passé en paramètre.</summary>

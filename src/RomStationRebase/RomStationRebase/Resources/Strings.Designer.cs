@@ -699,5 +699,9 @@ namespace RomStationRebase.Resources {
         public static string GameDetail_FallbackTooltip_En {
             get { return ResourceManager.GetString("GameDetail_FallbackTooltip_En", resourceCulture); }
         }
+
+        public static string Game_ViewDetail {
+            get { return ResourceManager.GetString("Game_ViewDetail", resourceCulture); }
+        }
     }
 }
