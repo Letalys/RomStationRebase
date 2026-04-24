@@ -568,7 +568,8 @@ public class DerbyService
 
         if (!string.IsNullOrEmpty(derbyImagePath))
         {
-            string fullPath = SystemPath.Combine(romStationPath, "app", derbyImagePath);
+            string normalizedPath = derbyImagePath.Replace('/', SystemPath.DirectorySeparatorChar);
+            string fullPath = SystemPath.Combine(romStationPath, "app", normalizedPath);
             if (SystemFile.Exists(fullPath))
                 return fullPath;
         }
