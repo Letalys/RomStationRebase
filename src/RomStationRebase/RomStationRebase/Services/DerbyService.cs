@@ -129,19 +129,17 @@ public class DerbyService
         while (rs.next())
         {
             string? gameDirectory    = rs.getString("GAME_DIRECTORY");
-            string? sysImageRaw     = rs.getString("SYSTEM_IMAGE_PATH");
-            string? sysImagePath    = BuildSystemImagePath(sysImageRaw, romStationPath);
-            string? coverPath       = BuildCoverPath(gameDirectory, romStationPath);
-            string  gameName        = rs.getString("GAME_NAME") ?? string.Empty;
-
-            if (sysImagePath is null)
-                Debug.WriteLine($"[DerbyService] SystemImagePath null pour le jeu : {gameName} (SYSTEM_IMAGE_PATH brut = '{sysImageRaw}')");
+            string? sysImageRaw      = rs.getString("SYSTEM_IMAGE_PATH");
+            string  gameName         = rs.getString("GAME_NAME")   ?? string.Empty;
+            string  sysName          = rs.getString("SYSTEM_NAME") ?? string.Empty;
+            string  sysImagePath     = BuildSystemImagePath(sysImageRaw, romStationPath, sysName);
+            string? coverPath        = BuildCoverPath(gameDirectory, romStationPath);
 
             games.Add(new GameRecord
             {
                 Id              = rs.getInt("ID"),
                 Title           = gameName,
-                SystemName      = rs.getString("SYSTEM_NAME")       ?? string.Empty,
+                SystemName      = sysName,
                 SystemImagePath = sysImagePath,
                 GameDirectory   = gameDirectory                      ?? string.Empty,
                 FileCount       = rs.getInt("FILE_COUNT"),
@@ -182,10 +180,7 @@ public class DerbyService
         {
             string  name         = rs.getString("NAME")       ?? string.Empty;
             string? imageRaw     = rs.getString("IMAGE_PATH");
-            string? imagePath    = BuildSystemImagePath(imageRaw, romStationPath);
-
-            if (imagePath is null)
-                Debug.WriteLine($"[DerbyService] ImagePath null pour le système : {name} (IMAGE_PATH brut = '{imageRaw}')");
+            string  imagePath    = BuildSystemImagePath(imageRaw, romStationPath, name);
 
             systems.Add(new SystemRecord
             {
@@ -281,7 +276,7 @@ public class DerbyService
 
             string? sysImgRaw  = rs1.getString("SYSTEM_IMAGE_PATH");
             string? coverImgRaw = rs1.getString("COVER_IMAGE_PATH");
-            systemImagePath    = BuildSystemImagePath(sysImgRaw, romStationPath);
+            systemImagePath    = BuildSystemImagePath(sysImgRaw, romStationPath, systemName ?? string.Empty);
 
             // Jaquette directement depuis GAME.GRAPHIC_IMAGE_ID → IMAGE.PATH
             if (!string.IsNullOrEmpty(coverImgRaw))
@@ -508,7 +503,7 @@ public class DerbyService
                 Players              = players,
                 DeveloperName        = developerName,
                 PublisherName        = publisherName,
-                SystemName           = systemName,
+                SystemName           = systemName ?? string.Empty,
                 SystemImagePath      = systemImagePath,
                 CoverPath            = coverPath,
                 CoverExists          = coverExists,
@@ -557,13 +552,28 @@ public class DerbyService
     }
 
     /// <summary>
-    /// Construit le chemin absolu vers l'image d'un système à partir du PATH Derby.
-    /// Retourne null si le chemin Derby est vide.
+    /// Résout le chemin d'icône d'un système selon 4 règles de priorité décroissante.
+    /// Règle 1 : Windows → icône embarquée (win.png RomStation est blanc transparent).
+    /// Règle 2 : macOS   → icône embarquée (osx.png RomStation est blanc transparent).
+    /// Règle 3 : icône Derby si le fichier physique existe.
+    /// Règle 4 : icône générique embarquée (fallback garanti, ne retourne jamais null).
     /// </summary>
-    private static string? BuildSystemImagePath(string? derbyImagePath, string romStationPath)
+    private static string BuildSystemImagePath(string? derbyImagePath, string romStationPath, string systemName)
     {
-        if (string.IsNullOrEmpty(derbyImagePath)) return null;
-        return SystemPath.Combine(romStationPath, "app", derbyImagePath);
+        if (string.Equals(systemName, "Windows", StringComparison.OrdinalIgnoreCase))
+            return "pack://application:,,,/Resources/Icons/icon-system-windows.png";
+
+        if (systemName.IndexOf("macos", StringComparison.OrdinalIgnoreCase) >= 0)
+            return "pack://application:,,,/Resources/Icons/icon-system-apple.png";
+
+        if (!string.IsNullOrEmpty(derbyImagePath))
+        {
+            string fullPath = SystemPath.Combine(romStationPath, "app", derbyImagePath);
+            if (SystemFile.Exists(fullPath))
+                return fullPath;
+        }
+
+        return "pack://application:,,,/Resources/Icons/icon-system-default.png";
     }
 
     // ── Connexion JDBC ────────────────────────────────────────────────────
