@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
@@ -358,7 +359,7 @@ public class MainViewModel : ViewModelBase
 
         SettingsCommand = new RelayCommand(OpenSettings);
 
-        OpenGameDetailCommand = new RelayCommand(OpenGameDetail);
+        OpenGameDetailCommand = new RelayCommand(OpenGameDetailDebug);
 
         // Délégation du scroll vers la View via le callback injecté (ScrollToLetter).
         // CanExecute bloqué si le tri n'est pas alphabétique par titre — l'abécédaire est inopérant dans ce cas.
@@ -699,16 +700,36 @@ public class MainViewModel : ViewModelBase
             item.IsEnabled = lettresPresentes.Contains(item.Letter);
     }
 
-    /// <summary>Ouvre la fiche détail d'un jeu (bouton DEBUG temporaire — sera retiré à l'Étape 5 F11).</summary>
-    private void OpenGameDetail()
+    // Index cyclique pour le bouton DEBUG — retiré à l'Étape 4 F11
+    private int _debugGameIndex = 0;
+
+    /// <summary>Ouvre la fiche du jeu suivant dans la liste chargée — parcours cyclique (DEBUG, Étape 4 F11).</summary>
+    private void OpenGameDetailDebug()
     {
-        var vm  = new GameDetailViewModel();
+        if (Games.Count == 0) return;
+        _debugGameIndex %= Games.Count;
+        var gameId = Games[_debugGameIndex].Id;
+        _debugGameIndex++;
+        OpenGameDetail(gameId);
+    }
+
+    /// <summary>Ouvre la fiche détail du jeu dont l'identifiant Derby est passé en paramètre.</summary>
+    private void OpenGameDetail(int gameId)
+    {
+        var detail = _derby.GetGameDetail(_dbCopyPath, _romStationPath, gameId, ResolveLocaleTag());
+        if (detail is null) return;
+
+        var vm  = new GameDetailViewModel(detail, _romStationPath);
         var win = new Views.Dialogs.GameDetailWindow(vm)
         {
             Owner = Application.Current.MainWindow,
         };
         win.ShowDialog();
     }
+
+    /// <summary>Retourne le tag de locale Derby ("fr" ou "en") selon la culture courante du thread UI.</summary>
+    private static string ResolveLocaleTag()
+        => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr" ? "fr" : "en";
 
     /// <summary>Ouvre le panneau de paramètres en modal.</summary>
     private void OpenSettings()

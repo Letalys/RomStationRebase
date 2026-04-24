@@ -545,4 +545,45 @@ Technical details:
   <data name="GameDetail_Close" xml:space="preserve">
     <value>Close</value>
   </data>
+
+  <!-- ── Game detail window ── -->
+  <data name="GameDetail_OpenFolder" xml:space="preserve">
+    <value>Open game folder</value>
+  </data>
+  <data name="GameDetail_OpenRomStation" xml:space="preserve">
+    <value>View on RomStation</value>
+  </data>
+  <data name="GameDetail_Error_FolderNotFound" xml:space="preserve">
+    <value>The game folder cannot be found on this machine.</value>
+  </data>
+  <data name="GameDetail_System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="GameDetail_Year" xml:space="preserve">
+    <value>Year</value>
+  </data>
+  <data name="GameDetail_Developer" xml:space="preserve">
+    <value>Developer</value>
+  </data>
+  <data name="GameDetail_Publisher" xml:space="preserve">
+    <value>Publisher</value>
+  </data>
+  <data name="GameDetail_Players" xml:space="preserve">
+    <value>Players</value>
+  </data>
+  <data name="GameDetail_Genres" xml:space="preserve">
+    <value>Genres</value>
+  </data>
+  <data name="GameDetail_Languages" xml:space="preserve">
+    <value>Languages</value>
+  </data>
+  <data name="GameDetail_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="GameDetail_FallbackTooltip_Fr" xml:space="preserve">
+    <value>Information not available in French — displayed in English</value>
+  </data>
+  <data name="GameDetail_FallbackTooltip_En" xml:space="preserve">
+    <value>Information not available in English</value>
+  </data>
 </root>

@@ -1,11 +1,12 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using RomStationRebase.Resources;
 using RomStationRebase.ViewModels;
 
 namespace RomStationRebase.Views.Dialogs;
 
-/// <summary>Code-behind de GameDetailWindow — toute la logique métier sera dans GameDetailViewModel.</summary>
+/// <summary>Code-behind de GameDetailWindow — toute la logique métier est dans GameDetailViewModel.</summary>
 public partial class GameDetailWindow : Window
 {
     public GameDetailWindow(GameDetailViewModel vm)
@@ -13,6 +14,11 @@ public partial class GameDetailWindow : Window
         InitializeComponent();
         SourceInitialized += OnSourceInitialized;
         DataContext = vm;
+        // Injection du callback dialog "dossier introuvable" — Owner = this pour centrage correct
+        vm.ShowFolderNotFoundDialog = () =>
+            new ConfirmDialog(Strings.GameDetail_Title, Strings.GameDetail_Error_FolderNotFound, "OK", null)
+            { Owner = this }
+            .ShowDialog();
     }
 
     /// <summary>Restaure les bounds mémorisés avant affichage.</summary>

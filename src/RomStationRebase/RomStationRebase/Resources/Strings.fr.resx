@@ -545,4 +545,45 @@ Détails techniques :
   <data name="GameDetail_Close" xml:space="preserve">
     <value>Fermer</value>
   </data>
+
+  <!-- ── Fenêtre détail jeu ── -->
+  <data name="GameDetail_OpenFolder" xml:space="preserve">
+    <value>Ouvrir le dossier du jeu</value>
+  </data>
+  <data name="GameDetail_OpenRomStation" xml:space="preserve">
+    <value>Voir sur RomStation</value>
+  </data>
+  <data name="GameDetail_Error_FolderNotFound" xml:space="preserve">
+    <value>Le dossier du jeu est introuvable sur ce poste.</value>
+  </data>
+  <data name="GameDetail_System" xml:space="preserve">
+    <value>Système</value>
+  </data>
+  <data name="GameDetail_Year" xml:space="preserve">
+    <value>Année</value>
+  </data>
+  <data name="GameDetail_Developer" xml:space="preserve">
+    <value>Développeur</value>
+  </data>
+  <data name="GameDetail_Publisher" xml:space="preserve">
+    <value>Éditeur</value>
+  </data>
+  <data name="GameDetail_Players" xml:space="preserve">
+    <value>Joueurs</value>
+  </data>
+  <data name="GameDetail_Genres" xml:space="preserve">
+    <value>Genres</value>
+  </data>
+  <data name="GameDetail_Languages" xml:space="preserve">
+    <value>Langues</value>
+  </data>
+  <data name="GameDetail_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="GameDetail_FallbackTooltip_Fr" xml:space="preserve">
+    <value>Information non disponible en français — affichée en anglais</value>
+  </data>
+  <data name="GameDetail_FallbackTooltip_En" xml:space="preserve">
+    <value>Information non disponible en anglais</value>
+  </data>
 </root>

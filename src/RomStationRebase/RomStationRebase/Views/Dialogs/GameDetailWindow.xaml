@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:res="clr-namespace:RomStationRebase.Resources"
         xmlns:vm="clr-namespace:RomStationRebase.ViewModels"
+        xmlns:helpers="clr-namespace:RomStationRebase.Helpers"
         mc:Ignorable="d"
         WindowStyle="None" AllowsTransparency="False"
         ResizeMode="CanResizeWithGrip"
@@ -15,6 +16,7 @@
         d:DataContext="{d:DesignInstance Type=vm:GameDetailViewModel, IsDesignTimeCreatable=False}">
 
     <Window.Resources>
+        <!-- Styles titlebar -->
         <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Width"           Value="46"/>
             <Setter Property="Height"          Value="36"/>
@@ -29,6 +31,60 @@
                     <Setter Property="Background" Value="{DynamicResource CloseButtonHoverBrush}"/>
                 </Trigger>
             </Style.Triggers>
+        </Style>
+
+        <!-- Convertisseurs -->
+        <BooleanToVisibilityConverter             x:Key="BoolToVis"/>
+        <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
+        <helpers:NullToVisibilityConverter        x:Key="NullToVis"/>
+        <helpers:StringToImageSourceConverter     x:Key="StringToImage"/>
+        <helpers:SystemInitialsConverter          x:Key="SystemInitials"/>
+        <helpers:NullToEmDashConverter            x:Key="NullToEmDash"/>
+
+        <!-- Boutons icôniques d'action (dossier, RomStation) -->
+        <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush"     Value="Transparent"/>
+            <Setter Property="Width"           Value="36"/>
+            <Setter Property="Height"          Value="36"/>
+            <Setter Property="Margin"          Value="4,0,0,0"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="FontFamily"      Value="Segoe Fluent Icons"/>
+            <Setter Property="FontSize"        Value="16"/>
+            <Setter Property="Foreground"      Value="{DynamicResource TextPrimaryBrush}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background"  Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.4"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Label de métadonnée (libellé gauche) -->
+        <Style x:Key="MetaLabel" TargetType="TextBlock">
+            <Setter Property="Foreground"        Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize"          Value="12"/>
+            <Setter Property="Margin"            Value="0,0,12,6"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+        <!-- Valeur de métadonnée (texte droit) -->
+        <Style x:Key="MetaValue" TargetType="TextBlock">
+            <Setter Property="Foreground"        Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="FontSize"          Value="12"/>
+            <Setter Property="Margin"            Value="0,0,0,6"/>
+            <Setter Property="TextWrapping"      Value="Wrap"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+        <!-- Titre de section (Genres, Langues, Description) -->
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="Foreground"  Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize"    Value="12"/>
+            <Setter Property="FontWeight"  Value="SemiBold"/>
+            <Setter Property="Margin"      Value="0,0,0,4"/>
         </Style>
     </Window.Resources>
 
@@ -48,7 +104,6 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <!-- Icône jeu (Segoe MDL2 Assets — game controller) -->
                 <TextBlock Grid.Column="0"
                            Text="&#xE7FC;"
                            FontFamily="Segoe MDL2 Assets"
@@ -67,13 +122,225 @@
             </Grid>
         </Border>
 
-        <!-- ── Contenu principal (placeholder Étape 2) ── -->
-        <TextBlock Grid.Row="1"
-                   Text="Fiche détail — contenu en cours de développement"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="{DynamicResource TextSecondaryBrush}"
-                   FontSize="16"/>
+        <!-- ── Contenu principal ── -->
+        <!-- La jaquette, le titre, les métadonnées et les langues ne scrollent jamais.
+             Seul le corps de la description (Row 7, Height="*") peut scroller en interne. -->
+        <Grid Grid.Row="1" Margin="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="370"/> <!-- Jaquette -->
+                <ColumnDefinition Width="*"/>   <!-- Informations -->
+            </Grid.ColumnDefinitions>
+
+            <!-- ── Colonne gauche : jaquette uniquement ── -->
+            <Grid Grid.Column="0" Width="350" Height="460"
+                  Margin="0,0,16,0" VerticalAlignment="Top">
+                <!-- Jaquette présente — Padding interne pour éviter le débordement visuel -->
+                <Border Visibility="{Binding CoverExists, Converter={StaticResource BoolToVis}}"
+                        Background="{DynamicResource CoverBackgroundBrush}"
+                        CornerRadius="4"
+                        Padding="8">
+                    <Image Source="{Binding CoverPath, Converter={StaticResource StringToImage}}"
+                           Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                </Border>
+                <!-- Placeholder jaquette manquante -->
+                <Border Visibility="{Binding CoverExists, Converter={StaticResource InverseBoolToVis}}"
+                        Background="{DynamicResource CoverPlaceholderBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                    <TextBlock Text="{Binding SystemName, Converter={StaticResource SystemInitials}}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontSize="48"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </Border>
+            </Grid>
+
+            <!-- ── Colonne droite : 8 rows — seul Row 7 (description) est scrollable ── -->
+            <Grid Grid.Column="1" VerticalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- Row 0 : Titre + boutons actions -->
+                    <RowDefinition Height="Auto"/> <!-- Row 1 : Séparateur -->
+                    <RowDefinition Height="Auto"/> <!-- Row 2 : Métadonnées -->
+                    <RowDefinition Height="Auto"/> <!-- Row 3 : Genres -->
+                    <RowDefinition Height="Auto"/> <!-- Row 4 : Langues -->
+                    <RowDefinition Height="Auto"/> <!-- Row 5 : Séparateur -->
+                    <RowDefinition Height="Auto"/> <!-- Row 6 : Titre section Description -->
+                    <RowDefinition Height="*"/>    <!-- Row 7 : Corps description (scrollable) -->
+                </Grid.RowDefinitions>
+
+                <!-- Row 0 — Titre + boutons d'action -->
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>    <!-- Titre -->
+                        <ColumnDefinition Width="Auto"/> <!-- Boutons actions -->
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding Title}"
+                               FontSize="22"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Margin="12,0,0,0">
+                        <!-- Ouvrir le dossier du jeu dans l'Explorateur -->
+                        <Button Style="{StaticResource IconButtonStyle}"
+                                Content="&#xE8DA;"
+                                ToolTip="{x:Static res:Strings.GameDetail_OpenFolder}"
+                                Command="{Binding OpenGameFolderCommand}"/>
+                        <!-- Voir la fiche sur RomStation dans le navigateur -->
+                        <Button Style="{StaticResource IconButtonStyle}"
+                                Content="&#xE71B;"
+                                ToolTip="{x:Static res:Strings.GameDetail_OpenRomStation}"
+                                Command="{Binding OpenRomStationCommand}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Row 1 — Séparateur -->
+                <Rectangle Grid.Row="1" Height="1" Fill="{DynamicResource BorderBrush}" Margin="0,0,0,12"/>
+
+                <!-- Row 2 — Grille de métadonnées -->
+                <Grid Grid.Row="2" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Système -->
+                        <RowDefinition Height="Auto"/> <!-- Année -->
+                        <RowDefinition Height="Auto"/> <!-- Développeur -->
+                        <RowDefinition Height="Auto"/> <!-- Éditeur -->
+                        <RowDefinition Height="Auto"/> <!-- Joueurs -->
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource MetaLabel}"
+                               Text="{x:Static res:Strings.GameDetail_System}"/>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Image Source="{Binding SystemImagePath, Converter={StaticResource StringToImage}}"
+                               Width="20" Height="20"
+                               Stretch="Uniform"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0">
+                            <Image.Style>
+                                <Style TargetType="Image">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SystemImagePath}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Image.Style>
+                        </Image>
+                        <TextBlock Text="{Binding SystemName}"
+                                   Style="{StaticResource MetaValue}"
+                                   Margin="0"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource MetaLabel}"
+                               Text="{x:Static res:Strings.GameDetail_Year}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource MetaValue}"
+                               Text="{Binding DisplayYear}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource MetaLabel}"
+                               Text="{x:Static res:Strings.GameDetail_Developer}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource MetaValue}"
+                               Text="{Binding DeveloperName, Converter={StaticResource NullToEmDash}}"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource MetaLabel}"
+                               Text="{x:Static res:Strings.GameDetail_Publisher}"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource MetaValue}"
+                               Text="{Binding PublisherName, Converter={StaticResource NullToEmDash}}"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource MetaLabel}"
+                               Margin="0,0,12,0"
+                               Text="{x:Static res:Strings.GameDetail_Players}"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource MetaValue}"
+                               Margin="0"
+                               Text="{Binding DisplayPlayers, Converter={StaticResource NullToEmDash}}"/>
+                </Grid>
+
+                <!-- Row 3 — Genres -->
+                <StackPanel Grid.Row="3" Margin="0,0,0,10">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Style="{StaticResource SectionLabel}" Margin="0"
+                                   Text="{x:Static res:Strings.GameDetail_Genres}"/>
+                        <!-- Indicateur : certains genres viennent d'un fallback de langue -->
+                        <TextBlock Text=" *"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   FontSize="12" Opacity="0.7"
+                                   ToolTip="{Binding FallbackTooltip}"
+                                   Visibility="{Binding GenresHasFallback, Converter={StaticResource BoolToVis}}"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding GenresDisplay}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontSize="12"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- Row 4 — Langues (masqué si liste vide) -->
+                <StackPanel Grid.Row="4" Margin="0,0,0,10"
+                            Visibility="{Binding HasLanguages, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Style="{StaticResource SectionLabel}"
+                               Text="{x:Static res:Strings.GameDetail_Languages}"/>
+                    <ItemsControl ItemsSource="{Binding Languages}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                    <Image Width="20" Height="14"
+                                           Source="{Binding FlagImagePath, Converter={StaticResource StringToImage}}"
+                                           Visibility="{Binding FlagExists, Converter={StaticResource BoolToVis}}"
+                                           Margin="0,0,4,0"
+                                           VerticalAlignment="Center"
+                                           Stretch="Fill"/>
+                                    <TextBlock Text="{Binding Name}"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               FontSize="12"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Row 5 — Séparateur avant Description -->
+                <Rectangle Grid.Row="5" Height="1" Fill="{DynamicResource BorderBrush}" Margin="0,0,0,12"/>
+
+                <!-- Row 6 — Titre section Description + indicateur fallback -->
+                <StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,0,0,6">
+                    <TextBlock Style="{StaticResource SectionLabel}" Margin="0"
+                               Text="{x:Static res:Strings.GameDetail_Description}"/>
+                    <!-- Indicateur : description vient d'un fallback de langue -->
+                    <TextBlock Text=" *"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="12" Opacity="0.7"
+                               ToolTip="{Binding FallbackTooltip}"
+                               Visibility="{Binding DescriptionIsFallback, Converter={StaticResource BoolToVis}}"/>
+                </StackPanel>
+
+                <!-- Row 7 — Corps de la description : seule zone scrollable de la fiche -->
+                <ScrollViewer Grid.Row="7"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <TextBlock Text="{Binding Description, Converter={StaticResource NullToEmDash}}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontSize="12"
+                               TextWrapping="Wrap"/>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
 
         <!-- ── Footer ── -->
         <Border Grid.Row="2"

@@ -647,5 +647,57 @@ namespace RomStationRebase.Resources {
         public static string GameDetail_Close {
             get { return ResourceManager.GetString("GameDetail_Close", resourceCulture); }
         }
+
+        public static string GameDetail_OpenFolder {
+            get { return ResourceManager.GetString("GameDetail_OpenFolder", resourceCulture); }
+        }
+
+        public static string GameDetail_OpenRomStation {
+            get { return ResourceManager.GetString("GameDetail_OpenRomStation", resourceCulture); }
+        }
+
+        public static string GameDetail_Error_FolderNotFound {
+            get { return ResourceManager.GetString("GameDetail_Error_FolderNotFound", resourceCulture); }
+        }
+
+        public static string GameDetail_System {
+            get { return ResourceManager.GetString("GameDetail_System", resourceCulture); }
+        }
+
+        public static string GameDetail_Year {
+            get { return ResourceManager.GetString("GameDetail_Year", resourceCulture); }
+        }
+
+        public static string GameDetail_Developer {
+            get { return ResourceManager.GetString("GameDetail_Developer", resourceCulture); }
+        }
+
+        public static string GameDetail_Publisher {
+            get { return ResourceManager.GetString("GameDetail_Publisher", resourceCulture); }
+        }
+
+        public static string GameDetail_Players {
+            get { return ResourceManager.GetString("GameDetail_Players", resourceCulture); }
+        }
+
+        public static string GameDetail_Genres {
+            get { return ResourceManager.GetString("GameDetail_Genres", resourceCulture); }
+        }
+
+        public static string GameDetail_Languages {
+            get { return ResourceManager.GetString("GameDetail_Languages", resourceCulture); }
+        }
+
+        public static string GameDetail_Description {
+            get { return ResourceManager.GetString("GameDetail_Description", resourceCulture); }
+        }
+
+        public static string GameDetail_FallbackTooltip_Fr {
+            get { return ResourceManager.GetString("GameDetail_FallbackTooltip_Fr", resourceCulture); }
+        }
+
+        public static string GameDetail_FallbackTooltip_En {
+            get { return ResourceManager.GetString("GameDetail_FallbackTooltip_En", resourceCulture); }
+        }
     }
 }
