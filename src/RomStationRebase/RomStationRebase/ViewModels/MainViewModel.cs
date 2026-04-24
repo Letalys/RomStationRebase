@@ -562,7 +562,6 @@ public class MainViewModel : ViewModelBase
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 LoadingProgress = progress;
-                System.Diagnostics.Debug.WriteLine($"[SimulateProgress] step={i}/{steps} progress={progress:F1}");
             }, System.Windows.Threading.DispatcherPriority.Render);
         }
     }
