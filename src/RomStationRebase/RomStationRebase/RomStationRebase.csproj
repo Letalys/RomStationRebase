@@ -32,6 +32,11 @@
     <!-- ReadyToRun : compile AOT le code .NET pour un démarrage plus rapide
          au prix d'une légère augmentation de taille -->
     <PublishReadyToRun>true</PublishReadyToRun>
+
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
   <!-- IKVM : pont Java→.NET pour accéder à la base Derby de RomStation -->

@@ -181,7 +181,6 @@
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,0,0,12"/>
 
-                        <!-- Version : "RomStation Rebase v1.0.0" -->
                         <TextBlock Grid.Row="13" Grid.ColumnSpan="2"
                                    Text="{Binding AppVersionText}"
                                    FontSize="13" FontWeight="SemiBold"
