@@ -41,6 +41,7 @@
         <!-- DataGrid épuré -->
         <Style TargetType="DataGrid">
             <Setter Property="Background"               Value="{DynamicResource DataGridBackgroundBrush}"/>
+            <Setter Property="Foreground"               Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="BorderBrush"              Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness"          Value="1"/>
             <Setter Property="RowBackground"            Value="{DynamicResource DataGridBackgroundBrush}"/>
