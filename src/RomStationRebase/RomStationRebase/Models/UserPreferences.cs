@@ -44,4 +44,7 @@ public class UserPreferences
 
     /// <summary>Critère de tri global sélectionné par l'utilisateur. Valeurs : "Title" (défaut) ou "System".</summary>
     public string LastSortCriteria { get; set; } = "Title";
+
+    /// <summary>Bounds mémorisés de GameDetailWindow. Null au premier lancement.</summary>
+    public WindowBounds? GameDetailWindowBounds { get; set; }
 }

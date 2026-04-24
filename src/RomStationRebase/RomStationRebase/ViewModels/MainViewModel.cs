@@ -278,6 +278,9 @@ public class MainViewModel : ViewModelBase
     /// <summary>Ouvre la fenêtre Paramètres en modal.</summary>
     public ICommand SettingsCommand { get; private set; } = null!;
 
+    /// <summary>Bouton DEBUG temporaire — ouvre GameDetailWindow avec un ViewModel vide (Étape 2 F11, retiré à l'Étape 5).</summary>
+    public ICommand OpenGameDetailCommand { get; private set; } = null!;
+
     /// <summary>Scrolle vers le premier jeu dont le titre commence par la lettre passée en paramètre.</summary>
     public ICommand JumpToLetterCommand { get; private set; } = null!;
 
@@ -354,6 +357,8 @@ public class MainViewModel : ViewModelBase
             canExecute: () => !_isLoading);
 
         SettingsCommand = new RelayCommand(OpenSettings);
+
+        OpenGameDetailCommand = new RelayCommand(OpenGameDetail);
 
         // Délégation du scroll vers la View via le callback injecté (ScrollToLetter).
         // CanExecute bloqué si le tri n'est pas alphabétique par titre — l'abécédaire est inopérant dans ce cas.
@@ -692,6 +697,17 @@ public class MainViewModel : ViewModelBase
 
         foreach (var item in AlphabetItems)
             item.IsEnabled = lettresPresentes.Contains(item.Letter);
+    }
+
+    /// <summary>Ouvre la fiche détail d'un jeu (bouton DEBUG temporaire — sera retiré à l'Étape 5 F11).</summary>
+    private void OpenGameDetail()
+    {
+        var vm  = new GameDetailViewModel();
+        var win = new Views.Dialogs.GameDetailWindow(vm)
+        {
+            Owner = Application.Current.MainWindow,
+        };
+        win.ShowDialog();
     }
 
     /// <summary>Ouvre le panneau de paramètres en modal.</summary>

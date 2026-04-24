@@ -639,5 +639,13 @@ namespace RomStationRebase.Resources {
         public static string Sync_Confirm_Cancel {
             get { return ResourceManager.GetString("Sync_Confirm_Cancel", resourceCulture); }
         }
+
+        public static string GameDetail_Title {
+            get { return ResourceManager.GetString("GameDetail_Title", resourceCulture); }
+        }
+
+        public static string GameDetail_Close {
+            get { return ResourceManager.GetString("GameDetail_Close", resourceCulture); }
+        }
     }
 }

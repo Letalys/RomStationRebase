@@ -6,5 +6,9 @@
   "rebaseWindow": {
     "width": 1100,
     "height": 720
+  },
+  "gameDetailWindow": {
+    "width": 700,
+    "height": 820
   }
 }

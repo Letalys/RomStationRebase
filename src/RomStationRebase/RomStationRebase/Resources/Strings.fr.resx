@@ -539,4 +539,10 @@ Détails techniques :
   <data name="Main_SortBy_System" xml:space="preserve">
     <value>Système</value>
   </data>
+  <data name="GameDetail_Title" xml:space="preserve">
+    <value>Détail du jeu</value>
+  </data>
+  <data name="GameDetail_Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
 </root>

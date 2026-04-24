@@ -539,6 +539,10 @@
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
+                    <!-- DEBUG F11 — bouton temporaire à retirer à l'Étape 5 -->
+                    <Button Style="{StaticResource ToolbarButton}"
+                            Command="{Binding OpenGameDetailCommand}"
+                            Content="[DEBUG] Ouvrir fiche détail"/>
                 </StackPanel>
             </Grid>
         </Border>
