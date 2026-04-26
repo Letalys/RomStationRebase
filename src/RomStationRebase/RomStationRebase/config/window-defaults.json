@@ -10,5 +10,9 @@
   "gameDetailWindow": {
     "width": 700,
     "height": 820
+  },
+  "settingsWindow": {
+    "width": 620,
+    "height": 780
   }
 }

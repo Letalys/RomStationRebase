@@ -521,6 +521,27 @@ Détails techniques :
   <data name="Settings_About_OpenWiki" xml:space="preserve">
     <value>Ouvrir la documentation (wiki)</value>
   </data>
+  <data name="Settings_About_CheckForUpdates" xml:space="preserve">
+    <value>Vérifier les mises à jour</value>
+  </data>
+  <data name="Settings_About_Checking" xml:space="preserve">
+    <value>Vérification...</value>
+  </data>
+  <data name="Settings_About_UpToDate" xml:space="preserve">
+    <value>Vous avez la dernière version.</value>
+  </data>
+  <data name="Settings_About_UpdateAvailable" xml:space="preserve">
+    <value>La version {0} est disponible.</value>
+  </data>
+  <data name="Settings_About_UpdateCheckError" xml:space="preserve">
+    <value>Impossible de vérifier les mises à jour. Vérifiez votre connexion.</value>
+  </data>
+  <data name="Settings_About_LastChecked" xml:space="preserve">
+    <value>Dernière vérification : {0}</value>
+  </data>
+  <data name="StatusBar_UpdateAvailable" xml:space="preserve">
+    <value>↑ Mise à jour disponible : {0}</value>
+  </data>
   <data name="Main_SizeNormal" xml:space="preserve">
     <value>Normal</value>
   </data>

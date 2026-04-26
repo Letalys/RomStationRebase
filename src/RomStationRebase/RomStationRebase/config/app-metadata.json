@@ -1,6 +1,7 @@
 {
   "repositoryUrl": "https://github.com/Letalys/RomStationRebase",
   "wikiUrl": "https://github.com/Letalys/RomStationRebase/wiki",
+  "apiReleasesUrl": "https://api.github.com/repos/Letalys/RomStationRebase/releases/latest",
   "author": "Letalys",
   "license": "MIT"
 }
