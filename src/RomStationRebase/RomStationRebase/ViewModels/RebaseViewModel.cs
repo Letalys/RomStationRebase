@@ -808,13 +808,14 @@ public class RebaseViewModel : ViewModelBase
     /// Appelée au démarrage effectif du rebase, après toutes les validations passées.
     /// Silencieux en cas d'échec d'écriture — ne bloque pas le lancement du rebase.
     /// </summary>
-    private void SaveRebasePreferences()
+    internal void SaveRebasePreferences()
     {
         if (_preferences == null) return;
 
         try
         {
-            _preferences.LastRebaseTargetPath     = _targetPath;
+            if (!string.IsNullOrWhiteSpace(_targetPath))
+                _preferences.LastRebaseTargetPath = _targetPath;
             _preferences.LastRebaseArchitectureId = _selectedArchitecture?.Id ?? string.Empty;
             _preferences.LastRebaseGenerateM3U    = _generateM3U;
             _preferences.DuplicatePolicy          = _duplicatePolicyIndex == 1 ? "Overwrite" : "Ignore";

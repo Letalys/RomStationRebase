@@ -106,6 +106,10 @@ public partial class RebaseWindow : Window
         // par la branche en dessous qui appelle Close() lui-même).
         if (!_forceClose)
         {
+            // Persistance des paramètres de rebase avant la sauvegarde des bounds — l'ordre est
+            // important : le rechargement des prefs ci-dessous récupère le chemin à jour sur le disque.
+            (DataContext as RebaseViewModel)?.SaveRebasePreferences();
+
             try
             {
                 var config = new Services.ConfigService();
