@@ -14,8 +14,34 @@ namespace RomStationRebase;
 /// <summary>Point d'entrée WPF — initialise la culture, gère les exceptions globales et pilote SplashWindow → MainWindow.</summary>
 public partial class App : Application
 {
+    private System.Threading.Mutex? _singleInstanceMutex;
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        // === Instance unique : acquis en tout premier, avant toute autre logique ===
+        // Tout retard expose au risque qu'une seconde instance affiche son splash
+        // ou commence à charger la base avant d'être stoppée.
+        const string mutexName = @"Global\RomStationRebase-SingleInstance";
+        bool isNewInstance;
+        try
+        {
+            _singleInstanceMutex = new System.Threading.Mutex(true, mutexName, out isNewInstance);
+        }
+        catch (System.Threading.AbandonedMutexException)
+        {
+            // La 1ère instance a crashé sans relâcher proprement le Mutex.
+            // Windows nous le donne quand même, on le considère comme acquis.
+            isNewInstance = true;
+        }
+
+        if (!isNewInstance)
+        {
+            // Une autre instance tourne déjà : la mettre au premier plan puis se fermer.
+            BringExistingInstanceToFront();
+            Shutdown(0);
+            return;
+        }
+
         base.OnStartup(e);
 
         // ── Handlers globaux — enregistrés en premier pour capturer tout crash précoce ──
@@ -31,6 +57,55 @@ public partial class App : Application
         ApplyCulture(prefs);
         ApplyTheme(prefs);
         RunStartupAsync();
+    }
+
+    /// <summary>
+    /// Recherche l'autre instance de RSRebase en cours d'exécution et restaure
+    /// sa fenêtre principale (ou son splash s'il est encore à l'écran) au
+    /// premier plan. Échec silencieux si introuvable.
+    /// </summary>
+    private static void BringExistingInstanceToFront()
+    {
+        try
+        {
+            var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
+            var processes = System.Diagnostics.Process.GetProcessesByName(currentProcess.ProcessName);
+            foreach (var process in processes)
+            {
+                if (process.Id == currentProcess.Id) continue;
+                IntPtr handle = process.MainWindowHandle;
+                if (handle == IntPtr.Zero) continue;
+
+                if (Helpers.NativeMethods.IsIconic(handle))
+                    Helpers.NativeMethods.ShowWindow(handle, Helpers.NativeMethods.SW_RESTORE);
+                Helpers.NativeMethods.SetForegroundWindow(handle);
+                return;
+            }
+        }
+        catch
+        {
+            // Échec silencieux : si l'autre instance est introuvable, la nouvelle
+            // se ferme quand même. Dégradation gracieuse acceptable pour ce cas rare.
+        }
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        try
+        {
+            _singleInstanceMutex?.ReleaseMutex();
+        }
+        catch (ApplicationException)
+        {
+            // Le Mutex n'était pas détenu par ce thread : ignorer.
+        }
+        finally
+        {
+            _singleInstanceMutex?.Dispose();
+            _singleInstanceMutex = null;
+        }
+
+        base.OnExit(e);
     }
 
     // ── Handlers d'exceptions globales ───────────────────────────────────────

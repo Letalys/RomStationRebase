@@ -53,4 +53,7 @@ public class UserPreferences
 
     /// <summary>Filtre les jeux : affiche uniquement ceux présentant un problème (fichier ou jaquette manquants). Défaut : false.</summary>
     public bool ShowIssuesOnly { get; set; } = false;
+
+    /// <summary>Bounds mémorisés de SettingsWindow. Null au premier lancement.</summary>
+    public WindowBounds? SettingsWindowBounds { get; set; }
 }

@@ -7,7 +7,7 @@
         ResizeMode="NoResize"
         Width="520" Height="480"
         WindowStartupLocation="CenterScreen"
-        Icon="/Resources/Images/rsr-logo.png">
+        Icon="/Resources/Images/rsr-logo.ico">
 
     <Window.Resources>
         <!-- Barre de progression simple sans animation indéterminée -->

@@ -33,9 +33,9 @@
          au prix d'une légère augmentation de taille -->
     <PublishReadyToRun>true</PublishReadyToRun>
 
-    <Version>1.1.0</Version>
-    <AssemblyVersion>1.1.0.0</AssemblyVersion>
-    <FileVersion>1.1.0.0</FileVersion>
+    <Version>1.2.0</Version>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <FileVersion>1.2.0.0</FileVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
@@ -54,6 +54,7 @@
   <ItemGroup>
     <Resource Include="Resources\Icons\*.png" />
     <Resource Include="Resources\Images\*.png" />
+    <Resource Include="Resources\Images\rsr-logo.ico" />
   </ItemGroup>
 
   <!-- Fichiers de configuration des architectures — copiés dans le répertoire de sortie -->

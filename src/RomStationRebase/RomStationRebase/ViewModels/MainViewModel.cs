@@ -17,6 +17,10 @@ public class MainViewModel : ViewModelBase
     private readonly RomStationService   _rs          = new();
     private readonly ConfigService       _config      = new();
     private readonly UserPreferences     _preferences;
+    private          AppMetadata         _metadata    = new();
+
+    private bool   _isUpdateAvailable;
+    private string _updateAvailableText = string.Empty;
 
     private string    _romStationPath    = string.Empty;
     private string    _dbCopyPath        = string.Empty;
@@ -271,6 +275,26 @@ public class MainViewModel : ViewModelBase
     public string AppVersion { get; } =
         "v" + (Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "0.1.0");
 
+    /// <summary>True si une mise à jour est disponible — pilote la visibilité du bouton MAJ dans la statusbar.</summary>
+    public bool IsUpdateAvailable
+    {
+        get => _isUpdateAvailable;
+        private set => SetProperty(ref _isUpdateAvailable, value);
+    }
+
+    /// <summary>Texte affiché dans le bouton MAJ de la statusbar (ex : "↑ Update available: v1.2.0").</summary>
+    public string UpdateAvailableText
+    {
+        get => _updateAvailableText;
+        private set => SetProperty(ref _updateAvailableText, value);
+    }
+
+    /// <summary>URL de la page de release GitHub — ouverte au clic sur le bouton MAJ.</summary>
+    public string? UpdateAvailableUrl { get; private set; }
+
+    /// <summary>Ouvre la page de la release disponible dans le navigateur par défaut.</summary>
+    public RelayCommand OpenUpdatePageCommand { get; private set; } = null!;
+
     // ── Propriétés de chargement lazy ─────────────────────────────────────
 
     /// <summary>Message de statut affiché dans l'overlay de chargement (ex : "Loading library…").</summary>
@@ -332,6 +356,7 @@ public class MainViewModel : ViewModelBase
     public MainViewModel(UserPreferences preferences)
     {
         _preferences      = preferences;
+        try { _metadata = _config.LoadAppMetadata(); } catch { /* métadonnées absentes : check MAJ désactivé */ }
         // Initialisation du mode d'affichage depuis les préférences — défaut "Mosaic"
         _isMosaicView     = preferences.LastViewMode != "List";
         // Initialisation directe sur le champ pour éviter un SaveThumbnailSizePreference inutile au démarrage
@@ -400,6 +425,8 @@ public class MainViewModel : ViewModelBase
         SettingsCommand = new RelayCommand(OpenSettings);
 
         OpenGameDetailCommand = new RelayCommand(param => { if (param is int id) OpenGameDetail(id); });
+
+        OpenUpdatePageCommand = new RelayCommand(OpenUpdatePage);
 
         // Délégation du scroll vers la View via le callback injecté (ScrollToLetter).
         // CanExecute bloqué si le tri n'est pas alphabétique par titre — l'abécédaire est inopérant dans ce cas.
@@ -539,6 +566,9 @@ public class MainViewModel : ViewModelBase
             IsLoading = false;
             RefreshFilter();
         }, System.Windows.Threading.DispatcherPriority.Normal);
+
+        // Check de MAJ en arrière-plan : fire-and-forget intentionnel.
+        _ = CheckForUpdateInBackgroundAsync();
     }
 
     /// <summary>
@@ -766,6 +796,95 @@ public class MainViewModel : ViewModelBase
     /// <summary>Retourne le tag de locale Derby ("fr" ou "en") selon la culture courante du thread UI.</summary>
     private static string ResolveLocaleTag()
         => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr" ? "fr" : "en";
+
+    /// <summary>Ouvre la page de la release disponible dans le navigateur par défaut.</summary>
+    private void OpenUpdatePage()
+    {
+        if (string.IsNullOrWhiteSpace(UpdateAvailableUrl)) return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName        = UpdateAvailableUrl,
+                UseShellExecute = true,
+            });
+        }
+        catch
+        {
+            // Silencieux si le navigateur ne peut pas être lancé.
+        }
+    }
+
+    /// <summary>
+    /// Lance un check de MAJ en arrière-plan avec throttle 24h. Met à jour IsUpdateAvailable et
+    /// UpdateAvailableText sur le thread UI si une MAJ est détectée. Silencieux dans tous les autres cas.
+    /// </summary>
+    private async Task CheckForUpdateInBackgroundAsync()
+    {
+        try
+        {
+            var state = _config.LoadAppState();
+
+            // Throttle 24h : réutilise le résultat persisté si le check est récent.
+            if (state.LastUpdateCheckUtc.HasValue &&
+                DateTime.UtcNow - state.LastUpdateCheckUtc.Value < TimeSpan.FromHours(24))
+            {
+                Application.Current?.Dispatcher.Invoke(() => ApplyPersistedUpdateState(state));
+                return;
+            }
+
+            // Date sauvegardée AVANT l'appel HTTP : évite la boucle de retry si l'app redémarre pendant le check.
+            state.LastUpdateCheckUtc = DateTime.UtcNow;
+            _config.SaveAppState(state);
+
+            var service = new UpdateCheckService(_metadata);
+            var result  = await service.CheckAsync().ConfigureAwait(false);
+
+            if (result.Outcome == UpdateCheckOutcome.UpdateAvailable)
+            {
+                state.LastAvailableVersion = result.AvailableVersion;
+                state.LastUpdateUrl        = result.ReleaseUrl;
+            }
+            else if (result.Outcome == UpdateCheckOutcome.UpToDate)
+            {
+                state.LastAvailableVersion = null;
+                state.LastUpdateUrl        = null;
+            }
+            // Sur erreur, on préserve l'ancien état persisté.
+
+            _config.SaveAppState(state);
+            Application.Current?.Dispatcher.Invoke(() => ApplyPersistedUpdateState(state));
+        }
+        catch
+        {
+            // Silencieux total — check de fond non critique.
+        }
+    }
+
+    private void ApplyPersistedUpdateState(AppState state)
+    {
+        if (UpdateCheckService.IsRemoteVersionNewer(state.LastAvailableVersion))
+        {
+            UpdateAvailableUrl  = state.LastUpdateUrl;
+            UpdateAvailableText = string.Format(Strings.StatusBar_UpdateAvailable, state.LastAvailableVersion);
+            IsUpdateAvailable   = true;
+        }
+        else
+        {
+            // Nettoyage : si une version était persistée mais n'est plus valide (périmée ou désormais
+            // inférieure à la version courante), on la retire du fichier d'état pour éviter la régression
+            // au prochain démarrage.
+            if (!string.IsNullOrWhiteSpace(state.LastAvailableVersion))
+            {
+                state.LastAvailableVersion = null;
+                state.LastUpdateUrl        = null;
+                try { _config.SaveAppState(state); } catch { }
+            }
+            IsUpdateAvailable   = false;
+            UpdateAvailableUrl  = null;
+            UpdateAvailableText = string.Empty;
+        }
+    }
 
     /// <summary>Ouvre le panneau de paramètres en modal.</summary>
     private void OpenSettings()

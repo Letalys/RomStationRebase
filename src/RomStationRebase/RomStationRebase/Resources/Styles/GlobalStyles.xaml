@@ -69,6 +69,78 @@
         </Style.Triggers>
     </Style>
 
+    <!-- ── Bouton lien typographique — texte sans fond de survol ── -->
+    <!-- Ne pas BasedOn Button base : il hériterait ButtonHoverBackgroundBrush au survol. -->
+    <!-- ControlTemplate minimal : TextBlock lie Content/FontSize/FontStyle via TemplateBinding. -->
+    <Style x:Key="LinkButton" TargetType="Button">
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding"         Value="0"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Foreground"      Value="{DynamicResource LinkBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <TextBlock x:Name="Tb"
+                               Text="{TemplateBinding Content}"
+                               Foreground="{TemplateBinding Foreground}"
+                               FontSize="{TemplateBinding FontSize}"
+                               FontStyle="{TemplateBinding FontStyle}"
+                               Padding="{TemplateBinding Padding}"
+                               VerticalAlignment="Center"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Tb" Property="Foreground"      Value="{DynamicResource LinkHoverBrush}"/>
+                            <Setter TargetName="Tb" Property="TextDecorations" Value="Underline"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Tb" Property="Foreground"      Value="{DynamicResource LinkPressedBrush}"/>
+                            <Setter TargetName="Tb" Property="TextDecorations" Value="Underline"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ── Variante sur fond accent (titlebar, statusbar) — texte blanc sans fond de survol ── -->
+    <Style x:Key="LinkButtonOnAccent" TargetType="Button">
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding"         Value="0"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Foreground"      Value="White"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <TextBlock x:Name="Tb"
+                               Text="{TemplateBinding Content}"
+                               Foreground="{TemplateBinding Foreground}"
+                               FontSize="{TemplateBinding FontSize}"
+                               FontStyle="{TemplateBinding FontStyle}"
+                               Padding="{TemplateBinding Padding}"
+                               VerticalAlignment="Center"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Tb" Property="TextDecorations" Value="Underline"/>
+                            <Setter Property="Opacity" Value="0.85"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Tb" Property="TextDecorations" Value="Underline"/>
+                            <Setter Property="Opacity" Value="0.7"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- TextBox -->
     <Style TargetType="TextBox">
         <Setter Property="BorderBrush"      Value="{DynamicResource BorderBrush}"/>

@@ -518,6 +518,30 @@ Technical details:
   <data name="Settings_About_OpenRepository" xml:space="preserve">
     <value>View project on GitHub</value>
   </data>
+  <data name="Settings_About_OpenWiki" xml:space="preserve">
+    <value>Open documentation (wiki)</value>
+  </data>
+  <data name="Settings_About_CheckForUpdates" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="Settings_About_Checking" xml:space="preserve">
+    <value>Checking...</value>
+  </data>
+  <data name="Settings_About_UpToDate" xml:space="preserve">
+    <value>You have the latest version.</value>
+  </data>
+  <data name="Settings_About_UpdateAvailable" xml:space="preserve">
+    <value>Version {0} is available.</value>
+  </data>
+  <data name="Settings_About_UpdateCheckError" xml:space="preserve">
+    <value>Unable to check for updates. Check your connection.</value>
+  </data>
+  <data name="Settings_About_LastChecked" xml:space="preserve">
+    <value>Last checked: {0}</value>
+  </data>
+  <data name="StatusBar_UpdateAvailable" xml:space="preserve">
+    <value>↑ Update available: {0}</value>
+  </data>
   <data name="Main_SizeNormal" xml:space="preserve">
     <value>Normal</value>
   </data>

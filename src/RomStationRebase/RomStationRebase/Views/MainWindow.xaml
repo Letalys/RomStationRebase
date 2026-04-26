@@ -11,9 +11,11 @@
         Title="RomStation Rebase" Height="680" Width="1100"
         WindowStyle="None" AllowsTransparency="False" ResizeMode="CanResizeWithGrip"
         Background="{DynamicResource BackgroundBrush}"
-        Icon="/Resources/Images/rsr-logo.png">
+        Icon="/Resources/Images/rsr-logo.ico">
 
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
         <!-- Séparateur vertical pour la StatusBar -->
         <Style x:Key="StatusSeparator" TargetType="Rectangle">
             <Setter Property="Width"   Value="1"/>
@@ -1219,37 +1221,52 @@
              ═══════════════════════════════════════════════════ -->
         <Border Grid.Row="3"
                 Background="{DynamicResource AccentBrush}">
-            <StackPanel Orientation="Horizontal"
-                        VerticalAlignment="Center"
-                        Margin="14,0">
-                <TextBlock x:Name="SelectedCountLabel"
-                           Text="{Binding SelectedCountText}"
-                           FontSize="11"
-                           Foreground="White"
-                           VerticalAlignment="Center"/>
+            <DockPanel VerticalAlignment="Center"
+                       Margin="14,0"
+                       LastChildFill="False">
 
-                <Rectangle Style="{StaticResource StatusSeparator}"/>
+                <!-- DROITE : bouton MAJ (déclaré en premier pour DockPanel.Dock="Right") -->
+                <Button DockPanel.Dock="Right"
+                        Style="{StaticResource LinkButtonOnAccent}"
+                        Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVisibility}}"
+                        Command="{Binding OpenUpdatePageCommand}"
+                        Content="{Binding UpdateAvailableText}"
+                        FontSize="11"
+                        Padding="8,0" VerticalAlignment="Stretch"
+                        ToolTip="{Binding UpdateAvailableText}"/>
 
-                <TextBlock x:Name="LastSyncLabel"
-                           FontSize="11"
-                           Foreground="White"
-                           VerticalAlignment="Center">
-                    <Run Text="{x:Static res:Strings.LastSync}"/>
-                    <Run Text=" "/>
-                    <Run Text="{Binding LastSyncText, Mode=OneWay}"/>
-                </TextBlock>
+                <!-- GAUCHE : contenu existant inchangé -->
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="SelectedCountLabel"
+                               Text="{Binding SelectedCountText}"
+                               FontSize="11"
+                               Foreground="White"
+                               VerticalAlignment="Center"/>
 
-                <Rectangle Style="{StaticResource StatusSeparator}"/>
+                    <Rectangle Style="{StaticResource StatusSeparator}"/>
 
-                <Ellipse Width="8" Height="8"
-                         Fill="{DynamicResource StatusBarSyncedDotBrush}"
-                         VerticalAlignment="Center"
-                         Margin="0,0,6,0"/>
-                <TextBlock Text="{x:Static res:Strings.DbSynced}"
-                           FontSize="11"
-                           Foreground="White"
-                           VerticalAlignment="Center"/>
-            </StackPanel>
+                    <TextBlock x:Name="LastSyncLabel"
+                               FontSize="11"
+                               Foreground="White"
+                               VerticalAlignment="Center">
+                        <Run Text="{x:Static res:Strings.LastSync}"/>
+                        <Run Text=" "/>
+                        <Run Text="{Binding LastSyncText, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <Rectangle Style="{StaticResource StatusSeparator}"/>
+
+                    <Ellipse Width="8" Height="8"
+                             Fill="{DynamicResource StatusBarSyncedDotBrush}"
+                             VerticalAlignment="Center"
+                             Margin="0,0,6,0"/>
+                    <TextBlock Text="{x:Static res:Strings.DbSynced}"
+                               FontSize="11"
+                               Foreground="White"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+            </DockPanel>
         </Border>
 
     </Grid>

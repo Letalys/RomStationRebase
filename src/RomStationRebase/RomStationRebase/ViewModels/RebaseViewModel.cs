@@ -627,10 +627,19 @@ public class RebaseViewModel : ViewModelBase
 
     private void OnBrowse()
     {
-        // InitialDirectory volontairement omis : si le chemin actuel pointe vers un lecteur
-        // déconnecté (ex : F:\), Windows lève une exception à ShowDialog(). On laisse Windows
-        // choisir le dossier initial (dernier dossier utilisé ou fallback système).
         var dialog = new OpenFolderDialog { Title = Strings.Rebase_TargetPath };
+
+        // Priorité au chemin courant s'il est accessible (Directory.Exists
+        // retourne false silencieusement sur lecteur déconnecté, ce qui
+        // évite l'exception ShowDialog()). Sinon, on impose "Mes documents"
+        // comme point de départ neutre et prévisible, plutôt que le cache
+        // shell Windows qui peut pointer vers n'importe quel dossier
+        // ouvert récemment dans n'importe quelle application.
+        if (!string.IsNullOrWhiteSpace(_targetPath) && Directory.Exists(_targetPath))
+            dialog.InitialDirectory = _targetPath;
+        else
+            dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
         if (dialog.ShowDialog() == true)
             TargetPath = dialog.FolderName;
     }
@@ -805,22 +814,30 @@ public class RebaseViewModel : ViewModelBase
 
     /// <summary>
     /// Sauvegarde les paramètres de rebase courants dans UserPreferences.
-    /// Appelée au démarrage effectif du rebase, après toutes les validations passées.
+    /// Appelée au démarrage effectif du rebase (sans bounds) ou à la fermeture
+    /// de la fenêtre (avec bounds capturées par le code-behind).
     /// Silencieux en cas d'échec d'écriture — ne bloque pas le lancement du rebase.
     /// </summary>
-    private void SaveRebasePreferences()
+    internal void SaveRebasePreferences(Models.WindowBounds? bounds = null)
     {
         if (_preferences == null) return;
 
         try
         {
-            _preferences.LastRebaseTargetPath     = _targetPath;
+            if (!string.IsNullOrWhiteSpace(_targetPath))
+                _preferences.LastRebaseTargetPath = _targetPath;
             _preferences.LastRebaseArchitectureId = _selectedArchitecture?.Id ?? string.Empty;
             _preferences.LastRebaseGenerateM3U    = _generateM3U;
             _preferences.DuplicatePolicy          = _duplicatePolicyIndex == 1 ? "Overwrite" : "Ignore";
             _preferences.MaxParallelCopies        = _maxParallelCopies;
             _preferences.RetryCount               = _retryCount;
             _preferences.RetryDelaySeconds        = _retryDelay;
+
+            // Les bounds ne sont fusionnés que lorsque l'appelant les fournit
+            // (typiquement OnClosing). Au lancement effectif du rebase, l'appelant
+            // ne passe pas de bounds : la propriété existante est préservée.
+            if (bounds != null)
+                _preferences.RebaseWindowBounds = bounds;
 
             _configService.SaveUserPreferences(_preferences);
         }

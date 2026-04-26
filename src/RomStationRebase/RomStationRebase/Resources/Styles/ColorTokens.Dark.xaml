@@ -101,4 +101,12 @@
     <SolidColorBrush x:Key="ProgressBarFillBrush"  Color="#5B3FE0"/>
     <SolidColorBrush x:Key="ProgressBarTrackBrush" Color="#3A3944"/>
 
+    <!-- ══════════════════════════════════════════════════════════════════
+         LIENS TYPOGRAPHIQUES (LinkButton / LinkButtonOnAccent)
+         Variantes claires sur fond sombre pour une lisibilité optimale.
+         ══════════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="LinkBrush"        Color="#8E78F0"/>
+    <SolidColorBrush x:Key="LinkHoverBrush"   Color="#A99AF5"/>
+    <SolidColorBrush x:Key="LinkPressedBrush" Color="#C4B9F8"/>
+
 </ResourceDictionary>

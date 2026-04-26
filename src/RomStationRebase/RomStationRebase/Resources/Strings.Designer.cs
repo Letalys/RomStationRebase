@@ -551,6 +551,30 @@ namespace RomStationRebase.Resources {
         public static string Settings_About_OpenRepository {
             get { return ResourceManager.GetString("Settings_About_OpenRepository", resourceCulture); }
         }
+        public static string Settings_About_OpenWiki {
+            get { return ResourceManager.GetString("Settings_About_OpenWiki", resourceCulture); }
+        }
+        public static string Settings_About_CheckForUpdates {
+            get { return ResourceManager.GetString("Settings_About_CheckForUpdates", resourceCulture); }
+        }
+        public static string Settings_About_Checking {
+            get { return ResourceManager.GetString("Settings_About_Checking", resourceCulture); }
+        }
+        public static string Settings_About_UpToDate {
+            get { return ResourceManager.GetString("Settings_About_UpToDate", resourceCulture); }
+        }
+        public static string Settings_About_UpdateAvailable {
+            get { return ResourceManager.GetString("Settings_About_UpdateAvailable", resourceCulture); }
+        }
+        public static string Settings_About_UpdateCheckError {
+            get { return ResourceManager.GetString("Settings_About_UpdateCheckError", resourceCulture); }
+        }
+        public static string Settings_About_LastChecked {
+            get { return ResourceManager.GetString("Settings_About_LastChecked", resourceCulture); }
+        }
+        public static string StatusBar_UpdateAvailable {
+            get { return ResourceManager.GetString("StatusBar_UpdateAvailable", resourceCulture); }
+        }
 
         public static string Splash_DBNotInitialized_Title {
             get { return ResourceManager.GetString("Splash_DBNotInitialized_Title", resourceCulture); }

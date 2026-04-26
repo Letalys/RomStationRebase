@@ -106,16 +106,10 @@ public partial class RebaseWindow : Window
         // par la branche en dessous qui appelle Close() lui-même).
         if (!_forceClose)
         {
-            try
+            if (DataContext is RebaseViewModel rebaseVm)
             {
-                var config = new Services.ConfigService();
-                var prefs  = SafeLoadPrefs(config);
-                prefs.RebaseWindowBounds = Helpers.WindowStatePersistence.Capture(this);
-                config.SaveUserPreferences(prefs);
-            }
-            catch
-            {
-                // Ne pas bloquer la fermeture si la sauvegarde échoue
+                var bounds = Helpers.WindowStatePersistence.Capture(this);
+                rebaseVm.SaveRebasePreferences(bounds);
             }
         }
 

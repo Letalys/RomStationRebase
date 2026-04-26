@@ -9,6 +9,30 @@ et ce projet respecte le [versionnage sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [1.2.0] - 2026-04-26
+
+Release de polish et de robustesse, avec l'arrivée de la vérification automatique des mises à jour, du verrouillage à instance unique, et d'une refonte visuelle de la fenêtre Paramètres alignée sur le reste de l'application.
+
+### Ajouté
+
+- **Vérification automatique des mises à jour** — au démarrage, l'application vérifie en arrière-plan si une nouvelle version est disponible sur GitHub. Quand une mise à jour existe, un lien cliquable apparaît dans la barre de statut bas et dans le panneau Paramètres, pour ouvrir directement la page de la dernière release. Bouton "Vérifier les mises à jour" disponible dans Paramètres pour un check manuel à tout moment, avec affichage de la date de dernière vérification
+- **Instance unique** — au lancement d'une seconde instance, la première fenêtre déjà ouverte est restaurée et passe au premier plan, au lieu de démarrer un nouvel exécutable. Évite les doublons accidentels et les conflits sur la base RomStation
+- **Lien vers le wiki** — bouton "Ouvrir la documentation (wiki)" dans le panneau Paramètres, qui ouvre directement la documentation utilisateur dans le navigateur
+
+### Corrigé
+
+- **Icône de la barre des tâches** floue ou par défaut sur les affichages haute densité (HiDPI) — toutes les fenêtres pointent désormais vers l'icône multi-résolution, pour un rendu net à toutes les tailles d'affichage
+- **Chemin de destination du rebase non mémorisé** si la fenêtre était fermée sans lancer le rebase — le dossier sélectionné est maintenant sauvegardé à la fermeture, peu importe que le rebase ait été lancé ou non
+- **Fenêtre Paramètres** non redimensionnable et présentant une bordure parasite — alignée sur le pattern visuel des autres fenêtres de l'application, avec redimensionnement opérationnel et grip de redimensionnement visible
+- **Bannière "Mise à jour disponible"** affichée à tort dans certains cas où la version courante de l'application avait dépassé la version persistée par un check antérieur — la comparaison de versions est désormais cohérente entre le check réseau et le rechargement depuis l'état persisté
+
+### Modifié
+
+- **Lien "Mise à jour disponible"** revu visuellement, avec une affordance hover/pressed cohérente entre le panneau Paramètres et la barre de statut bas. Libellé identique aux deux endroits
+- **Préservation des préférences utilisateur** renforcée — en cas d'erreur de lecture transitoire du fichier de préférences (verrouillage par antivirus, problème I/O), les préférences existantes ne sont plus écrasées par un fichier vierge
+
+---
+
 ## [1.1.0] - 2026-04-24
 
 Refonte majeure de l'interface avec l'arrivée du thème sombre, d'une fenêtre dédiée aux détails du jeu, et d'une barre latérale plus propre. L'accent est mis sur le polish et l'ergonomie au quotidien, à partir d'un usage réel sur une bibliothèque conséquente.

@@ -7,28 +7,42 @@
         xmlns:vm="clr-namespace:RomStationRebase.ViewModels"
         mc:Ignorable="d"
         Title="{x:Static res:Strings.Settings_Title}"
-        WindowStyle="None" AllowsTransparency="True"
-        Background="Transparent"
-        ResizeMode="NoResize"
-        Width="520" Height="680"
+        WindowStyle="None" AllowsTransparency="False"
+        Background="{DynamicResource BackgroundBrush}"
+        ResizeMode="CanResizeWithGrip"
+        Width="620" Height="780"
+        MinWidth="480" MinHeight="600"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <!-- Style de base pour les boutons de chrome de titlebar — aligné sur RebaseWindow -->
+        <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width"           Value="46"/>
+            <Setter Property="Height"          Value="36"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="Foreground"      Value="White"/>
+            <Setter Property="FontSize"        Value="12"/>
+        </Style>
+
+        <!-- Bouton fermer : fond rouge CloseButtonHoverBrush au survol, Opacity=1 annule le dimming hérité -->
+        <Style x:Key="TitlebarCloseButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource CloseButtonHoverBrush}"/>
+                    <Setter Property="Opacity"    Value="1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
-    <Border Padding="12">
-        <!-- Ombre portée douce, comme ConfirmDialog -->
-        <Border CornerRadius="12" Background="{DynamicResource SurfaceBrush}">
-            <Border.Effect>
-                <DropShadowEffect Color="Black" Opacity="0.18" BlurRadius="20" ShadowDepth="4"/>
-            </Border.Effect>
-
-            <Grid>
+    <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="48"/>    <!-- Titlebar -->
+                    <RowDefinition Height="36"/>    <!-- Titlebar -->
                     <RowDefinition Height="*"/>     <!-- Corps avec scroll -->
                     <RowDefinition Height="Auto"/>  <!-- Footer -->
                 </Grid.RowDefinitions>
@@ -36,7 +50,6 @@
                 <!-- ── Titlebar : fond violet, draggable, bouton Close ── -->
                 <Border Grid.Row="0"
                         Background="{DynamicResource AccentBrush}"
-                        CornerRadius="12,12,0,0"
                         MouseLeftButtonDown="Titlebar_MouseLeftButtonDown">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -46,13 +59,10 @@
                         <TextBlock Grid.Column="0"
                                    Text="{x:Static res:Strings.Settings_Title}"
                                    Foreground="White" FontWeight="SemiBold" FontSize="13"
-                                   VerticalAlignment="Center" Margin="18,0"/>
+                                   VerticalAlignment="Center" Margin="14,0"/>
                         <Button Grid.Column="1"
-                                Width="36" Height="32"
-                                Background="Transparent" BorderThickness="0"
-                                Foreground="White" FontSize="12"
+                                Style="{StaticResource TitlebarCloseButton}"
                                 Content="✕"
-                                Cursor="Hand"
                                 Click="CloseButton_Click"/>
                     </Grid>
                 </Border>
@@ -85,9 +95,12 @@
                             <RowDefinition Height="Auto"/>  <!-- Bouton dossier RomStation -->
                             <RowDefinition Height="24"/>    <!-- Espacement avant À PROPOS -->
                             <RowDefinition Height="Auto"/>  <!-- Header À PROPOS -->
-                            <RowDefinition Height="Auto"/>  <!-- Version -->
+                            <RowDefinition Height="Auto"/>  <!-- Version + statut MAJ en ligne -->
+                            <RowDefinition Height="Auto"/>  <!-- Dernière vérification -->
                             <RowDefinition Height="Auto"/>  <!-- Copyright -->
                             <RowDefinition Height="Auto"/>  <!-- Bouton GitHub -->
+                            <RowDefinition Height="Auto"/>  <!-- Bouton Wiki -->
+                            <RowDefinition Height="Auto"/>  <!-- Bouton Vérifier les mises à jour -->
                         </Grid.RowDefinitions>
 
                         <!-- Header Général (s'étend sur les 2 colonnes) -->
@@ -181,26 +194,100 @@
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,0,0,12"/>
 
-                        <TextBlock Grid.Row="13" Grid.ColumnSpan="2"
-                                   Text="{Binding AppVersionText}"
-                                   FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   Margin="0,0,0,4"/>
+                        <!-- Version + statut MAJ sur la même ligne -->
+                        <Grid Grid.Row="13" Grid.ColumnSpan="2" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding AppVersionText}"
+                                       FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"/>
+                            <!-- Statut cliquable : mise à jour disponible -->
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource LinkButton}"
+                                    Visibility="{Binding IsUpdateStatusClickable, Converter={StaticResource BoolToVisibility}}"
+                                    Command="{Binding OpenUpdateLinkCommand}"
+                                    Content="{Binding UpdateStatusText}"
+                                    FontSize="11" FontStyle="Italic"
+                                    Margin="8,0,0,0"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            <!-- Statut non cliquable : erreur ou à jour après check manuel -->
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding UpdateStatusText}"
+                                       Visibility="{Binding IsUpdateStatusNonClickableVisible, Converter={StaticResource BoolToVisibility}}"
+                                       FontSize="11" Margin="8,0,0,0"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUpdateStatusError}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+
+                        <!-- Dernière vérification — visible uniquement si un check a déjà eu lieu -->
+                        <TextBlock Grid.Row="14" Grid.ColumnSpan="2"
+                                   Text="{Binding LastUpdateCheckText}"
+                                   Visibility="{Binding IsLastCheckTextVisible, Converter={StaticResource BoolToVisibility}}"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,10"/>
 
                         <!-- Copyright : "© Letalys — Licence MIT" -->
-                        <TextBlock Grid.Row="14" Grid.ColumnSpan="2"
+                        <TextBlock Grid.Row="15" Grid.ColumnSpan="2"
                                    Text="{Binding CopyrightText}"
                                    FontSize="12"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,0,0,12"/>
 
                         <!-- Bouton : ouvrir le dépôt GitHub dans le navigateur -->
-                        <Button Grid.Row="15" Grid.ColumnSpan="2"
+                        <Button Grid.Row="16" Grid.ColumnSpan="2"
                                 Content="{x:Static res:Strings.Settings_About_OpenRepository}"
                                 Command="{Binding OpenRepositoryCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Left"
-                                Padding="12,8"/>
+                                Padding="12,8"
+                                Margin="0,0,0,6"/>
+
+                        <!-- Bouton : ouvrir le wiki GitHub dans le navigateur -->
+                        <Button Grid.Row="17" Grid.ColumnSpan="2"
+                                Content="{x:Static res:Strings.Settings_About_OpenWiki}"
+                                Command="{Binding OpenWikiCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Padding="12,8"
+                                Margin="0,0,0,8"/>
+
+                        <!-- Bouton : vérifier les mises à jour (check manuel, ignore le throttle 24h) -->
+                        <Button Grid.Row="18" Grid.ColumnSpan="2"
+                                IsEnabled="{Binding CanCheckForUpdate}"
+                                Command="{Binding CheckForUpdateCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Padding="12,8">
+                            <Button.Content>
+                                <TextBlock>
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{x:Static res:Strings.Settings_About_CheckForUpdates}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsCheckingForUpdate}" Value="True">
+                                                    <Setter Property="Text" Value="{x:Static res:Strings.Settings_About_Checking}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Button.Content>
+                        </Button>
 
                     </Grid>
 
@@ -224,7 +311,5 @@
                                 CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
                     </StackPanel>
                 </Border>
-            </Grid>
-        </Border>
-    </Border>
+    </Grid>
 </Window>
