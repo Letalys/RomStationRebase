@@ -627,10 +627,19 @@ public class RebaseViewModel : ViewModelBase
 
     private void OnBrowse()
     {
-        // InitialDirectory volontairement omis : si le chemin actuel pointe vers un lecteur
-        // déconnecté (ex : F:\), Windows lève une exception à ShowDialog(). On laisse Windows
-        // choisir le dossier initial (dernier dossier utilisé ou fallback système).
         var dialog = new OpenFolderDialog { Title = Strings.Rebase_TargetPath };
+
+        // Priorité au chemin courant s'il est accessible (Directory.Exists
+        // retourne false silencieusement sur lecteur déconnecté, ce qui
+        // évite l'exception ShowDialog()). Sinon, on impose "Mes documents"
+        // comme point de départ neutre et prévisible, plutôt que le cache
+        // shell Windows qui peut pointer vers n'importe quel dossier
+        // ouvert récemment dans n'importe quelle application.
+        if (!string.IsNullOrWhiteSpace(_targetPath) && Directory.Exists(_targetPath))
+            dialog.InitialDirectory = _targetPath;
+        else
+            dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
         if (dialog.ShowDialog() == true)
             TargetPath = dialog.FolderName;
     }
