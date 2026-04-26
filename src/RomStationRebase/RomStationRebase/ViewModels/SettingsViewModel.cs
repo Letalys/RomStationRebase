@@ -281,7 +281,7 @@ public class SettingsViewModel : ViewModelBase
             IsUpdateStatusError       = true;
             UpdateLinkUrl             = null;
         }
-        else if (!string.IsNullOrWhiteSpace(state.LastAvailableVersion))
+        else if (UpdateCheckService.IsRemoteVersionNewer(state.LastAvailableVersion))
         {
             // Mise à jour disponible (toutes sources) — texte cliquable, même format que la StatusBar
             UpdateStatusText          = string.Format(Strings.StatusBar_UpdateAvailable, state.LastAvailableVersion);

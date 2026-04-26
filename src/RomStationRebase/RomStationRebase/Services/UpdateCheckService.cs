@@ -97,6 +97,23 @@ public class UpdateCheckService
         }
     }
 
+    /// <summary>
+    /// Retourne true si la version distante (chaîne, préfixe "v" autorisé) est strictement
+    /// supérieure à la version de l'assembly en cours d'exécution.
+    /// Retourne false sur toute entrée vide, non parsable, ou version locale introuvable.
+    /// </summary>
+    public static bool IsRemoteVersionNewer(string? remoteVersionString)
+    {
+        if (string.IsNullOrWhiteSpace(remoteVersionString))
+            return false;
+        if (!Version.TryParse(remoteVersionString.TrimStart('v'), out var remoteVersion))
+            return false;
+        var localVersion = Assembly.GetEntryAssembly()?.GetName().Version;
+        if (localVersion == null)
+            return false;
+        return remoteVersion > localVersion;
+    }
+
     private sealed class GitHubReleaseDto
     {
         [JsonPropertyName("tag_name")]   public string TagName    { get; init; } = string.Empty;

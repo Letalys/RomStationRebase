@@ -863,7 +863,7 @@ public class MainViewModel : ViewModelBase
 
     private void ApplyPersistedUpdateState(AppState state)
     {
-        if (!string.IsNullOrWhiteSpace(state.LastAvailableVersion))
+        if (UpdateCheckService.IsRemoteVersionNewer(state.LastAvailableVersion))
         {
             UpdateAvailableUrl  = state.LastUpdateUrl;
             UpdateAvailableText = string.Format(Strings.StatusBar_UpdateAvailable, state.LastAvailableVersion);
@@ -871,6 +871,15 @@ public class MainViewModel : ViewModelBase
         }
         else
         {
+            // Nettoyage : si une version était persistée mais n'est plus valide (périmée ou désormais
+            // inférieure à la version courante), on la retire du fichier d'état pour éviter la régression
+            // au prochain démarrage.
+            if (!string.IsNullOrWhiteSpace(state.LastAvailableVersion))
+            {
+                state.LastAvailableVersion = null;
+                state.LastUpdateUrl        = null;
+                try { _config.SaveAppState(state); } catch { }
+            }
             IsUpdateAvailable   = false;
             UpdateAvailableUrl  = null;
             UpdateAvailableText = string.Empty;
