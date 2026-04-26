@@ -11,7 +11,7 @@
         Title="RomStation Rebase" Height="680" Width="1100"
         WindowStyle="None" AllowsTransparency="False" ResizeMode="CanResizeWithGrip"
         Background="{DynamicResource BackgroundBrush}"
-        Icon="/Resources/Images/rsr-logo.png">
+        Icon="/Resources/Images/rsr-logo.ico">
 
     <Window.Resources>
         <!-- Séparateur vertical pour la StatusBar -->

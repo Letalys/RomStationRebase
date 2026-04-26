@@ -9,7 +9,7 @@
         xmlns:models="clr-namespace:RomStationRebase.Models"
         mc:Ignorable="d"
         Title="{x:Static res:Strings.Rebase_Title}"
-        Icon="/Resources/Images/rsr-logo.png"
+        Icon="/Resources/Images/rsr-logo.ico"
         Height="640" Width="880"
         MinHeight="560" MinWidth="720"
         WindowStyle="None" AllowsTransparency="False"

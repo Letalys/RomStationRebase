@@ -54,6 +54,7 @@
   <ItemGroup>
     <Resource Include="Resources\Icons\*.png" />
     <Resource Include="Resources\Images\*.png" />
+    <Resource Include="Resources\Images\rsr-logo.ico" />
   </ItemGroup>
 
   <!-- Fichiers de configuration des architectures — copiés dans le répertoire de sortie -->
