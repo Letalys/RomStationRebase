@@ -814,10 +814,11 @@ public class RebaseViewModel : ViewModelBase
 
     /// <summary>
     /// Sauvegarde les paramètres de rebase courants dans UserPreferences.
-    /// Appelée au démarrage effectif du rebase, après toutes les validations passées.
+    /// Appelée au démarrage effectif du rebase (sans bounds) ou à la fermeture
+    /// de la fenêtre (avec bounds capturées par le code-behind).
     /// Silencieux en cas d'échec d'écriture — ne bloque pas le lancement du rebase.
     /// </summary>
-    internal void SaveRebasePreferences()
+    internal void SaveRebasePreferences(Models.WindowBounds? bounds = null)
     {
         if (_preferences == null) return;
 
@@ -831,6 +832,12 @@ public class RebaseViewModel : ViewModelBase
             _preferences.MaxParallelCopies        = _maxParallelCopies;
             _preferences.RetryCount               = _retryCount;
             _preferences.RetryDelaySeconds        = _retryDelay;
+
+            // Les bounds ne sont fusionnés que lorsque l'appelant les fournit
+            // (typiquement OnClosing). Au lancement effectif du rebase, l'appelant
+            // ne passe pas de bounds : la propriété existante est préservée.
+            if (bounds != null)
+                _preferences.RebaseWindowBounds = bounds;
 
             _configService.SaveUserPreferences(_preferences);
         }
