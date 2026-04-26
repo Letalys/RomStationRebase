@@ -69,6 +69,7 @@ public class SettingsViewModel : ViewModelBase
         CopyrightText  = string.Format(Strings.Settings_About_Copyright, _metadata.Author, _metadata.License);
 
         OpenRepositoryCommand = new RelayCommand(OpenRepository, () => IsRepositoryUrlAvailable);
+        OpenWikiCommand       = new RelayCommand(OpenWiki,       () => IsWikiUrlAvailable);
     }
 
     /// <summary>Langue sélectionnée (valeurs : "auto", "fr", "en").</summary>
@@ -104,12 +105,16 @@ public class SettingsViewModel : ViewModelBase
     /// <summary>True si l'URL du dépôt est disponible. Contrôle l'activation du bouton GitHub.</summary>
     public bool IsRepositoryUrlAvailable => !string.IsNullOrWhiteSpace(_metadata.RepositoryUrl);
 
+    /// <summary>True si l'URL du wiki est disponible. Contrôle l'activation du bouton Documentation.</summary>
+    public bool IsWikiUrlAvailable => !string.IsNullOrWhiteSpace(_metadata.WikiUrl);
+
     public ICommand SaveCommand                 { get; }
     public ICommand CancelCommand               { get; }
     public ICommand OpenInstallFolderCommand    { get; }
     public ICommand OpenUserDataFolderCommand   { get; }
     public ICommand OpenRomStationFolderCommand { get; }
     public ICommand OpenRepositoryCommand       { get; }
+    public ICommand OpenWikiCommand             { get; }
 
     /// <summary>Applique les modifications, sauvegarde sur disque, ferme la fenêtre.</summary>
     private void Save(Window? window)
@@ -159,6 +164,24 @@ public class SettingsViewModel : ViewModelBase
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
                 FileName        = _metadata.RepositoryUrl,
+                UseShellExecute = true,
+            });
+        }
+        catch
+        {
+            // Silencieux si le navigateur ne peut pas être lancé
+        }
+    }
+
+    /// <summary>Ouvre l'URL du wiki GitHub dans le navigateur par défaut.</summary>
+    private void OpenWiki()
+    {
+        if (!IsWikiUrlAvailable) return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName        = _metadata.WikiUrl,
                 UseShellExecute = true,
             });
         }

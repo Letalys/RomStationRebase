@@ -551,6 +551,9 @@ namespace RomStationRebase.Resources {
         public static string Settings_About_OpenRepository {
             get { return ResourceManager.GetString("Settings_About_OpenRepository", resourceCulture); }
         }
+        public static string Settings_About_OpenWiki {
+            get { return ResourceManager.GetString("Settings_About_OpenWiki", resourceCulture); }
+        }
 
         public static string Splash_DBNotInitialized_Title {
             get { return ResourceManager.GetString("Splash_DBNotInitialized_Title", resourceCulture); }

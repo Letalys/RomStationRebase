@@ -11,6 +11,9 @@ public class AppMetadata
     /// <summary>URL du dépôt GitHub du projet.</summary>
     public string RepositoryUrl { get; set; } = string.Empty;
 
+    /// <summary>URL du wiki GitHub du projet.</summary>
+    public string WikiUrl { get; set; } = string.Empty;
+
     /// <summary>Nom de l'auteur du projet.</summary>
     public string Author { get; set; } = string.Empty;
 

@@ -518,6 +518,9 @@ Détails techniques :
   <data name="Settings_About_OpenRepository" xml:space="preserve">
     <value>Voir le projet sur GitHub</value>
   </data>
+  <data name="Settings_About_OpenWiki" xml:space="preserve">
+    <value>Ouvrir la documentation (wiki)</value>
+  </data>
   <data name="Main_SizeNormal" xml:space="preserve">
     <value>Normal</value>
   </data>

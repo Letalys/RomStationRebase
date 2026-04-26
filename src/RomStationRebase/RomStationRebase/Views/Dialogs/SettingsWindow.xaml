@@ -88,6 +88,7 @@
                             <RowDefinition Height="Auto"/>  <!-- Version -->
                             <RowDefinition Height="Auto"/>  <!-- Copyright -->
                             <RowDefinition Height="Auto"/>  <!-- Bouton GitHub -->
+                            <RowDefinition Height="Auto"/>  <!-- Bouton Wiki -->
                         </Grid.RowDefinitions>
 
                         <!-- Header Général (s'étend sur les 2 colonnes) -->
@@ -198,6 +199,15 @@
                         <Button Grid.Row="15" Grid.ColumnSpan="2"
                                 Content="{x:Static res:Strings.Settings_About_OpenRepository}"
                                 Command="{Binding OpenRepositoryCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Padding="12,8"
+                                Margin="0,0,0,6"/>
+
+                        <!-- Bouton : ouvrir le wiki GitHub dans le navigateur -->
+                        <Button Grid.Row="16" Grid.ColumnSpan="2"
+                                Content="{x:Static res:Strings.Settings_About_OpenWiki}"
+                                Command="{Binding OpenWikiCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Left"
                                 Padding="12,8"/>
