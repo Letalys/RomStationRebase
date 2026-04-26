@@ -2,7 +2,7 @@
 
 # RomStation Rebase
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blueviolet)](https://github.com/Letalys/RomStationRebase/releases/latest)
+[![Version](https://img.shields.io/badge/version-1.2.0-blueviolet)](https://github.com/Letalys/RomStationRebase/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue)](https://github.com/Letalys/RomStationRebase/releases/latest)
 

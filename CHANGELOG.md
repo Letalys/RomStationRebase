@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-04-26
+
+A polish-and-robustness release introducing automatic update checks, single-instance locking, and a visual refresh of the Settings window aligned with the rest of the application.
+
+### Added
+
+- **Automatic update check** — on startup, the application checks GitHub in the background for a new version. When an update is available, a clickable link appears in the bottom status bar and in the Settings panel to open the latest release page directly. A "Check for updates" button in Settings allows manual checks at any time, with the date of the last check displayed
+- **Single instance** — launching a second instance now brings the already-open window to the foreground instead of starting a new process. Prevents accidental duplicates and conflicts on the RomStation database
+- **Wiki link** — an "Open documentation (wiki)" button in the Settings panel that opens the user documentation directly in the browser
+
+### Fixed
+
+- **Taskbar icon** appearing blurry or generic on high-density (HiDPI) displays — all windows now point to the multi-resolution icon for crisp rendering at every size
+- **Rebase target path** not memorized when the window was closed without starting the rebase — the selected folder is now saved on close, regardless of whether the rebase was started
+- **Settings window** was not resizable and showed a stray border — now aligned with the visual pattern of the other application windows, with working resize and a visible resize grip
+- **"Update available" banner** could be shown incorrectly in some cases where the running application version had moved past the version persisted by a previous check — version comparison is now consistent between live network checks and reloads from the persisted state
+
+### Changed
+
+- **Visual refresh of the "Update available" link**, with consistent hover/pressed affordances between the Settings panel and the bottom status bar. Identical wording in both locations
+- **Strengthened protection of user preferences** — in case of a transient read error on the preferences file (antivirus lock, I/O issue), existing preferences are no longer overwritten by a blank file
+
+---
+
 ## [1.1.0] - 2026-04-24
 
 Major UI refresh bringing dark theme support, a dedicated game detail window, and a cleaner sidebar. Focused on polish and daily-use ergonomics based on real library usage.
