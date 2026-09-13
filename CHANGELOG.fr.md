@@ -9,6 +9,42 @@ et ce projet respecte le [versionnage sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [1.3.0] - Non publiée
+
+La release « prête pour la cible » : les fichiers portent le nom qu'attendent les émulateurs, les archives peuvent être extraites pour les systèmes qui l'exigent, et chaque dossier système reçoit ses jaquettes et un `gamelist.xml` EmulationStation. Validée d'abord sur les consoles Anbernic sous dArkOS / ArkOS.
+
+### Ajouté
+
+- **Extraction des archives** — trois modes dans la fenêtre de rebase : extraire selon l'architecture cible (défaut, par exemple PSP, GameCube, Saturn, Dreamcast sous ArkOS), ne jamais extraire, ou tout extraire sauf les romsets. Quels systèmes exigent l'extraction, lisent les playlists M3U ou gardent leur nom de romset se définit une fois, système par système, dans l'architecture cible. Un fichier extrait unique prend le nom du jeu ; un ensemble bin + cue garde ses noms internes dans un dossier au nom du jeu. Taille estimée, barre de progression et temps restant sont fondés sur la taille décompressée
+- **Jaquettes** — chaque jaquette est copiée dans le dossier `images` de son système sous `<nom de la ROM>-image.png`, la convention « art local » d'EmulationStation qui fonctionne même sans gamelist. Redimensionnée quand la cible l'impose (firmware Anbernic d'origine)
+- **gamelist.xml** — un gamelist EmulationStation par dossier système, en français ou en anglais, avec titre, description, année, développeur, éditeur, genres et joueurs. Un gamelist existant est fusionné : favoris, compteurs de parties et jeux masqués enregistrés sur l'appareil sont préservés ; un fichier illisible est sauvegardé avant d'être recréé
+- **Une architecture par défaut par cible réelle** — ArkOS / dArkOS (sélectionnée par défaut, limitée aux systèmes pris en charge par dArkOS), RetroArch / Lakka, Batocera / Knulli, EmulationStation / ES-DE / RetroPie, Cocoon (Android) et firmware Anbernic d'origine, chacune avec ses noms de dossiers et ses règles par système
+- **Colonne « Sortie »** dans la fenêtre de rebase, qui annonce ce qui sera produit pour chaque jeu (copie, romset, disques + M3U, versions, extraction, dossier du jeu), avec la liste des fichiers à écrire au survol
+- **Éditeur d'architectures cibles** — depuis les Paramètres ou la fenêtre de rebase, modifier n'importe quelle architecture sans toucher aux fichiers JSON : libellé, défauts de sortie, dossier et taille des jaquettes, format de gamelist, et la table des systèmes (dossier, nom d'origine conservé, M3U, extraction). Toutes les architectures vivent dans un seul dossier de vos données utilisateur, où celles par défaut sont copiées au premier lancement : ajouter ou dupliquer une architecture pour créer la sienne, supprimer celles inutilisées, défauts compris, et retrouver à tout moment les fichiers par défaut d'origine avec « Restaurer les architectures par défaut »
+- **Retirer un jeu de la liste du rebase** avec le bouton ✕ de sa ligne ; le jeu est décoché dans la bibliothèque en même temps
+- **Badge de sélection** à côté du titre de la bibliothèque : nombre de jeux cochés pour le prochain rebase, y compris ceux masqués par les filtres en cours, avec une ✕ pour vider toute la sélection. Chaque système de la sidebar affiche son propre nombre de jeux cochés
+- **Règles par jeu dans le tableau du rebase** — trois colonnes, Romset, M3U et Extraction, pré-remplies depuis l'architecture cible pour le système de chaque jeu et basculables jeu par jeu pour le rebase en cours, sans toucher à l'architecture
+- **Sauvegarde optionnelle du gamelist.xml existant** en `gamelist.xml.aaaammjj` avant la fusion
+- **Projet de tests unitaires** couvrant les règles de nommage, la fusion et la sauvegarde du gamelist, l'extraction et le redimensionnement des jaquettes
+
+### Corrigé
+
+- **Les romsets arcade étaient renommés** (`mslug.zip` devenait `Metal Slug.zip`), ce que FBNeo et MAME refusent de charger. Les archives Neo-Geo, Arcade, Naomi, Atomiswave, Model 2 et Model 3 gardent désormais leur nom d'origine
+- **Plusieurs fichiers ne voulaient pas toujours dire plusieurs disques** — les versions régionales ou révisions d'un même jeu étaient numérotées comme des disques et réunies dans un M3U. Les disques sont désormais reconnus d'après le libellé du fichier dans RomStation ; les versions sont nommées d'après ce libellé et jamais regroupées
+- **Deux jeux au même titre sur le même système** s'écrasaient. Ils sont désormais distingués par leur libellé RomStation, ou par leur identifiant RomStation quand les libellés sont identiques
+- **Les playlists M3U** ne sont plus générées que pour les systèmes dont l'émulateur les lit sur la cible choisie
+- **Les fenêtres maximisées recouvraient la barre des tâches** — la fenêtre principale et celle du rebase s'arrêtent désormais au bord de la zone de travail
+- **Défilement de la bibliothèque** — les jaquettes sont décodées à leur taille d'affichage plutôt qu'en pleine taille, les cartes sont préparées une page à l'avance, et un cran de molette fait défiler exactement une ligne de cartes, alignée sur la grille
+- **Masquer un système dans la sidebar ne décoche plus ses jeux** — les filtres ne changent que l'affichage, la sélection est conservée et reste visible dans les badges
+
+### Modifié
+
+- **Fenêtre de rebase** réorganisée en trois groupes d'options (Fichiers, Métadonnées, Copie), tous mémorisés entre les sessions
+- **Le nommage** des jeux à plusieurs fichiers, des romsets arcade et des homonymes a changé : les copies faites par une version précédente ne seront pas reconnues comme doublons et seront recopiées. Les jeux à fichier unique gardent exactement leur nom précédent
+- Les fichiers d'architecture décrivent désormais, par système, si le nom de l'archive doit être conservé, si le M3U est pris en charge et si l'extraction est requise
+
+---
+
 ## [1.2.0] - 2026-04-26
 
 Release de polish et de robustesse, avec l'arrivée de la vérification automatique des mises à jour, du verrouillage à instance unique, et d'une refonte visuelle de la fenêtre Paramètres alignée sur le reste de l'application.

@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - Unreleased
+
+The "target-ready" release: files are named the way emulators expect them, archives can be extracted for the systems that need it, and each system folder receives its covers and an EmulationStation `gamelist.xml`. Validated first on Anbernic handhelds running dArkOS / ArkOS.
+
+### Added
+
+- **Archive extraction** — three modes in the rebase window: extract as the target architecture requires (default, e.g. PSP, GameCube, Saturn, Dreamcast on ArkOS), never extract, or extract everything except romsets. Which systems need extraction, read M3U playlists or keep their romset name is defined once, per system, in the target architecture. A single extracted file takes the game name; a bin + cue set keeps its internal names in a folder named after the game. Size estimate, progress bar and ETA are based on the decompressed size
+- **Covers** — each cover is copied to the `images` folder of its system as `<ROM name>-image.png`, the EmulationStation "local art" convention that works even without a gamelist. Resized when the target requires it (Anbernic stock firmware)
+- **gamelist.xml** — one EmulationStation gamelist per system folder, in French or English, with title, description, year, developer, publisher, genres and players. An existing gamelist is merged: favorites, play counts and hidden games stored on the device are preserved; an unreadable file is backed up before being recreated
+- **One default architecture per real target** — ArkOS / dArkOS (selected by default, limited to the systems dArkOS supports), RetroArch / Lakka, Batocera / Knulli, EmulationStation / ES-DE / RetroPie, Cocoon (Android) and Anbernic stock firmware, each with its own folder names and per-system rules
+- **"Output" column** in the rebase window announcing what will be produced for each game (copy, romset, discs + M3U, versions, extraction, game folder), with the list of files to be written on hover
+- **Target architecture editor** — from Settings or the rebase window, edit any architecture without touching JSON files: label, output defaults, cover folder and size, gamelist format, and the system table (folder, original name kept, M3U, extraction). All architectures live in one folder in your user data, where the defaults are copied on first launch: add or duplicate an architecture to create your own, delete the ones you do not use, defaults included, and bring the original default files back at any time with "Restore default architectures"
+- **Remove a game from the rebase list** with the ✕ button on its row; the game is unchecked in the library at the same time
+- **Selection badge** next to the library title: how many games are checked for the next rebase, including those hidden by the current filters, with a ✕ to clear the whole selection. Each system in the sidebar shows its own count of checked games
+- **Per-game rules in the rebase table** — three columns, Romset, M3U and Extraction, pre-filled from the target architecture for each game's system and switchable game by game for the current rebase, without editing the architecture
+- **Optional backup of the existing gamelist.xml** as `gamelist.xml.yyyymmdd` before merging
+- **Unit test project** covering naming rules, gamelist merge and backup, archive extraction and cover resizing
+
+### Fixed
+
+- **Arcade romsets were renamed** (`mslug.zip` became `Metal Slug.zip`), which FBNeo and MAME refuse to load. Neo-Geo, Arcade, Naomi, Atomiswave, Model 2 and Model 3 archives now keep their original name
+- **Several files did not always mean several discs** — regional or revision variants of the same game were numbered as discs and grouped in one M3U. Discs are now recognized from the RomStation file label; variants are named after that label and never grouped
+- **Two games with the same title on the same system** overwrote each other. They are now told apart by their RomStation file label, or by their RomStation identifier when the labels are identical
+- **M3U playlists** are now generated only for systems whose emulator reads them on the selected target
+- **Maximized windows covered the taskbar** — the main and rebase windows now stop at the edge of the work area
+- **Library scrolling** — covers are now decoded at their display size instead of full size, cards are prepared one page ahead, and a mouse-wheel notch scrolls exactly one row of cards, aligned on the grid
+- **Hiding a system in the sidebar no longer unchecks its games** — filters only change what is shown, the selection is kept and stays visible in the badges
+
+### Changed
+
+- **Rebase window** reorganized into three option groups (Files, Metadata, Copy), all settings remembered between sessions
+- **File naming** for multi-file games, arcade romsets and homonyms has changed: copies made by a previous version will not be recognized as duplicates and will be copied again. Single-file games keep their exact previous name
+- Architecture files now describe, per system, whether the archive name must be kept, whether M3U is supported and whether extraction is required
+
+---
+
 ## [1.2.0] - 2026-04-26
 
 A polish-and-robustness release introducing automatic update checks, single-instance locking, and a visual refresh of the Settings window aligned with the rest of the application.
