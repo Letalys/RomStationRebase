@@ -92,8 +92,30 @@ public class MainViewModel : ViewModelBase
         private set
         {
             if (SetProperty(ref _selectedGameCount, value))
+            {
                 OnPropertyChanged(nameof(SelectedCountText));
+                OnPropertyChanged(nameof(HasSelection));
+            }
         }
+    }
+
+    /// <summary>True dès qu'un jeu est coché, filtres compris — pilote le badge de sélection du header.</summary>
+    public bool HasSelection => _selectedGameCount > 0;
+
+    private bool _hasNoArchitecture;
+
+    /// <summary>True si aucune architecture cible n'est disponible (toutes supprimées) : le rebase est impossible, la barre de statut l'affiche.</summary>
+    public bool HasNoArchitecture
+    {
+        get => _hasNoArchitecture;
+        private set => SetProperty(ref _hasNoArchitecture, value);
+    }
+
+    /// <summary>Relit l'index des architectures — à l'ouverture, puis après chaque fenêtre qui peut les modifier.</summary>
+    private void RefreshArchitectureWarning()
+    {
+        try   { HasNoArchitecture = new ArchitectureService().LoadArchitectures().Count == 0; }
+        catch { HasNoArchitecture = true; }
     }
 
     /// <summary>Texte formaté de la statusbar — utilise la chaîne localisée Strings.SelectedCount.</summary>
@@ -334,6 +356,9 @@ public class MainViewModel : ViewModelBase
     /// <summary>Ouvre la fenêtre de Rebase avec les jeux sélectionnés.</summary>
     public ICommand RebaseCommand { get; private set; } = null!;
 
+    /// <summary>Décoche tous les jeux de la bibliothèque, masqués par les filtres compris — bouton ✕ du badge de sélection.</summary>
+    public ICommand ClearSelectionCommand { get; private set; } = null!;
+
     /// <summary>Resynchronise manuellement la base Derby depuis RomStation.</summary>
     public ICommand SyncDbCommand { get; private set; } = null!;
 
@@ -357,6 +382,7 @@ public class MainViewModel : ViewModelBase
     {
         _preferences      = preferences;
         try { _metadata = _config.LoadAppMetadata(); } catch { /* métadonnées absentes : check MAJ désactivé */ }
+        RefreshArchitectureWarning();
         // Initialisation du mode d'affichage depuis les préférences — défaut "Mosaic"
         _isMosaicView     = preferences.LastViewMode != "List";
         // Initialisation directe sur le champ pour éviter un SaveThumbnailSizePreference inutile au démarrage
@@ -400,6 +426,11 @@ public class MainViewModel : ViewModelBase
             foreach (var g in FilteredGames) g.IsSelected = false;
             RefreshSelectedCount();
         });
+        ClearSelectionCommand = new RelayCommand(() =>
+        {
+            foreach (var g in Games) g.IsSelected = false;
+            RefreshSelectedCount();
+        }, () => _selectedGameCount > 0);
 
         SwitchToMosaicCommand = new RelayCommand(() => IsMosaicView = true);
         SwitchToListCommand   = new RelayCommand(() => IsMosaicView = false);
@@ -409,12 +440,15 @@ public class MainViewModel : ViewModelBase
             {
                 var selected = Games.Where(g => g.IsSelected).ToList();
                 // ViewModel passé au constructeur pour que l'injection soit immédiate
-                var vm  = new RebaseViewModel(selected, _romStationPath, _preferences);
+                // Toute la bibliothèque est transmise pour départager les homonymes de façon stable
+                var vm  = new RebaseViewModel(selected, Games.ToList(), _romStationPath, _dbCopyPath, _preferences,
+                                              Systems.Select(s => s.Name).ToList());
                 var win = new RebaseWindow(vm)
                 {
                     Owner = Application.Current.MainWindow,
                 };
                 win.ShowDialog();
+                RefreshArchitectureWarning(); // l'éditeur d'architectures est accessible depuis cette fenêtre
             },
             canExecute: () => Games.Any(g => g.IsSelected));
 
@@ -524,7 +558,7 @@ public class MainViewModel : ViewModelBase
             }
 
             var gameVms = games.Select(g => new GameItemViewModel(
-                g.Id, g.Title, g.SystemName, g.SystemImagePath,
+                g.Id, g.Rid, g.Title, g.SystemName, g.SystemImagePath,
                 g.CoverPath, g.CoverExists, g.FileExists,
                 g.FileCount, g.GameDirectory, false, false, RefreshSelectedCount)).ToList();
 
@@ -701,12 +735,8 @@ public class MainViewModel : ViewModelBase
                 .Select(s => s.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // Décoche les jeux dont le système vient d'être masqué
-            foreach (var game in Games)
-            {
-                if (game.IsSelected && !checkedSystems.Contains(game.SystemName))
-                    game.IsSelected = false;
-            }
+            // Le filtre ne touche pas à la sélection : masquer un système ne décoche pas ses jeux.
+            // La sélection reste visible dans le badge du header et les badges de la sidebar.
 
             // Remplacement atomique — un seul CollectionChanged au lieu de N Clear/Add
             if (checkedSystems.Count == 0)
@@ -741,9 +771,20 @@ public class MainViewModel : ViewModelBase
         });
     }
 
-    /// <summary>Recalcule le nombre de jeux sélectionnés à partir de la liste complète.</summary>
+    /// <summary>
+    /// Recalcule le nombre de jeux sélectionnés à partir de la liste complète, et le détail par système
+    /// pour les badges de la sidebar — la sélection est globale, indépendante des filtres.
+    /// </summary>
     private void RefreshSelectedCount()
-        => SelectedGameCount = Games.Count(g => g.IsSelected);
+    {
+        SelectedGameCount = Games.Count(g => g.IsSelected);
+
+        var bySystem = Games.Where(g => g.IsSelected)
+            .GroupBy(g => g.SystemName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(grp => grp.Key, grp => grp.Count(), StringComparer.OrdinalIgnoreCase);
+        foreach (var sys in Systems)
+            sys.SelectedCount = bySystem.GetValueOrDefault(sys.Name);
+    }
 
     /// <summary>
     /// Met à jour l'état IsEnabled de chaque item de l'abécédaire selon le contenu courant de FilteredGames.
@@ -889,12 +930,13 @@ public class MainViewModel : ViewModelBase
     /// <summary>Ouvre le panneau de paramètres en modal.</summary>
     private void OpenSettings()
     {
-        var vm  = new SettingsViewModel(_preferences);
+        var vm  = new SettingsViewModel(_preferences, Systems.Select(s => s.Name).ToList());
         var win = new Views.Dialogs.SettingsWindow(vm)
         {
             Owner = Application.Current.MainWindow,
         };
         win.ShowDialog();
+        RefreshArchitectureWarning(); // l'éditeur d'architectures est accessible depuis les Paramètres
     }
 
     /// <summary>Sauvegarde le mode d'affichage courant dans UserPreferences. Silencieux en cas d'erreur.</summary>

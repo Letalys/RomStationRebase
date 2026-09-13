@@ -483,3 +483,6 @@ $RECYCLE.BIN/
 
 # Installer (InstallShield) — local build workspace, not distributed
 installer/
+# Dossiers de sortie de test du rebase (jamais distribués)
+RebaseOuputs/
+RebaseOutputs/

@@ -14,5 +14,9 @@
   "settingsWindow": {
     "width": 620,
     "height": 780
+  },
+  "architectureEditorWindow": {
+    "width": 1000,
+    "height": 720
   }
 }

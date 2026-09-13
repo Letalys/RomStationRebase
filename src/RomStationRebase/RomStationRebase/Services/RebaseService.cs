@@ -2,48 +2,61 @@ using System.IO;
 using System.Text;
 using RomStationRebase.Helpers;
 using RomStationRebase.Models;
+using RomStationRebase.Resources;
 
 namespace RomStationRebase.Services;
 
-/// <summary>Exécute le rebase : copie les fichiers ROM sélectionnés vers la structure de dossiers cible.</summary>
+/// <summary>
+/// Exécute le rebase à partir du plan calculé par RebasePlanner : copie ou extraction des fichiers,
+/// M3U, jaquettes, puis fichiers de métadonnées par dossier système.
+/// </summary>
 public class RebaseService
 {
     private const int ChunkSize = 1_048_576; // 1 Mo par chunk
 
     /// <summary>
-    /// Lance le rebase de tous les jeux définis dans options.
+    /// Lance le rebase de tous les jeux du plan.
     /// Copie en parallèle (SemaphoreSlim), respecte la pause et l'annulation,
-    /// génère les fichiers M3U si demandé, et rapporte la progression via IProgress.
+    /// écrit les gamelists une fois toutes les copies terminées, et rapporte la progression via IProgress.
     /// </summary>
     public async Task RunRebaseAsync(
         RebaseOptions options,
         IProgress<RebaseProgress> progress,
         CancellationToken ct)
     {
-        var archService = new ArchitectureService();
-        var items       = BuildRebaseItems(options);
+        var items = options.Plan.Games.Select(p => new RebaseGameItem
+        {
+            GameId          = p.GameId,
+            Title           = p.Title,
+            SystemName      = p.SystemName,
+            SystemImagePath = p.SystemImagePath,
+            FileCount       = p.Files.Count,
+            Plan            = p,
+        }).ToList();
 
-        long totalBytes  = items.Sum(item => item.SourceFilePaths.Sum(GetFileSize));
+        long totalBytes  = options.Plan.TotalBytes;
         long copiedBytes = 0;
         int  completed   = 0;
         int  failed      = 0;
         int  skipped     = 0;
 
-        var semaphore             = new SemaphoreSlim(options.MaxParallelCopies, options.MaxParallelCopies);
-        var startTime             = DateTime.UtcNow;
+        var semaphore               = new SemaphoreSlim(options.MaxParallelCopies, options.MaxParallelCopies);
+        var startTime               = DateTime.UtcNow;
         double lastReportedProgress = 0.0; // throttle basé sur le delta de pourcentage
 
         // Rapport de progression — appelé depuis n'importe quel thread (Progress<T> marshale sur UI)
-        void Report(RebaseGameItem? current = null)
+        void Report(RebaseGameItem? current = null, RebasePhase phase = RebasePhase.Transferring,
+                    int metadataFolders = 0, IReadOnlyList<string>? notes = null)
         {
             var elapsed    = (DateTime.UtcNow - startTime).TotalSeconds;
             long copied    = Interlocked.Read(ref copiedBytes);
             double speed   = elapsed > 0 ? copied / elapsed : 0;
-            long remaining = totalBytes - copied;
+            long remaining = Math.Max(0, totalBytes - copied);
             var eta        = speed > 0 ? TimeSpan.FromSeconds(remaining / speed) : TimeSpan.Zero;
 
             progress.Report(new RebaseProgress
             {
+                Phase                  = phase,
                 TotalFiles             = items.Count,
                 CompletedFiles         = completed,
                 FailedFiles            = failed,
@@ -53,8 +66,25 @@ public class RebaseService
                 SpeedBytesPerSecond    = speed,
                 EstimatedTimeRemaining = eta,
                 CurrentItem            = current,
+                MetadataFoldersWritten = metadataFolders,
+                MetadataNotes          = notes ?? [],
             });
         }
+
+        // Progression par octets, throttlée à 0.5 % — évite que les threads parallèles se bloquent
+        // mutuellement avec un throttle temporel (race sur lastReport)
+        IProgress<long> BytesProgress(RebaseGameItem item) => new Progress<long>(bytes =>
+        {
+            Interlocked.Add(ref copiedBytes, bytes);
+            double newPct = totalBytes > 0
+                ? (double)Interlocked.Read(ref copiedBytes) / totalBytes * 100
+                : 0;
+            if (newPct - lastReportedProgress >= 0.5)
+            {
+                lastReportedProgress = newPct;
+                Report(item);
+            }
+        });
 
         // Task.Run obligatoire : les lambdas async démarrées depuis le thread UI y restent si WaitAsync
         // complète synchroniquement. PauseEvent.Wait bloquerait alors le thread UI.
@@ -66,11 +96,8 @@ public class RebaseService
                 options.PauseEvent.Wait(ct); // sûr : exécuté sur un thread pool
                 ct.ThrowIfCancellationRequested();
 
-                item.Status = RebaseItemStatus.Copying;
-                Report(item);
-
-                string? targetFolder = archService.GetTargetFolder(options.Mapping, item.SystemName);
-                if (targetFolder is null)
+                var plan = item.Plan;
+                if (plan.IsUnmapped)
                 {
                     // Système sans mapping → on saute le jeu
                     item.Status    = RebaseItemStatus.Skipped;
@@ -80,74 +107,84 @@ public class RebaseService
                     return;
                 }
 
-                string destDir = Path.Combine(options.TargetPath, targetFolder);
-                Directory.CreateDirectory(destDir);
+                item.Status = RebaseItemStatus.Copying;
+                Report(item);
 
-                var copiedNames  = new List<string>();
-                string cleanTitle = SanitizeTitle(item.Title);
-                int totalSrc      = item.SourceFilePaths.Count;
-                int ignoredCount  = 0;
+                string destSys = Path.Combine(options.TargetPath, plan.TargetFolder!);
+                Directory.CreateDirectory(destSys);
+
+                int ignoredCount = 0;
+                var warnings     = new List<string>();
                 try
                 {
-                    for (int fileIdx = 0; fileIdx < totalSrc; fileIdx++)
+                    foreach (var file in plan.Files)
                     {
-                        string src = item.SourceFilePaths[fileIdx];
                         ct.ThrowIfCancellationRequested();
                         options.PauseEvent.Wait(ct);
 
-                        if (!System.IO.File.Exists(src))
+                        if (!File.Exists(file.SourcePath) && file.Kind != FileTransferKind.CopyTree)
                         {
                             item.Status      = RebaseItemStatus.Failed;
-                            item.ErrorDetail = $"Source introuvable : {Path.GetFileName(src)}";
+                            item.ErrorDetail = $"Source introuvable : {Path.GetFileName(file.SourcePath)}";
                             Interlocked.Increment(ref failed);
                             Report(item);
                             return;
                         }
 
-                        // Nom du fichier destination basé sur le titre du jeu
-                        string ext      = Path.GetExtension(src);
-                        string newName  = totalSrc == 1
-                            ? cleanTitle + ext
-                            : $"{cleanTitle} (Disc {fileIdx + 1}){ext}";
-                        string dest     = Path.Combine(destDir, newName);
-
-                        if (System.IO.File.Exists(dest) && options.DuplicatePolicy == DuplicatePolicy.Ignore)
+                        string launchPath = Path.Combine(destSys, file.LaunchRelativePath.Replace('/', Path.DirectorySeparatorChar));
+                        if (File.Exists(launchPath) && options.DuplicatePolicy == DuplicatePolicy.Ignore)
                         {
+                            // Déjà présent : compté comme écrit pour que la barre et l'ETA restent justes
                             ignoredCount++;
-                            copiedNames.Add(newName);
+                            Interlocked.Add(ref copiedBytes, file.PlannedBytes);
                             continue;
                         }
 
-                        // Throttle par delta de 0.5% — évite que les threads parallèles
-                        // se bloquent mutuellement avec le throttle temporel (race sur lastReport)
-                        var bytesProgress = new Progress<long>(bytes =>
-                        {
-                            Interlocked.Add(ref copiedBytes, bytes);
-                            double newPct = totalBytes > 0
-                                ? (double)Interlocked.Read(ref copiedBytes) / totalBytes * 100
-                                : 0;
-                            if (newPct - lastReportedProgress >= 0.5)
-                            {
-                                lastReportedProgress = newPct;
-                                Report(item);
-                            }
-                        });
+                        item.Status = file.Kind == FileTransferKind.Extract
+                            ? RebaseItemStatus.Extracting
+                            : RebaseItemStatus.Copying;
+                        Report(item);
 
-                        await CopyFileWithProgressAsync(src, dest, bytesProgress,
-                            options.RetryCount, options.RetryDelaySeconds, ct).ConfigureAwait(false);
-                        copiedNames.Add(newName);
+                        var bytesProgress = BytesProgress(item);
+                        await RunWithRetryAsync(
+                            () => TransferAsync(file, destSys, bytesProgress, ct),
+                            file.SourcePath, options.RetryCount, options.RetryDelaySeconds, ct).ConfigureAwait(false);
                     }
 
-                    // Génération du fichier M3U pour les jeux multi-disques
-                    if (options.GenerateM3U && copiedNames.Count > 1)
+                    // Playlist M3U des vrais disques, réécrite à chaque passage (idempotent, quelques octets)
+                    if (plan.M3URelativePath is not null && plan.Files.Count > 0)
                     {
-                        string m3uPath = Path.Combine(destDir, cleanTitle + ".m3u");
-                        await System.IO.File.WriteAllTextAsync(m3uPath,
-                            GenerateM3UContent(item.Title, copiedNames), ct).ConfigureAwait(false);
+                        string m3uPath = Path.Combine(destSys, plan.M3URelativePath);
+                        await File.WriteAllTextAsync(m3uPath,
+                            GenerateM3UContent(plan.Title, plan.M3UEntries), ct).ConfigureAwait(false);
+                    }
+
+                    // Jaquettes : secondaires, une erreur ne fait pas échouer le jeu
+                    foreach (var cover in plan.Covers)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        string coverDest = Path.Combine(destSys, cover.DestRelativePath.Replace('/', Path.DirectorySeparatorChar));
+                        long coverBytes  = GetFileSize(cover.SourcePath);
+                        if (File.Exists(coverDest) && options.DuplicatePolicy == DuplicatePolicy.Ignore)
+                        {
+                            Interlocked.Add(ref copiedBytes, coverBytes);
+                            continue;
+                        }
+                        try
+                        {
+                            CoverService.CopyCover(cover.SourcePath, coverDest,
+                                options.Architecture.CoverMaxWidth, options.Architecture.CoverMaxHeight);
+                            Interlocked.Add(ref copiedBytes, coverBytes);
+                        }
+                        catch (OperationCanceledException) { throw; }
+                        catch (Exception ex)
+                        {
+                            warnings.Add($"{Path.GetFileName(coverDest)} : {ErrorMessageClassifier.Classify(ex)}");
+                        }
                     }
 
                     // Tous les fichiers ignorés par la politique Ignore → statut Skipped
-                    if (ignoredCount == totalSrc && totalSrc > 0)
+                    if (ignoredCount == plan.Files.Count && plan.Files.Count > 0)
                     {
                         item.Status    = RebaseItemStatus.Skipped;
                         item.IsSkipped = true;
@@ -160,6 +197,9 @@ public class RebaseService
                         item.Progress = 100;
                         Interlocked.Increment(ref completed);
                     }
+
+                    if (warnings.Count > 0)
+                        item.ErrorDetail = string.Join(" · ", warnings);
                 }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception ex)
@@ -178,36 +218,87 @@ public class RebaseService
         })).ToList();
 
         await Task.WhenAll(tasks);
-        Report(); // rapport final agrégé
+
+        // ── Métadonnées : un gamelist par dossier système, après la dernière copie ──
+        int   foldersWritten = 0;
+        var   notes          = new List<string>();
+        if (options.GenerateGamelist)
+        {
+            Report(phase: RebasePhase.WritingMetadata);
+            ct.ThrowIfCancellationRequested();
+            (foldersWritten, notes) = await Task.Run(() => WriteGamelists(options, items), ct).ConfigureAwait(false);
+        }
+
+        Report(phase: RebasePhase.Completed, metadataFolders: foldersWritten, notes: notes); // rapport final agrégé
     }
 
-    /// <summary>
-    /// Copie un fichier par chunks de 1 Mo avec retry en cas d'échec.
-    /// Chaque chunk est rapporté via bytesProgress.
-    /// </summary>
-    internal async Task CopyFileWithProgressAsync(
-        string source, string dest,
-        IProgress<long> bytesProgress,
-        int retryCount, int retryDelaySeconds,
-        CancellationToken ct)
+    // ── Transferts ────────────────────────────────────────────────────────
+
+    /// <summary>Exécute le transfert d'un fichier du plan selon sa nature.</summary>
+    private static async Task TransferAsync(RebaseFilePlan file, string destSys, IProgress<long> bytesProgress, CancellationToken ct)
+    {
+        switch (file.Kind)
+        {
+            case FileTransferKind.Copy:
+            {
+                string dest = Path.Combine(destSys, file.LaunchRelativePath.Replace('/', Path.DirectorySeparatorChar));
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                await CopyFileInternalAsync(file.SourcePath, dest, bytesProgress, ct).ConfigureAwait(false);
+                break;
+            }
+            case FileTransferKind.Extract:
+            {
+                string destDir = file.DestRelativeDir.Length == 0
+                    ? destSys
+                    : Path.Combine(destSys, file.DestRelativeDir);
+                await ArchiveExtractor.ExtractAsync(file.SourcePath, destDir, file.SingleEntryTargetName,
+                    bytesProgress, ct).ConfigureAwait(false);
+                break;
+            }
+            case FileTransferKind.CopyTree:
+            {
+                string sourceDir = file.SourceDirectory ?? Path.GetDirectoryName(file.SourcePath) ?? string.Empty;
+                string destDir   = Path.Combine(destSys, file.DestRelativeDir);
+                if (!Directory.Exists(sourceDir))
+                    throw new DirectoryNotFoundException($"Source introuvable : {sourceDir}");
+
+                foreach (string src in Directory.EnumerateFiles(sourceDir, "*", SearchOption.AllDirectories))
+                {
+                    ct.ThrowIfCancellationRequested();
+                    string rel  = Path.GetRelativePath(sourceDir, src);
+                    string dest = Path.Combine(destDir, rel);
+                    Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                    await CopyFileInternalAsync(src, dest, bytesProgress, ct).ConfigureAwait(false);
+                }
+                break;
+            }
+        }
+    }
+
+    /// <summary>Relance une opération en cas d'échec, avec délai entre deux tentatives.</summary>
+    internal static async Task RunWithRetryAsync(
+        Func<Task> operation, string sourceForLog,
+        int retryCount, int retryDelaySeconds, CancellationToken ct)
     {
         for (int attempt = 0; attempt <= retryCount; attempt++)
         {
             try
             {
-                await CopyFileInternalAsync(source, dest, bytesProgress, ct).ConfigureAwait(false);
+                await operation().ConfigureAwait(false);
                 return; // succès
             }
-            catch (Exception) when (attempt < retryCount && !ct.IsCancellationRequested)
+            // Une archive dangereuse ou corrompue ne le sera pas moins au prochain essai
+            catch (Exception ex) when (attempt < retryCount && !ct.IsCancellationRequested
+                                       && ex is not UnsafeArchiveException and not InvalidDataException)
             {
                 System.Diagnostics.Debug.WriteLine(
-                    $"[Rebase] Retry {attempt + 1}/{retryCount} for {System.IO.Path.GetFileName(source)}");
+                    $"[Rebase] Retry {attempt + 1}/{retryCount} for {Path.GetFileName(sourceForLog)}");
                 await Task.Delay(retryDelaySeconds * 1000, ct).ConfigureAwait(false);
             }
         }
     }
 
-    /// <summary>Copie effective du fichier par chunks de 1 Mo — appelée par CopyFileWithProgressAsync.</summary>
+    /// <summary>Copie effective du fichier par chunks de 1 Mo.</summary>
     private static async Task CopyFileInternalAsync(
         string source, string dest,
         IProgress<long> bytesProgress,
@@ -227,69 +318,84 @@ public class RebaseService
 
     /// <summary>
     /// Génère le contenu d'un fichier M3U pour un jeu multi-disques.
-    /// Le fichier liste les noms de fichiers ZIP, un par ligne, précédés d'un commentaire titre.
+    /// Le fichier liste les chemins des disques relatifs au dossier système, un par ligne, précédés d'un commentaire titre.
     /// </summary>
-    public string GenerateM3UContent(string gameTitle, List<string> zipFileNames)
+    public string GenerateM3UContent(string gameTitle, IReadOnlyList<string> discPaths)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"# {gameTitle}");
-        foreach (var file in zipFileNames)
+        foreach (var file in discPaths)
             sb.AppendLine(file);
         return sb.ToString();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
+    // ── Métadonnées ───────────────────────────────────────────────────────
 
-    /// <summary>Construit la liste des RebaseGameItem depuis les jeux sélectionnés dans les options.</summary>
-    private static List<RebaseGameItem> BuildRebaseItems(RebaseOptions options)
+    /// <summary>
+    /// Écrit ou fusionne le gamelist.xml de chaque dossier système ayant reçu au moins un jeu
+    /// (copié maintenant ou déjà présent). Retourne le nombre de dossiers écrits et les remarques à afficher.
+    /// </summary>
+    private static (int, List<string>) WriteGamelists(RebaseOptions options, List<RebaseGameItem> items)
     {
-        var items = new List<RebaseGameItem>();
-        foreach (var game in options.SelectedGames)
+        var notes = new List<string>();
+        int written = 0;
+
+        var byFolder = items
+            .Where(i => i.Status is RebaseItemStatus.Done or RebaseItemStatus.Skipped
+                        && !i.Plan.IsUnmapped && i.Plan.GamelistEntries.Count > 0)
+            .GroupBy(i => i.Plan.TargetFolder!, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in byFolder)
         {
-            if (string.IsNullOrEmpty(game.GameDirectory)) continue;
-
-            string gameRoot = ArchitectureService.ResolveGameRoot(game.GameDirectory, options.RomStationPath);
-            if (!Directory.Exists(gameRoot)) continue;
-
-            // Tous les fichiers du jeu sauf le dossier images/ (jaquettes)
-            var files = Directory
-                .GetFiles(gameRoot, "*", SearchOption.AllDirectories)
-                .Where(f => !f.Contains(Path.DirectorySeparatorChar + "images" + Path.DirectorySeparatorChar))
-                .OrderBy(f => f)
-                .ToList();
-
-            if (files.Count == 0) continue;
-
-            items.Add(new RebaseGameItem
+            var games = new List<GamelistGame>();
+            foreach (var item in group)
             {
-                GameId          = game.Id,
-                Title           = game.Title,
-                SystemName      = game.SystemName,
-                SystemImagePath = game.SystemImagePath,
-                FileCount       = files.Count,
-                SourceFilePaths = files,
-            });
+                GameMetadata? meta = null;
+                options.Metadata?.TryGetValue(item.GameId, out meta);
+                foreach (var entry in item.Plan.GamelistEntries)
+                {
+                    games.Add(new GamelistGame(
+                        Path:        entry.Path,
+                        Name:        entry.Name,
+                        Image:       entry.Image,
+                        Description: meta?.Description,
+                        Year:        meta?.Year,
+                        Developer:   meta?.DeveloperName,
+                        Publisher:   meta?.PublisherName,
+                        Genre:       meta is { Genres.Count: > 0 } ? string.Join(", ", meta.Genres) : null,
+                        Players:     FormatPlayers(meta?.Players)));
+                }
+            }
+
+            string gamelistPath = Path.Combine(options.TargetPath, group.Key, "gamelist.xml");
+            try
+            {
+                var result = GamelistService.WriteOrMerge(gamelistPath, games, options.BackupGamelist);
+                written++;
+                if (result.BackupPath is not null)
+                    notes.Add(string.Format(Strings.Rebase_Gamelist_Backup, Path.GetFileName(result.BackupPath)));
+            }
+            catch (Exception ex)
+            {
+                notes.Add(string.Format(Strings.Rebase_Error_GamelistWrite, group.Key, ErrorMessageClassifier.Classify(ex)));
+            }
         }
-        return items;
+
+        return (written, notes);
     }
+
+    /// <summary>"1" pour un joueur, "1-N" au-delà (convention Batocera, acceptée par EmulationStation-fcamod).</summary>
+    internal static string? FormatPlayers(int? players)
+        => players is null or <= 0 ? null
+         : players == 1            ? "1"
+         :                           $"1-{players}";
+
+    // ── Helpers ───────────────────────────────────────────────────────────
 
     /// <summary>Retourne la taille en octets d'un fichier, ou 0 s'il est inaccessible.</summary>
     private static long GetFileSize(string path)
     {
         try   { return new FileInfo(path).Length; }
         catch { return 0; }
-    }
-
-    /// <summary>
-    /// Remplace les caractères interdits Windows dans un titre de jeu par "-" pour former
-    /// un nom de fichier valide. Élimine les tirets multiples et trim les tirets en bordure.
-    /// </summary>
-    private static string SanitizeTitle(string title)
-    {
-        foreach (char c in Path.GetInvalidFileNameChars())
-            title = title.Replace(c, '-');
-        while (title.Contains("--"))
-            title = title.Replace("--", "-");
-        return title.Trim('-');
     }
 }

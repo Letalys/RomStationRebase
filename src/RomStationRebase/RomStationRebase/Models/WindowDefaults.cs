@@ -7,6 +7,7 @@ public class WindowDefaults
     public WindowSize RebaseWindow      { get; set; } = new();
     public WindowSize GameDetailWindow  { get; set; } = new();
     public WindowSize SettingsWindow    { get; set; } = new();
+    public WindowSize ArchitectureEditorWindow { get; set; } = new();
 }
 
 /// <summary>Taille par défaut d'une fenêtre (la position n'est pas stockée ici — toujours centrée au 1er lancement).</summary>

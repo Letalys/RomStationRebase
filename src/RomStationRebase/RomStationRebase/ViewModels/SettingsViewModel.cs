@@ -39,9 +39,13 @@ public class SettingsViewModel : ViewModelBase
     // Métadonnées distribuées (repo, auteur, licence)
     private readonly AppMetadata _metadata;
 
-    public SettingsViewModel(UserPreferences preferences)
+    /// <summary>Tous les systèmes RomStation de la base — proposés dans la colonne Système de l'éditeur d'architectures.</summary>
+    public IReadOnlyList<string> SystemNames { get; }
+
+    public SettingsViewModel(UserPreferences preferences, IReadOnlyList<string>? systemNames = null)
     {
         _originalPrefs = preferences;
+        SystemNames    = systemNames ?? [];
 
         // Initialiser la copie de travail depuis les préférences actuelles
         _selectedLanguage = preferences.AppLanguage;
@@ -83,6 +87,8 @@ public class SettingsViewModel : ViewModelBase
 
         CheckForUpdateCommand = new RelayCommand(OnCheckForUpdate);
         OpenUpdateLinkCommand = new RelayCommand(OpenUpdateLink, () => IsUpdateStatusClickable);
+
+        EditArchitecturesCommand = new RelayCommand(() => OpenArchitectureEditor?.Invoke(), () => OpenArchitectureEditor is not null);
 
         LoadInitialUpdateCheckState();
     }
@@ -192,6 +198,12 @@ public class SettingsViewModel : ViewModelBase
 
     /// <summary>URL cible du lien de téléchargement.</summary>
     public string? UpdateLinkUrl { get; private set; }
+
+    /// <summary>Ouvre l'éditeur d'architectures (modal) — injecté depuis SettingsWindow.xaml.cs.</summary>
+    public Action? OpenArchitectureEditor { get; set; }
+
+    /// <summary>Ouvre l'éditeur d'architectures cibles via le callback de la View.</summary>
+    public ICommand EditArchitecturesCommand    { get; }
 
     public ICommand SaveCommand                 { get; }
     public ICommand CancelCommand               { get; }

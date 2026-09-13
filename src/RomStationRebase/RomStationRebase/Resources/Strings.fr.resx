@@ -187,9 +187,6 @@ Détail : {0}</value>
   <data name="Rebase_Architecture" xml:space="preserve">
     <value>Architecture cible</value>
   </data>
-  <data name="Rebase_GenerateM3U" xml:space="preserve">
-    <value>Générer les playlists M3U</value>
-  </data>
   <data name="Rebase_DuplicatePolicy" xml:space="preserve">
     <value>Si le fichier existe</value>
   </data>
@@ -615,5 +612,392 @@ Détails techniques :
   </data>
   <data name="Sidebar_ShowEmptySystems" xml:space="preserve">
     <value>Afficher les consoles vides</value>
+  </data>
+  <data name="Rebase_Group_Files" xml:space="preserve">
+    <value>Fichiers</value>
+  </data>
+  <data name="Rebase_Group_Metadata" xml:space="preserve">
+    <value>Métadonnées</value>
+  </data>
+  <data name="Rebase_Group_Copy" xml:space="preserve">
+    <value>Copie</value>
+  </data>
+  <data name="Rebase_Archives" xml:space="preserve">
+    <value>Archives</value>
+  </data>
+  <data name="Rebase_Archives_ExtractAll" xml:space="preserve">
+    <value>Tout extraire (sauf romsets)</value>
+  </data>
+  <data name="Rebase_Archives_Tooltip" xml:space="preserve">
+    <value>Certains émulateurs ne lisent pas les archives (sous ArkOS : PSP, GameCube, Saturn, Dreamcast). L'architecture cible indique quels systèmes exigent l'extraction. Les romsets arcade ne sont jamais extraits.</value>
+  </data>
+  <data name="Rebase_ExtractLayout" xml:space="preserve">
+    <value>Fichiers extraits</value>
+  </data>
+  <data name="Rebase_ExtractLayout_Auto" xml:space="preserve">
+    <value>Automatique (dossier si plusieurs fichiers)</value>
+  </data>
+  <data name="Rebase_ExtractLayout_Subfolder" xml:space="preserve">
+    <value>Un dossier par jeu</value>
+  </data>
+  <data name="Rebase_ExtractLayout_Tooltip" xml:space="preserve">
+    <value>Un fichier extrait unique prend le nom du jeu directement dans le dossier du système. Plusieurs fichiers (bin + cue) gardent leurs noms internes dans un dossier au nom du jeu.</value>
+  </data>
+  <data name="Rebase_CopyCovers" xml:space="preserve">
+    <value>Copier les jaquettes</value>
+  </data>
+  <data name="Rebase_CopyCovers_Tooltip" xml:space="preserve">
+    <value>Copie chaque jaquette dans le dossier images du système, nommée d'après la ROM (art local d'EmulationStation).</value>
+  </data>
+  <data name="Rebase_GenerateGamelist" xml:space="preserve">
+    <value>Générer gamelist.xml</value>
+  </data>
+  <data name="Rebase_GenerateGamelist_Tooltip" xml:space="preserve">
+    <value>Écrit titre, description, année, développeur, éditeur, genres et joueurs pour chaque jeu copié. Un gamelist.xml existant est fusionné : favoris, compteurs de parties et jeux masqués de l'appareil sont préservés.</value>
+  </data>
+  <data name="Rebase_MetadataLanguage" xml:space="preserve">
+    <value>Langue des métadonnées</value>
+  </data>
+  <data name="Rebase_MetadataLanguage_Fr" xml:space="preserve">
+    <value>Français</value>
+  </data>
+  <data name="Rebase_MetadataLanguage_En" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Rebase_Column_Output" xml:space="preserve">
+    <value>Sortie</value>
+  </data>
+  <data name="Rebase_Output_Copy" xml:space="preserve">
+    <value>Copie</value>
+  </data>
+  <data name="Rebase_Output_Romset" xml:space="preserve">
+    <value>Romset (nom d'origine)</value>
+  </data>
+  <data name="Rebase_Output_DiscSet" xml:space="preserve">
+    <value>{0} disques + M3U</value>
+  </data>
+  <data name="Rebase_Output_Discs" xml:space="preserve">
+    <value>{0} disques</value>
+  </data>
+  <data name="Rebase_Output_Variants" xml:space="preserve">
+    <value>{0} versions</value>
+  </data>
+  <data name="Rebase_Output_Extract" xml:space="preserve">
+    <value>Extraction</value>
+  </data>
+  <data name="Rebase_Output_Folder" xml:space="preserve">
+    <value>Dossier du jeu</value>
+  </data>
+  <data name="Rebase_Output_Unmapped" xml:space="preserve">
+    <value>Sans correspondance</value>
+  </data>
+  <data name="Rebase_Output_Tooltip" xml:space="preserve">
+    <value>Fichiers qui seront écrits :</value>
+  </data>
+  <data name="Rebase_Status_Extracting" xml:space="preserve">
+    <value>Extraction…</value>
+  </data>
+  <data name="Rebase_Status_WritingMetadata" xml:space="preserve">
+    <value>Écriture des métadonnées…</value>
+  </data>
+  <data name="Rebase_Analyzing" xml:space="preserve">
+    <value>Analyse des fichiers…</value>
+  </data>
+  <data name="Rebase_PlanReady" xml:space="preserve">
+    <value>{0} jeu(x) · {1} fichier(s) à écrire</value>
+  </data>
+  <data name="Rebase_Error_GamelistWrite" xml:space="preserve">
+    <value>Impossible d'écrire gamelist.xml ({0}) : {1}</value>
+  </data>
+  <data name="Rebase_Error_ArchiveInvalid" xml:space="preserve">
+    <value>Archive invalide ou illisible</value>
+  </data>
+  <data name="Rebase_Error_UnsafeArchive" xml:space="preserve">
+    <value>Archive refusée : une entrée pointe hors du dossier cible</value>
+  </data>
+  <data name="Rebase_Gamelist_Backup" xml:space="preserve">
+    <value>Un gamelist.xml illisible a été sauvegardé sous {0}</value>
+  </data>
+  <data name="Rebase_Completed_Metadata" xml:space="preserve">
+    <value>Métadonnées écrites dans {0} dossier(s) système.</value>
+  </data>
+  <data name="Rebase_BackupGamelist" xml:space="preserve">
+    <value>Sauvegarder le gamelist.xml existant</value>
+  </data>
+  <data name="Rebase_BackupGamelist_Tooltip" xml:space="preserve">
+    <value>Avant la fusion, une copie nommée gamelist.xml.aaaammjj est conservée à côté du fichier.</value>
+  </data>
+  <data name="Rebase_RemoveItem" xml:space="preserve">
+    <value>Retirer de ce rebase</value>
+  </data>
+  <data name="Rebase_RemoveItem_Tooltip" xml:space="preserve">
+    <value>Retire le jeu de ce rebase et le décoche dans la bibliothèque</value>
+  </data>
+  <data name="ArchEditor_Title" xml:space="preserve">
+    <value>Architectures cibles</value>
+  </data>
+  <data name="ArchEditor_Origin_Distributed" xml:space="preserve">
+    <value>Par défaut</value>
+  </data>
+  <data name="ArchEditor_Origin_Overridden" xml:space="preserve">
+    <value>Modifiée</value>
+  </data>
+  <data name="ArchEditor_Origin_Custom" xml:space="preserve">
+    <value>Personnalisée</value>
+  </data>
+  <data name="ArchEditor_Modified_Tooltip" xml:space="preserve">
+    <value>Modifications non enregistrées</value>
+  </data>
+  <data name="ArchEditor_Duplicate" xml:space="preserve">
+    <value>Dupliquer</value>
+  </data>
+  <data name="ArchEditor_Delete" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="ArchEditor_RestoreDistributed" xml:space="preserve">
+    <value>Restaurer la version par défaut</value>
+  </data>
+  <data name="ArchEditor_AddSystem" xml:space="preserve">
+    <value>Ajouter un système</value>
+  </data>
+  <data name="ArchEditor_Group_General" xml:space="preserve">
+    <value>Général</value>
+  </data>
+  <data name="ArchEditor_Group_Covers" xml:space="preserve">
+    <value>Jaquettes</value>
+  </data>
+  <data name="ArchEditor_Group_Metadata" xml:space="preserve">
+    <value>Métadonnées</value>
+  </data>
+  <data name="ArchEditor_Group_Systems" xml:space="preserve">
+    <value>Systèmes</value>
+  </data>
+  <data name="ArchEditor_Label" xml:space="preserve">
+    <value>Libellé</value>
+  </data>
+  <data name="ArchEditor_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="ArchEditor_Id" xml:space="preserve">
+    <value>Identifiant</value>
+  </data>
+  <data name="ArchEditor_Id_Tooltip" xml:space="preserve">
+    <value>Nom de fichier de l'architecture, fixé à sa création</value>
+  </data>
+  <data name="ArchEditor_CoversByDefault" xml:space="preserve">
+    <value>Jaquettes par défaut</value>
+  </data>
+  <data name="ArchEditor_CoverFolder" xml:space="preserve">
+    <value>Dossier</value>
+  </data>
+  <data name="ArchEditor_CoverFolder_Tooltip" xml:space="preserve">
+    <value>Dossier des jaquettes, relatif à chaque dossier système (ex. : images)</value>
+  </data>
+  <data name="ArchEditor_CoverSuffix" xml:space="preserve">
+    <value>Suffixe</value>
+  </data>
+  <data name="ArchEditor_CoverSuffix_Tooltip" xml:space="preserve">
+    <value>Ajouté au nom de la ROM pour nommer la jaquette (ex. : -image)</value>
+  </data>
+  <data name="ArchEditor_CoverMaxWidth" xml:space="preserve">
+    <value>Largeur max</value>
+  </data>
+  <data name="ArchEditor_CoverMaxHeight" xml:space="preserve">
+    <value>Hauteur max</value>
+  </data>
+  <data name="ArchEditor_CoverSize_Tooltip" xml:space="preserve">
+    <value>En pixels, 0 = taille d'origine</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat" xml:space="preserve">
+    <value>Format du gamelist</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_None" xml:space="preserve">
+    <value>Aucun</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_EmulationStation" xml:space="preserve">
+    <value>EmulationStation</value>
+  </data>
+  <data name="ArchEditor_GamelistByDefault" xml:space="preserve">
+    <value>Gamelist par défaut</value>
+  </data>
+  <data name="ArchEditor_Column_System" xml:space="preserve">
+    <value>Système RomStation</value>
+  </data>
+  <data name="ArchEditor_Column_TargetFolder" xml:space="preserve">
+    <value>Dossier cible</value>
+  </data>
+  <data name="ArchEditor_Column_KeepFileName" xml:space="preserve">
+    <value>Nom d'origine</value>
+  </data>
+  <data name="ArchEditor_Column_KeepFileName_Tooltip" xml:space="preserve">
+    <value>Romset : les fichiers ne sont jamais renommés ni extraits, et ne reçoivent pas de M3U (arcade, Neo-Geo)</value>
+  </data>
+  <data name="ArchEditor_Column_M3U" xml:space="preserve">
+    <value>M3U</value>
+  </data>
+  <data name="ArchEditor_Column_M3U_Tooltip" xml:space="preserve">
+    <value>L'émulateur de ce système lit les playlists M3U sur cette cible</value>
+  </data>
+  <data name="ArchEditor_Column_Extract" xml:space="preserve">
+    <value>Extraction</value>
+  </data>
+  <data name="ArchEditor_Column_Extract_Tooltip" xml:space="preserve">
+    <value>L'émulateur ne lit pas les archives : extraction requise sur cette cible</value>
+  </data>
+  <data name="ArchEditor_RemoveSystem_Tooltip" xml:space="preserve">
+    <value>Retirer ce système</value>
+  </data>
+  <data name="ArchEditor_OpenFolder" xml:space="preserve">
+    <value>Ouvrir le dossier des architectures</value>
+  </data>
+  <data name="ArchEditor_Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="ArchEditor_Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="ArchEditor_CopyLabel" xml:space="preserve">
+    <value>{0} (copie)</value>
+  </data>
+  <data name="ArchEditor_DeleteCustom_Title" xml:space="preserve">
+    <value>Supprimer l'architecture</value>
+  </data>
+  <data name="ArchEditor_DeleteCustom_Message" xml:space="preserve">
+    <value>Supprimer « {0} » ? Ses fichiers sont retirés du disque immédiatement, sans annulation possible.</value>
+  </data>
+  <data name="ArchEditor_RestoreOverridden_Title" xml:space="preserve">
+    <value>Restaurer la version par défaut</value>
+  </data>
+  <data name="ArchEditor_RestoreOverridden_Message" xml:space="preserve">
+    <value>Abandonner vos modifications de « {0} » et restaurer la version par défaut ? Votre version est retirée du disque immédiatement, sans annulation possible.</value>
+  </data>
+  <data name="ArchEditor_Discard_Title" xml:space="preserve">
+    <value>Abandonner les modifications</value>
+  </data>
+  <data name="ArchEditor_Discard_Message" xml:space="preserve">
+    <value>Abandonner les modifications non enregistrées ?</value>
+  </data>
+  <data name="ArchEditor_Discard_Confirm" xml:space="preserve">
+    <value>Abandonner</value>
+  </data>
+  <data name="ArchEditor_Validation_Title" xml:space="preserve">
+    <value>Enregistrement impossible</value>
+  </data>
+  <data name="ArchEditor_Validation_EmptyLabel" xml:space="preserve">
+    <value>{0} : le libellé est vide.</value>
+  </data>
+  <data name="ArchEditor_Validation_EmptySystem" xml:space="preserve">
+    <value>{0} : une ligne n'a pas de système RomStation.</value>
+  </data>
+  <data name="ArchEditor_Validation_EmptyFolder" xml:space="preserve">
+    <value>{0} : pas de dossier cible pour le système « {1} ».</value>
+  </data>
+  <data name="ArchEditor_Validation_DuplicateSystem" xml:space="preserve">
+    <value>{0} : le système « {1} » apparaît plusieurs fois.</value>
+  </data>
+  <data name="ArchEditor_Validation_InvalidSize" xml:space="preserve">
+    <value>{0} : la largeur et la hauteur max des jaquettes doivent être des nombres entiers (0 = taille d'origine).</value>
+  </data>
+  <data name="ArchEditor_Error_Title" xml:space="preserve">
+    <value>Architectures cibles</value>
+  </data>
+  <data name="ArchEditor_Error_Write" xml:space="preserve">
+    <value>Écriture impossible de « {0} » : {1}</value>
+  </data>
+  <data name="ArchEditor_Error_Load" xml:space="preserve">
+    <value>Chargement des architectures impossible : {0}</value>
+  </data>
+  <data name="ArchEditor_Error_LoadMapping" xml:space="preserve">
+    <value>Lecture de la table des systèmes de « {0} » impossible : {1}</value>
+  </data>
+  <data name="Settings_Section_Architectures" xml:space="preserve">
+    <value>ARCHITECTURES CIBLES</value>
+  </data>
+  <data name="Settings_Architectures_Description" xml:space="preserve">
+    <value>Toutes les architectures vivent dans votre dossier de données utilisateur : celles par défaut y sont copiées au premier lancement et peuvent être ajustées, dupliquées, complétées ou supprimées. Les fichiers par défaut d'origine restent restaurables à tout moment.</value>
+  </data>
+  <data name="Settings_Architectures_Edit" xml:space="preserve">
+    <value>Modifier les architectures cibles…</value>
+  </data>
+  <data name="ArchEditor_Add" xml:space="preserve">
+    <value>Ajouter</value>
+  </data>
+  <data name="ArchEditor_NewLabel" xml:space="preserve">
+    <value>Nouvelle architecture</value>
+  </data>
+  <data name="ArchEditor_Delete_Shipped_Message" xml:space="preserve">
+    <value>Cette architecture par défaut sera retirée de votre dossier d'architectures. « Restaurer les architectures par défaut » recopie les fichiers d'origine.</value>
+  </data>
+  <data name="ArchEditor_Delete_Last" xml:space="preserve">
+    <value>Il doit rester au moins une architecture.</value>
+  </data>
+  <data name="ArchEditor_RestoreShipped" xml:space="preserve">
+    <value>Restaurer les architectures par défaut</value>
+  </data>
+  <data name="ArchEditor_RestoreShipped_Message" xml:space="preserve">
+    <value>Les fichiers d'origine de chaque architecture par défaut sont recopiés dans votre dossier d'architectures : les supprimées reviennent, les modifiées sont écrasées. Vos propres architectures sont conservées.</value>
+  </data>
+  <data name="Rebase_Archives_AsConfigured" xml:space="preserve">
+    <value>Extraire selon l'architecture (recommandé)</value>
+  </data>
+  <data name="Rebase_Archives_Never" xml:space="preserve">
+    <value>Ne jamais extraire</value>
+  </data>
+  <data name="Rebase_Rules_Hint" xml:space="preserve">
+    <value>Les règles par système — romsets, M3U, extraction — sont définies par l'architecture cible.</value>
+  </data>
+  <data name="Rebase_ManageArchitectures" xml:space="preserve">
+    <value>Gérer les architectures…</value>
+  </data>
+  <data name="Rebase_Column_Romset" xml:space="preserve">
+    <value>Romset</value>
+  </data>
+  <data name="Rebase_Column_Romset_Tooltip" xml:space="preserve">
+    <value>Conserver le nom d'origine de l'archive (romsets arcade) : jamais extraite, jamais regroupée dans un M3U</value>
+  </data>
+  <data name="Rebase_Column_M3U" xml:space="preserve">
+    <value>M3U</value>
+  </data>
+  <data name="Rebase_Column_M3U_Tooltip" xml:space="preserve">
+    <value>L'émulateur lit les playlists M3U : les jeux multi-disques reçoivent une playlist</value>
+  </data>
+  <data name="Rebase_Column_Extract" xml:space="preserve">
+    <value>Extraction</value>
+  </data>
+  <data name="Rebase_Column_Extract_Tooltip" xml:space="preserve">
+    <value>L'émulateur ne lit pas les archives : les extraire. N'a d'effet qu'en mode « Extraire selon l'architecture »</value>
+  </data>
+  <data name="Rebase_Rule_Tooltip" xml:space="preserve">
+    <value>Valeur de l'architecture cible pour ce système. Bascule-la pour ce jeu seulement, le temps de ce rebase.</value>
+  </data>
+  <data name="M" xml:space="preserve">
+    <value></value>
+  </data>
+  <data name="G" xml:space="preserve">
+    <value></value>
+  </data>
+  <data name="J" xml:space="preserve">
+    <value></value>
+  </data>
+  <data name="Main_SelectedBadge_Tooltip" xml:space="preserve">
+    <value>Jeux cochés pour le prochain rebase, y compris ceux masqués par les filtres en cours</value>
+  </data>
+  <data name="Sidebar_SelectedCount_Tooltip" xml:space="preserve">
+    <value>Jeux cochés dans ce système, affiché ou masqué</value>
+  </data>
+  <data name="Main_ClearSelection_Tooltip" xml:space="preserve">
+    <value>Décocher tous les jeux, masqués compris</value>
+  </data>
+  <data name="Main_NoArchitecture_Warning" xml:space="preserve">
+    <value>Aucune architecture cible définie : le rebase est impossible.</value>
+  </data>
+  <data name="Rebase_NoArchitecture_Title" xml:space="preserve">
+    <value>Aucune architecture cible</value>
+  </data>
+  <data name="Rebase_NoArchitecture_Message" xml:space="preserve">
+    <value>Aucune architecture cible n'est disponible. Ouvrez « Gérer les architectures… » pour restaurer celles par défaut ou créer la vôtre.</value>
+  </data>
+  <data name="Rebase_PlanUnmapped" xml:space="preserve">
+    <value> · {0} sans correspondance</value>
   </data>
 </root>

@@ -39,6 +39,17 @@ public partial class RebaseWindow : Window
 
         // Animation de la barre de progression via l'event ViewModel
         vm.ProgressChanged += AnimateProgressBar;
+
+        // Avertissements d'ouverture (aucune architecture cible) : après affichage, pour que le dialog ait un Owner visible
+        Loaded += (_, _) => vm.ShowOpeningWarnings();
+
+        // Éditeur d'architectures — modal, le VM recharge la liste au retour.
+        // La colonne Système propose tous les systèmes de la base RomStation, moins ceux déjà paramétrés.
+        vm.OpenArchitectureEditor = () =>
+        {
+            var editor = new ArchitectureEditorWindow(vm.SystemNames) { Owner = this };
+            editor.ShowDialog();
+        };
     }
 
     /// <summary>Restaure les bounds mémorisés avant affichage.</summary>
@@ -48,6 +59,9 @@ public partial class RebaseWindow : Window
         var prefs    = SafeLoadPrefs(config);
         var defaults = config.LoadWindowDefaults();
         Helpers.WindowStatePersistence.Restore(this, prefs.RebaseWindowBounds, defaults.RebaseWindow);
+
+        // Fenêtre sans chrome : bornée à la zone de travail pour ne pas recouvrir la barre des tâches
+        Helpers.WorkAreaMaximizeHelper.Attach(this);
     }
 
     /// <summary>Charge UserPreferences ; retourne l'objet par défaut si corruption (évite de bloquer la capture).</summary>

@@ -9,6 +9,9 @@ namespace RomStationRebase.Views;
 
 public partial class MainWindow : Window
 {
+    // Fractions de cran de molette en attente (souris à défilement fin) — voir OnMosaicMouseWheel
+    private double _wheelAccumulator;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -24,6 +27,9 @@ public partial class MainWindow : Window
         var prefs    = SafeLoadPrefs(config);
         var defaults = config.LoadWindowDefaults();
         Helpers.WindowStatePersistence.Restore(this, prefs.MainWindowBounds, defaults.MainWindow);
+
+        // Fenêtre sans chrome : bornée à la zone de travail pour ne pas recouvrir la barre des tâches
+        Helpers.WorkAreaMaximizeHelper.Attach(this);
 
         // Au premier lancement (aucun bounds mémorisés), MainWindow s'ouvre maximisée par défaut.
         if (prefs.MainWindowBounds is null)
@@ -52,6 +58,39 @@ public partial class MainWindow : Window
             if ((bool)args.NewValue && DataContext is MainViewModel vm2)
                 ApplyThumbnailSize(vm2.ThumbnailSize);
         };
+
+        // Molette en mosaïque : un cran = une ligne de cartes, alignée sur la grille
+        MosaicListView.PreviewMouseWheel += OnMosaicMouseWheel;
+    }
+
+    /// <summary>
+    /// Fait défiler la mosaïque d'exactement une ligne de cartes par cran de molette, et réaligne
+    /// l'offset sur une frontière de ligne. Le pas natif du VirtualizingWrapPanel (48 px, multiplié
+    /// par les lignes de défilement Windows) donnait l'impression de sauter des lignes.
+    /// Mécanique WPF pure : la hauteur de ligne est celle du ViewModel (MosaicItemHeight).
+    /// </summary>
+    private void OnMosaicMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        var scrollViewer = FindVisualChild<ScrollViewer>(MosaicListView);
+        if (scrollViewer is null || vm.MosaicItemHeight <= 0) return;
+
+        double rowHeight = vm.MosaicItemHeight;
+        double notches   = e.Delta / 120.0; // un cran = 120, les souris à défilement fin envoient des fractions
+
+        // Les souris à défilement fin envoient des fractions de cran : on les cumule jusqu'à une ligne entière
+        _wheelAccumulator += notches;
+        int rows = (int)Math.Truncate(_wheelAccumulator);
+        e.Handled = true;
+        if (rows == 0) return;
+        _wheelAccumulator -= rows;
+
+        // Ligne courante la plus proche (l'ascenseur a pu laisser l'offset entre deux lignes), puis un cran = une ligne
+        double currentRow = Math.Round(scrollViewer.VerticalOffset / rowHeight);
+        double target     = (currentRow - rows) * rowHeight;
+
+        scrollViewer.ScrollToVerticalOffset(Math.Clamp(target, 0, scrollViewer.ScrollableHeight));
+        e.Handled = true;
     }
 
     /// <summary>

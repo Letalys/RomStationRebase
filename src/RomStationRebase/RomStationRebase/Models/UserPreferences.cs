@@ -36,8 +36,23 @@ public class UserPreferences
     /// <summary>Identifiant de la dernière architecture sélectionnée (ex : "retroarch", "lakka", "arkos"). Vide au premier lancement.</summary>
     public string LastRebaseArchitectureId { get; set; } = string.Empty;
 
-    /// <summary>Dernière valeur du toggle "Générer M3U" dans RebaseWindow.</summary>
-    public bool LastRebaseGenerateM3U { get; set; } = false;
+    /// <summary>Dernier traitement des archives dans RebaseWindow : "ExtractRequired" (selon l'architecture), "Copy" (jamais) ou "ExtractAll".</summary>
+    public string LastRebaseArchiveMode { get; set; } = "ExtractRequired";
+
+    /// <summary>Dernier rangement des fichiers extraits : "Auto" ou "Subfolder".</summary>
+    public string LastRebaseExtractLayout { get; set; } = "Auto";
+
+    /// <summary>Dernière valeur du toggle "Copier les jaquettes".</summary>
+    public bool LastRebaseCopyCovers { get; set; } = true;
+
+    /// <summary>Dernière valeur du toggle "Générer gamelist.xml".</summary>
+    public bool LastRebaseGenerateGamelist { get; set; } = true;
+
+    /// <summary>Dernière valeur du toggle "Sauvegarder le gamelist.xml existant".</summary>
+    public bool LastRebaseBackupGamelist { get; set; } = false;
+
+    /// <summary>Langue des métadonnées écrites : "auto" (langue de l'interface), "fr" ou "en".</summary>
+    public string LastRebaseMetadataLanguage { get; set; } = "auto";
 
     /// <summary>Taille des vignettes de jeu dans MainWindow : "Normal" (défaut, dimensions actuelles) ou "Grand".</summary>
     public string ThumbnailSize { get; set; } = "Normal";
@@ -56,4 +71,7 @@ public class UserPreferences
 
     /// <summary>Bounds mémorisés de SettingsWindow. Null au premier lancement.</summary>
     public WindowBounds? SettingsWindowBounds { get; set; }
+
+    /// <summary>Bounds mémorisés de ArchitectureEditorWindow. Null au premier lancement.</summary>
+    public WindowBounds? ArchitectureEditorWindowBounds { get; set; }
 }

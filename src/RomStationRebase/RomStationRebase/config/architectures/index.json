@@ -1,28 +1,88 @@
 {
   "architectures": [
     {
-      "id": "retroarch",
-      "label": "RetroArch / Lakka / ArkOS",
-      "description": "Compatible RetroArch, Lakka, ArkOS, JELOS, muOS",
-      "folderTreeMapping": "retroarch.json",
-      "generateM3UByDefault": true,
-      "isDefault": true
+      "id": "arkos_default",
+      "label": "ArkOS / dArkOS (Default)",
+      "description": "Anbernic RG353, RG351, RK3326 et clones sous ArkOS ou dArkOS (EmulationStation + RetroArch)",
+      "folderTreeMapping": "arkos_default.json",
+      "isDefault": true,
+      "coversByDefault": true,
+      "coverFolder": "images",
+      "coverSuffix": "-image",
+      "coverMaxWidth": 0,
+      "coverMaxHeight": 0,
+      "gamelistFormat": "emulationstation",
+      "gamelistByDefault": true
     },
     {
-      "id": "emulationstation",
-      "label": "EmulationStation / Batocera",
-      "description": "Compatible Batocera, EmulationStation",
-      "folderTreeMapping": "emulationstation.json",
-      "generateM3UByDefault": true,
-      "isDefault": false
+      "id": "retroarch_default",
+      "label": "RetroArch / Lakka (Default)",
+      "description": "RetroArch seul ou Lakka : dossiers par système, sans gamelist ni jaquettes locales",
+      "folderTreeMapping": "retroarch_default.json",
+      "isDefault": false,
+      "coversByDefault": false,
+      "coverFolder": "images",
+      "coverSuffix": "-image",
+      "coverMaxWidth": 0,
+      "coverMaxHeight": 0,
+      "gamelistFormat": null,
+      "gamelistByDefault": false
     },
     {
-      "id": "anbernic-stock",
-      "label": "Anbernic OS stock",
-      "description": "Compatible firmware Anbernic original",
-      "folderTreeMapping": "anbernic-stock.json",
-      "generateM3UByDefault": false,
-      "isDefault": false
+      "id": "batocera_default",
+      "label": "Batocera / Knulli (Default)",
+      "description": "Batocera, Knulli et dérivés : dossiers Batocera, gamelist EmulationStation",
+      "folderTreeMapping": "batocera_default.json",
+      "isDefault": false,
+      "coversByDefault": true,
+      "coverFolder": "images",
+      "coverSuffix": "-image",
+      "coverMaxWidth": 0,
+      "coverMaxHeight": 0,
+      "gamelistFormat": "emulationstation",
+      "gamelistByDefault": true
+    },
+    {
+      "id": "emulationstation_default",
+      "label": "EmulationStation / ES-DE / RetroPie (Default)",
+      "description": "EmulationStation d'origine, ES-DE et RetroPie : dossiers EmulationStation, gamelist",
+      "folderTreeMapping": "emulationstation_default.json",
+      "isDefault": false,
+      "coversByDefault": true,
+      "coverFolder": "images",
+      "coverSuffix": "-image",
+      "coverMaxWidth": 0,
+      "coverMaxHeight": 0,
+      "gamelistFormat": "emulationstation",
+      "gamelistByDefault": true
+    },
+    {
+      "id": "cocoon_default",
+      "label": "Cocoon (Android) (Default)",
+      "description": "Frontend Cocoon sur Android : dossiers Cocoon, jaquettes et gamelist désactivés par défaut",
+      "folderTreeMapping": "cocoon_default.json",
+      "isDefault": false,
+      "coversByDefault": false,
+      "coverFolder": "images",
+      "coverSuffix": "-image",
+      "coverMaxWidth": 0,
+      "coverMaxHeight": 0,
+      "gamelistFormat": "emulationstation",
+      "gamelistByDefault": false
+    },
+    {
+      "id": "anbernic-stock_default",
+      "label": "Anbernic OS stock (Default)",
+      "description": "Firmware d'origine des Anbernic RG35XX et RG40XX : dossiers en majuscules, jaquettes Imgs en 300 px",
+      "folderTreeMapping": "anbernic-stock_default.json",
+      "isDefault": false,
+      "coversByDefault": true,
+      "coverFolder": "Imgs",
+      "coverSuffix": "",
+      "coverMaxWidth": 300,
+      "coverMaxHeight": 300,
+      "gamelistFormat": null,
+      "gamelistByDefault": false
     }
   ]
 }

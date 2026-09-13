@@ -107,6 +107,7 @@ public class DerbyService
         // L'alias SYSTEM_IMAGE_PATH est joint depuis APP.IMAGE via la clé étrangère GRAPHIC_IMAGE_ID du système.
         const string sql = """
             SELECT g.ID,
+                   g.RID,
                    g.TITLE        AS GAME_NAME,
                    s.NAME         AS SYSTEM_NAME,
                    i.PATH         AS SYSTEM_IMAGE_PATH,
@@ -116,7 +117,7 @@ public class DerbyService
             JOIN  APP.SYSTEM s    ON s.ID = g.SYSTEM_ID
             LEFT JOIN APP.IMAGE i ON i.ID = s.GRAPHIC_IMAGE_ID
             LEFT JOIN APP.GAME_FILE gf ON gf.GAME_ID = g.ID
-            GROUP BY g.ID, g.TITLE, s.NAME, i.PATH
+            GROUP BY g.ID, g.RID, g.TITLE, s.NAME, i.PATH
             ORDER BY SYSTEM_NAME, GAME_NAME
             """;
 
@@ -138,6 +139,7 @@ public class DerbyService
             games.Add(new GameRecord
             {
                 Id              = rs.getInt("ID"),
+                Rid             = rs.getInt("RID"),
                 Title           = gameName,
                 SystemName      = sysName,
                 SystemImagePath = sysImagePath,
@@ -522,6 +524,241 @@ public class DerbyService
             Debug.WriteLine($"[DerbyService] GetGameDetail ID={gameId} erreur : {ex.Message}");
             return null;
         }
+    }
+
+    // ── Fichiers des jeux (nommage 1.3.0) ────────────────────────────────
+
+    /// <summary>
+    /// Retourne les fichiers de tous les jeux, indexés par GAME_ID, dans l'ordre de GAME_FILE.ID. Une seule requête.
+    /// Un GAME_FILE sans GAME_PROFILE (donc sans chemin réel) n'est pas lançable : la ligne est ignorée.
+    /// Si plusieurs profils existent pour un même GAME_FILE, seul le premier est conservé.
+    /// Connexion impossible → dictionnaire vide. Les erreurs Derby remontent à l'appelant.
+    /// </summary>
+    /// <param name="dbCopyPath">Chemin du dossier de la copie de la base Derby.</param>
+    public Dictionary<int, IReadOnlyList<GameFileInfo>> GetGameFiles(string dbCopyPath)
+    {
+        var result = new Dictionary<int, IReadOnlyList<GameFileInfo>>();
+
+        const string sql = """
+            SELECT gf.GAME_ID, gf.ID, gf.NAME, gf.DIRECTORY, gp.PATH
+            FROM APP.GAME_FILE gf
+            LEFT JOIN APP.GAME_PROFILE gp ON gp.GAME_FILE_ID = gf.ID
+            ORDER BY gf.GAME_ID, gf.ID
+            """;
+
+        using var conn = OpenConnection(dbCopyPath);
+        if (conn is null) return result;
+
+        var stmt = conn.createStatement();
+        var rs   = stmt.executeQuery(sql);
+
+        // Listes mutables le temps de la lecture ; le tri de la requête garantit l'ordre par GAME_FILE.ID.
+        var filesByGame = new Dictionary<int, List<GameFileInfo>>();
+        int lastFileId  = int.MinValue;
+
+        while (rs.next())
+        {
+            int     gameId    = rs.getInt("GAME_ID");
+            int     fileId    = rs.getInt("ID");
+            string? name      = rs.getString("NAME");
+            string? directory = rs.getString("DIRECTORY");
+            string? path      = rs.getString("PATH");
+
+            // Sans profil, pas de fichier réel à copier.
+            if (path is null) continue;
+
+            // Doublon de profil pour le même fichier : on garde le premier rencontré.
+            if (fileId == lastFileId) continue;
+            lastFileId = fileId;
+
+            if (!filesByGame.TryGetValue(gameId, out var list))
+            {
+                list = new List<GameFileInfo>();
+                filesByGame[gameId] = list;
+            }
+
+            list.Add(new GameFileInfo
+            {
+                GameId            = gameId,
+                FileId            = fileId,
+                Label             = name      ?? string.Empty,
+                RelativePath      = path,
+                RelativeDirectory = directory ?? string.Empty,
+            });
+        }
+
+        rs.close();
+        stmt.close();
+
+        foreach (var (gameId, list) in filesByGame)
+            result[gameId] = list.AsReadOnly();
+
+        return result;
+    }
+
+    // ── Métadonnées gamelist ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Métadonnées gamelist de tous les jeux en 3 requêtes groupées (jamais par jeu), locale "fr" ou "en" avec repli anglais.
+    /// Requête A : données principales + développeur/éditeur. Requête B : traductions des descriptions.
+    /// Requête C : genres traduits. Le repli anglais s'applique par description et par genre.
+    /// Connexion impossible → dictionnaire vide. Les erreurs Derby remontent à l'appelant.
+    /// </summary>
+    /// <param name="dbCopyPath">Chemin du dossier de la copie de la base Derby.</param>
+    /// <param name="localeTag">Tag de locale ("en" ou "fr") ; tout autre tag est normalisé vers "en".</param>
+    public Dictionary<int, GameMetadata> GetGamelistMetadata(string dbCopyPath, string localeTag)
+    {
+        // Normalisation de la locale : seuls "en" et "fr" sont supportés (même règle que GetGameDetail)
+        string locale = localeTag == "fr" ? "fr" : "en";
+
+        var result = new Dictionary<int, GameMetadata>();
+
+        using var conn = OpenConnection(dbCopyPath);
+        if (conn is null) return result;
+
+        // ── Requête A : données principales ──────────────────────────────
+        const string sqlMain = """
+            SELECT g.ID,
+                   g.TITLE,
+                   g."YEAR",
+                   g.PLAYERS,
+                   g.DESCRIPTION_I18N_ID,
+                   d.NAME AS DEVELOPER_NAME,
+                   p.NAME AS PUBLISHER_NAME
+            FROM APP.GAME g
+            LEFT JOIN APP.DEVELOPER d ON d.ID = g.DEVELOPER_ID
+            LEFT JOIN APP.PUBLISHER p ON p.ID = g.PUBLISHER_ID
+            """;
+
+        // Lignes brutes en attente des traductions (description et genres résolues ensuite).
+        var mainRows = new List<(int id, string title, int? year, int? players, int? descI18nId, string? developer, string? publisher)>();
+
+        var stmtA = conn.createStatement();
+        var rsA   = stmtA.executeQuery(sqlMain);
+
+        while (rsA.next())
+        {
+            int     id        = rsA.getInt("ID");
+            string  title     = rsA.getString("TITLE") ?? string.Empty;
+            string? developer = rsA.getString("DEVELOPER_NAME");
+            string? publisher = rsA.getString("PUBLISHER_NAME");
+
+            int  rawYear    = rsA.getInt("YEAR");
+            int? year       = rsA.wasNull() ? (int?)null : rawYear;
+            int  rawPlayers = rsA.getInt("PLAYERS");
+            int? players    = rsA.wasNull() ? (int?)null : rawPlayers;
+            int  rawDescId  = rsA.getInt("DESCRIPTION_I18N_ID");
+            int? descI18nId = rsA.wasNull() ? (int?)null : rawDescId;
+
+            mainRows.Add((id, title, year, players, descI18nId, developer, publisher));
+        }
+
+        rsA.close();
+        stmtA.close();
+
+        // ── Requête B : traductions des descriptions ─────────────────────
+        const string sqlDesc = """
+            SELECT t.I18N_ID, loc.TAG, t.STRING
+            FROM APP."TRANSLATION" t
+            JOIN APP.LOCALE loc ON loc.ID = t.LOCALE_ID
+            WHERE t.I18N_ID IN (SELECT g.DESCRIPTION_I18N_ID FROM APP.GAME g WHERE g.DESCRIPTION_I18N_ID IS NOT NULL)
+            """;
+
+        // I18N_ID → (texte dans la locale demandée, texte anglais)
+        var descByI18n = new Dictionary<int, (string? locale, string? en)>();
+
+        var stmtB = conn.createStatement();
+        var rsB   = stmtB.executeQuery(sqlDesc);
+
+        while (rsB.next())
+        {
+            int    i18nId = rsB.getInt("I18N_ID");
+            string tag    = rsB.getString("TAG")    ?? string.Empty;
+            string text   = rsB.getString("STRING") ?? string.Empty;
+
+            descByI18n.TryGetValue(i18nId, out var pair);
+            if (tag == locale) pair.locale = text;
+            if (tag == "en")   pair.en     = text;
+            descByI18n[i18nId] = pair;
+        }
+
+        rsB.close();
+        stmtB.close();
+
+        // ── Requête C : genres traduits ──────────────────────────────────
+        const string sqlGenres = """
+            SELECT gg.GAME_ID, gg.GENRE_ID, loc.TAG, t.STRING
+            FROM APP.GAME_GENRE gg
+            JOIN APP.GENRE ge         ON ge.ID = gg.GENRE_ID
+            JOIN APP."TRANSLATION" t  ON t.I18N_ID = ge.NAME_I18N_ID
+            JOIN APP.LOCALE loc       ON loc.ID = t.LOCALE_ID
+            """;
+
+        // (GAME_ID, GENRE_ID) → (nom dans la locale demandée, nom anglais)
+        var genreByGame = new Dictionary<(int gameId, int genreId), (string? locale, string? en)>();
+
+        var stmtC = conn.createStatement();
+        var rsC   = stmtC.executeQuery(sqlGenres);
+
+        while (rsC.next())
+        {
+            var    key  = (rsC.getInt("GAME_ID"), rsC.getInt("GENRE_ID"));
+            string tag  = rsC.getString("TAG")    ?? string.Empty;
+            string text = rsC.getString("STRING") ?? string.Empty;
+
+            genreByGame.TryGetValue(key, out var pair);
+            if (tag == locale) pair.locale = text;
+            if (tag == "en")   pair.en     = text;
+            genreByGame[key] = pair;
+        }
+
+        rsC.close();
+        stmtC.close();
+
+        // Regroupement des genres résolus par jeu, dédupliqués sans tenir compte de la casse.
+        var genresByGame = new Dictionary<int, HashSet<string>>();
+        foreach (var ((gameId, _), pair) in genreByGame)
+        {
+            string? genreName = pair.locale ?? pair.en;
+            if (genreName is null) continue;
+
+            if (!genresByGame.TryGetValue(gameId, out var set))
+            {
+                set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                genresByGame[gameId] = set;
+            }
+            set.Add(genreName);
+        }
+
+        // ── Assemblage ───────────────────────────────────────────────────
+        foreach (var (id, title, year, players, descI18nId, developer, publisher) in mainRows)
+        {
+            string? description = null;
+            if (descI18nId.HasValue && descByI18n.TryGetValue(descI18nId.Value, out var descPair))
+                description = descPair.locale ?? descPair.en;
+
+            IReadOnlyList<string> genres = [];
+            if (genresByGame.TryGetValue(id, out var set))
+            {
+                var sorted = set.ToList();
+                sorted.Sort(StringComparer.OrdinalIgnoreCase);
+                genres = sorted.AsReadOnly();
+            }
+
+            result[id] = new GameMetadata
+            {
+                GameId        = id,
+                Title         = title,
+                Description   = description,
+                Year          = year,
+                Players       = players,
+                DeveloperName = developer,
+                PublisherName = publisher,
+                Genres        = genres,
+            };
+        }
+
+        return result;
     }
 
     // ── Helpers chemins ───────────────────────────────────────────────────

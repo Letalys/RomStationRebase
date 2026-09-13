@@ -253,7 +253,8 @@
                                     Height="{Binding DataContext.MosaicCardHeight, RelativeSource={RelativeSource AncestorType=ListView}}"
                                     Background="{DynamicResource CoverBackgroundBrush}" CornerRadius="4"
                                     Visibility="{Binding CoverExists, Converter={StaticResource BoolToVisibilityConverter}}">
-                                <Image Source="{Binding CoverPath, Converter={StaticResource StringToImageSourceConverter}}"
+                                <!-- Décodée à 400 px : assez pour la grande vignette (320 px), quatre fois plus léger que la jaquette pleine taille -->
+                                <Image Source="{Binding CoverPath, Converter={StaticResource StringToImageSourceConverter}, ConverterParameter=400}"
                                        Stretch="Uniform"
                                        RenderOptions.BitmapScalingMode="HighQuality"/>
                             </Border>
@@ -650,12 +651,20 @@
                                                        FontSize="12"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="3"
-                                                       Text="{Binding GameCount}"
-                                                       FontSize="11"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       VerticalAlignment="Center"
-                                                       Margin="6,0,0,0"/>
+                                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                                                <!-- Jeux cochés dans ce système, même quand il est masqué : la sélection survit au filtre -->
+                                                <Border Background="{DynamicResource AccentBrush}" CornerRadius="8"
+                                                        Padding="6,0" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                        Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                        ToolTip="{x:Static res:Strings.Sidebar_SelectedCount_Tooltip}">
+                                                    <TextBlock Text="{Binding SelectedCount}" FontSize="10" FontWeight="SemiBold"
+                                                               Foreground="White" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="{Binding GameCount}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -738,21 +747,41 @@
                                    VerticalAlignment="Center"
                                    Margin="0,0,10,0"/>
 
-                        <!-- Compteur -->
-                        <Border x:Name="ContentCount"
-                                Grid.Column="1"
-                                Background="{DynamicResource BackgroundBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="10"
-                                Padding="8,2"
-                                VerticalAlignment="Center"
-                                Margin="0,0,12,0">
-                            <TextBlock x:Name="ContentCountText"
-                                       Text="{Binding FilteredGameCount}"
-                                       FontSize="11"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
-                        </Border>
+                        <!-- Compteurs : jeux visibles, puis jeux cochés (filtres compris — la sélection ne se limite pas à ce qui est affiché) -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border x:Name="ContentCount"
+                                    Background="{DynamicResource BackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="8,2"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,8,0">
+                                <TextBlock x:Name="ContentCountText"
+                                           Text="{Binding FilteredGameCount}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            </Border>
+                            <Border Background="{DynamicResource AccentBrush}"
+                                    CornerRadius="10"
+                                    Padding="8,2"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,12,0"
+                                    Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    ToolTip="{x:Static res:Strings.Main_SelectedBadge_Tooltip}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding SelectedCountText}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="White" VerticalAlignment="Center"/>
+                                    <!-- Tout désélectionner, masqués compris : la seule commande qui agit sur toute la sélection -->
+                                    <Button Style="{StaticResource LinkButtonOnAccent}" FontSize="11" FontWeight="Bold"
+                                            Margin="8,0,0,0" Padding="0" VerticalAlignment="Center"
+                                            Content="✕"
+                                            Command="{Binding ClearSelectionCommand}"
+                                            ToolTip="{x:Static res:Strings.Main_ClearSelection_Tooltip}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
 
                         <!-- Filtres actifs — toggle "Problèmes uniquement" visible si HasAnyIssues -->
                         <StackPanel x:Name="ActiveFilters"
@@ -861,11 +890,15 @@
                           Background="Transparent"
                           VirtualizingPanel.IsVirtualizing="True"
                           VirtualizingPanel.VirtualizationMode="Recycling"
+                          VirtualizingPanel.CacheLength="1"
+                          VirtualizingPanel.CacheLengthUnit="Page"
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                           ScrollViewer.VerticalScrollBarVisibility="Auto">
                     <ListView.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <!-- ItemSize = conteneur de chaque item : 216×295 — la carte gère ses marges via Margin="8" -->
+                            <!-- ItemSize = conteneur de chaque item : 216×295 — la carte gère ses marges via Margin="8".
+                                 La molette est gérée dans le code-behind (OnMosaicMouseWheel) : un cran = une ligne de cartes.
+                                 CacheLength d'une page de part et d'autre : les cartes sont prêtes avant d'entrer à l'écran. -->
                             <toolkit:VirtualizingWrapPanel ItemSize="216,295"/>
                         </ItemsPanelTemplate>
                     </ListView.ItemsPanel>
@@ -959,7 +992,7 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Grid>
                                                 <Image x:Name="CoverImage"
-                                                       Source="{Binding CoverPath, Converter={StaticResource StringToImageSourceConverter}}"
+                                                       Source="{Binding CoverPath, Converter={StaticResource StringToImageSourceConverter}, ConverterParameter=160}"
                                                        Width="{Binding DataContext.ListThumbWidth, RelativeSource={RelativeSource AncestorType=ListView}}"
                                                        Height="{Binding DataContext.ListThumbHeight, RelativeSource={RelativeSource AncestorType=ListView}}"
                                                        Stretch="Uniform"
@@ -1237,6 +1270,19 @@
 
                 <!-- GAUCHE : contenu existant inchangé -->
                 <StackPanel Orientation="Horizontal">
+                    <!-- Aucune architecture cible : le rebase est impossible, on le dit ici et on mène aux Paramètres -->
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding HasNoArchitecture, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="&#xE7BA;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="12" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="{x:Static res:Strings.Main_NoArchitecture_Warning}"
+                                   FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        <Button Style="{StaticResource LinkButtonOnAccent}" FontSize="11" Padding="6,0"
+                                Content="{x:Static res:Strings.Rebase_ManageArchitectures}"
+                                Command="{Binding SettingsCommand}" VerticalAlignment="Center"/>
+                        <Rectangle Style="{StaticResource StatusSeparator}"/>
+                    </StackPanel>
+
                     <TextBlock x:Name="SelectedCountLabel"
                                Text="{Binding SelectedCountText}"
                                FontSize="11"

@@ -11,9 +11,9 @@
     { "romStationSystem": "GameBoy Color",   "targetFolder": "GBC"    },
     { "romStationSystem": "Game Gear",       "targetFolder": "GG"     },
     { "romStationSystem": "Master System",   "targetFolder": "SMS"    },
-    { "romStationSystem": "Neo-Geo",         "targetFolder": "NEOGEO" },
-    { "romStationSystem": "Arcade",          "targetFolder": "MAME"   },
-    { "romStationSystem": "Dreamcast",       "targetFolder": "DC"     },
-    { "romStationSystem": "PSP",             "targetFolder": "PSP"    }
+    { "romStationSystem": "Neo-Geo",         "targetFolder": "NEOGEO", "keepFileName": true },
+    { "romStationSystem": "Arcade",          "targetFolder": "MAME",   "keepFileName": true },
+    { "romStationSystem": "Dreamcast",       "targetFolder": "DC",     "extract": true },
+    { "romStationSystem": "PSP",             "targetFolder": "PSP",    "extract": true }
   ]
 }

@@ -9,6 +9,11 @@ public static class ErrorMessageClassifier
     /// <summary>Retourne un message localisé selon le type et le contenu de l'exception.</summary>
     public static string Classify(Exception ex)
     {
+        // Archives : une entrée qui remonte hors du dossier cible, ou un zip illisible
+        if (ex is Services.UnsafeArchiveException)
+            return Strings.Rebase_Error_UnsafeArchive;
+        if (ex is System.IO.InvalidDataException)
+            return Strings.Rebase_Error_ArchiveInvalid;
         if (ex is System.IO.DirectoryNotFoundException && LooksLikeDriveLetter(ex.Message))
             return Strings.Rebase_Error_InvalidDriveLetter;
         if (ex is System.IO.DirectoryNotFoundException)

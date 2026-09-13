@@ -134,6 +134,14 @@ public class ConfigService
         // LastSortCriteria : normalisé en silence — préférence visuelle sans impact critique
         if (prefs.LastSortCriteria != "Title" && prefs.LastSortCriteria != "System")
             prefs.LastSortCriteria = "Title";
+
+        // Options de sortie du rebase : whitelist silencieuse, l'architecture réapplique ses défauts au besoin
+        if (!new[] { "Copy", "ExtractRequired", "ExtractAll" }.Contains(prefs.LastRebaseArchiveMode))
+            prefs.LastRebaseArchiveMode = "ExtractRequired";
+        if (prefs.LastRebaseExtractLayout != "Auto" && prefs.LastRebaseExtractLayout != "Subfolder")
+            prefs.LastRebaseExtractLayout = "Auto";
+        if (!ValidLanguages.Contains(prefs.LastRebaseMetadataLanguage))
+            prefs.LastRebaseMetadataLanguage = "auto";
     }
 
     // ── AppMetadata ───────────────────────────────────────────────────────
@@ -193,9 +201,11 @@ public class ConfigService
         // Fallback : valeurs codées en dur + reconstruction du fichier
         var fallback = new WindowDefaults
         {
-            MainWindow       = new WindowSize { Width = 1280, Height = 800  },
-            RebaseWindow     = new WindowSize { Width = 1100, Height = 720  },
-            GameDetailWindow = new WindowSize { Width = 700,  Height = 820  },
+            MainWindow               = new WindowSize { Width = 1280, Height = 800  },
+            RebaseWindow             = new WindowSize { Width = 1100, Height = 720  },
+            GameDetailWindow         = new WindowSize { Width = 700,  Height = 820  },
+            SettingsWindow           = new WindowSize { Width = 620,  Height = 780  },
+            ArchitectureEditorWindow = new WindowSize { Width = 1000, Height = 720  },
         };
 
         try
@@ -218,5 +228,6 @@ public class ConfigService
     private static bool IsValid(WindowDefaults d)
         => d.MainWindow.Width        >= 400 && d.MainWindow.Height        >= 300
         && d.RebaseWindow.Width      >= 400 && d.RebaseWindow.Height      >= 300
-        && d.GameDetailWindow.Width  >= 400 && d.GameDetailWindow.Height  >= 300;
+        && d.GameDetailWindow.Width  >= 400 && d.GameDetailWindow.Height  >= 300
+        && d.ArchitectureEditorWindow.Width >= 400 && d.ArchitectureEditorWindow.Height >= 300;
 }

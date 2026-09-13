@@ -39,6 +39,11 @@
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
+  <!-- Le projet de tests accède aux helpers internes (planificateur, rédacteurs) -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="RomStationRebase.Tests" />
+  </ItemGroup>
+
   <!-- IKVM : pont Java→.NET pour accéder à la base Derby de RomStation -->
   <ItemGroup>
     <PackageReference Include="IKVM" Version="8.15.0" />
