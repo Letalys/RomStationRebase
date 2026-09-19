@@ -13,7 +13,8 @@ public sealed record GamelistGame(
     string? Developer,
     string? Publisher,
     string? Genre,
-    string? Players);
+    string? Players,
+    long?   Size = null);
 
 /// <summary>Résultat de l'écriture d'un gamelist.xml.</summary>
 public sealed class GamelistWriteResult

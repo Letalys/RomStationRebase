@@ -17,9 +17,15 @@
         Background="{DynamicResource BackgroundBrush}"
         d:DataContext="{d:DesignInstance Type=vm:RebaseViewModel, IsDesignTimeCreatable=False}">
 
+    <Window.InputBindings>
+        <KeyBinding Modifiers="Ctrl"       Key="S" Command="{Binding SavePresetCommand}"/>
+        <KeyBinding Modifiers="Ctrl+Shift" Key="S" Command="{Binding SavePresetAsCommand}"/>
+    </Window.InputBindings>
+
     <Window.Resources>
         <BooleanToVisibilityConverter            x:Key="BoolToVisibilityConverter"/>
         <helpers:StringToImageSourceConverter    x:Key="StringToImageSourceConverter"/>
+        <helpers:NullToVisibilityConverter       x:Key="NullToVisibilityConverter"/>
 
         <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Width"           Value="46"/>
@@ -218,9 +224,13 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{x:Static res:Strings.Rebase_Title}"
-                           Foreground="White" FontWeight="SemiBold" FontSize="13"
-                           VerticalAlignment="Center" Margin="14,0"/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0">
+                    <TextBlock Text="{x:Static res:Strings.Rebase_Title}"
+                               Foreground="White" FontWeight="SemiBold" FontSize="13"/>
+                    <!-- Présélection chargée : son nom, suivi d'un point tant qu'il reste des modifications -->
+                    <TextBlock Text="{Binding PresetTitleSuffix}"
+                               Foreground="White" FontSize="13" Opacity="0.9"/>
+                </StackPanel>
                 <Button Grid.Column="1" x:Name="MaximizeButton"
                         Style="{StaticResource ChromeButton}"
                         Content="□" Click="MaximizeButton_Click"/>
@@ -288,9 +298,23 @@
                     <ColumnDefinition Width="12"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Présélection chargée : ce qui se règle ici lui appartient, et ne touche plus aux derniers paramètres utilisés sans elle -->
+                <StackPanel Grid.Row="0" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="2,0,0,8"
+                            Visibility="{Binding PresetBanner, Converter={StaticResource NullToVisibilityConverter}}">
+                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="12" Margin="0,1,6,0" VerticalAlignment="Center"
+                               Foreground="{DynamicResource AccentBrush}"/>
+                    <TextBlock Text="{Binding PresetBanner}" FontSize="11" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </StackPanel>
 
                 <!-- Groupe Fichiers : archives, rangement, M3U -->
-                <Border Grid.Column="0" Style="{StaticResource OptionCard}">
+                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource OptionCard}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.Rebase_Group_Files}"/>
                         <Grid>
@@ -348,7 +372,7 @@
                 </Border>
 
                 <!-- Groupe Métadonnées : jaquettes, gamelist, langue -->
-                <Border Grid.Column="2" Style="{StaticResource OptionCard}">
+                <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource OptionCard}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.Rebase_Group_Metadata}"/>
 
@@ -364,8 +388,14 @@
                                     ToolTip="{x:Static res:Strings.Rebase_GenerateGamelist_Tooltip}">
                             <ToggleButton IsChecked="{Binding GenerateGamelist}"
                                           Style="{StaticResource ToggleSwitchButton}"/>
-                            <TextBlock Style="{StaticResource ToggleLabel}" Text="{x:Static res:Strings.Rebase_GenerateGamelist}"/>
+                            <TextBlock Style="{StaticResource ToggleLabel}" Text="{Binding GenerateGamelistLabel}"/>
                         </StackPanel>
+
+                        <!-- Métadonnées hors de l'arborescence des ROMs (ES-DE, Cocoon) : dire où elles vont et quoi en faire -->
+                        <TextBlock Margin="0,6,0,0" FontSize="11" TextWrapping="Wrap" MaxWidth="300" HorizontalAlignment="Left"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding MetadataLocationHint}"
+                                   Visibility="{Binding MetadataLocationHint, Converter={StaticResource NullToVisibilityConverter}}"/>
 
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
                                     Visibility="{Binding ShowMetadataLanguage, Converter={StaticResource BoolToVisibilityConverter}}"
@@ -394,7 +424,7 @@
                 </Border>
 
                 <!-- Groupe Copie : doublons, copies concurrentes, tentatives, délai -->
-                <Border Grid.Column="4" Style="{StaticResource OptionCard}" MinWidth="300">
+                <Border Grid.Row="1" Grid.Column="4" Style="{StaticResource OptionCard}" MinWidth="300">
                     <StackPanel>
                         <TextBlock Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.Rebase_Group_Copy}"/>
                         <Grid>
@@ -723,6 +753,47 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Enregistrer cette configuration : à côté de Démarrer, là où se conclut ce qui vient d'être réglé.
+                         Bouton scindé (« Enregistrer sous… » sous la flèche), retiré pendant un rebase. -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,14,0"
+                                Visibility="{Binding IsNotRunning, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Button Command="{Binding SavePresetCommand}"
+                                ToolTip="{Binding SavePresetTooltip}"
+                                Padding="10,6">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE74E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="13" Margin="0,1,6,0" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AccentBrush}"/>
+                                <TextBlock Text="{x:Static res:Strings.Rebase_SavePreset}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="PresetMenuButton"
+                                Padding="6,6" Margin="-1,0,0,0"
+                                Click="OnPresetMenuButtonClick"
+                                ToolTip="{x:Static res:Strings.Preset_More_Tooltip}">
+                            <TextBlock Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="9" VerticalAlignment="Center"/>
+                        </Button>
+                        <Popup x:Name="PresetMenuPopup"
+                               PlacementTarget="{Binding ElementName=PresetMenuButton}"
+                               Placement="Top" VerticalOffset="-4"
+                               StaysOpen="False" AllowsTransparency="True"
+                               Closed="OnPresetMenuClosed">
+                            <Border Background="{DynamicResource SurfaceBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                    CornerRadius="6" Padding="4" MinWidth="240" Margin="0,8,8,0">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.25"/>
+                                </Border.Effect>
+                                <StackPanel Button.Click="OnPresetMenuItemClick">
+                                    <Button Style="{StaticResource MenuItemButton}"
+                                            Tag="{x:Static res:Strings.Preset_SaveAs_Shortcut}"
+                                            Content="{x:Static res:Strings.Preset_SaveAs}"
+                                            Command="{Binding SavePresetAsCommand}"/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </StackPanel>
                     <Button Content="{Binding PauseResumeText}"
                             Command="{Binding PauseResumeCommand}"
                             Padding="10,6" Margin="0,0,8,0"

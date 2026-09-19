@@ -32,7 +32,7 @@ public class ArchitectureEntry
     /// <summary>Copier les jaquettes par défaut.</summary>
     public bool CoversByDefault { get; set; }
 
-    /// <summary>Dossier des jaquettes, relatif au dossier système (ex : "images", "Imgs").</summary>
+    /// <summary>Dossier des jaquettes, relatif au dossier système (ex : "images", "Imgs"). Avec le marqueur {system}, relatif à la destination (ex : "ES-DE/downloaded_media/{system}/covers").</summary>
     public string CoverFolder { get; set; } = "images";
 
     /// <summary>Suffixe ajouté au nom de la ROM pour nommer la jaquette (ex : "-image" pour l'art local d'EmulationStation).</summary>
@@ -44,7 +44,7 @@ public class ArchitectureEntry
     /// <summary>Hauteur maximale des jaquettes copiées, 0 = taille d'origine.</summary>
     public int CoverMaxHeight { get; set; }
 
-    /// <summary>Format du fichier de métadonnées : "emulationstation" ou null si la cible n'en lit aucun.</summary>
+    /// <summary>Format du fichier de métadonnées, un identifiant de <see cref="MetadataFormats"/>, ou null si la cible n'en lit aucun.</summary>
     public string? GamelistFormat { get; set; }
 
     /// <summary>Générer le fichier de métadonnées par défaut.</summary>
@@ -52,7 +52,7 @@ public class ArchitectureEntry
 
     /// <summary>True si la cible sait lire un fichier de métadonnées. Dérivé, jamais sérialisé.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
-    public bool SupportsGamelist => !string.IsNullOrWhiteSpace(GamelistFormat);
+    public bool SupportsGamelist => MetadataFormats.IsKnown(GamelistFormat);
 
     /// <summary>Provenance de l'entrée, posée par ArchitectureService au chargement. Jamais sérialisée.</summary>
     [System.Text.Json.Serialization.JsonIgnore]

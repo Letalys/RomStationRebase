@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:res="clr-namespace:RomStationRebase.Resources"
         xmlns:vm="clr-namespace:RomStationRebase.ViewModels"
+        xmlns:helpers="clr-namespace:RomStationRebase.Helpers"
         mc:Ignorable="d"
         Title="{x:Static res:Strings.Settings_Title}"
         WindowStyle="None" AllowsTransparency="False"
@@ -18,6 +19,7 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
 
         <!-- Style de base pour les boutons de chrome de titlebar — aligné sur RebaseWindow -->
         <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -205,13 +207,35 @@
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,0,0,10"/>
 
-                        <!-- Bouton : ouvrir l'éditeur d'architectures cibles -->
-                        <Button Grid.Row="14" Grid.ColumnSpan="2"
-                                Content="{x:Static res:Strings.Settings_Architectures_Edit}"
-                                Command="{Binding EditArchitecturesCommand}"
-                                HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Left"
-                                Padding="12,8"/>
+                        <!-- Même ligne de grille : le bouton des architectures, puis la section des présélections -->
+                        <StackPanel Grid.Row="14" Grid.ColumnSpan="2">
+                            <!-- Bouton : ouvrir l'éditeur d'architectures cibles -->
+                            <Button Content="{x:Static res:Strings.Settings_Architectures_Edit}"
+                                    Command="{Binding EditArchitecturesCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Padding="12,8"/>
+
+                            <!-- Header PRÉSÉLECTIONS -->
+                            <TextBlock Text="{x:Static res:Strings.Settings_Section_Presets}"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,24,0,12"/>
+                            <TextBlock Text="{x:Static res:Strings.Settings_Presets_Description}"
+                                       FontSize="12" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,0,0,10"/>
+                            <!-- Associer ou retirer : le libellé dit toujours ce que fera le clic -->
+                            <Button Content="{Binding PresetAssociationButtonText}"
+                                    Command="{Binding TogglePresetAssociationCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Padding="12,8"/>
+                            <TextBlock Text="{Binding PresetAssociationStatus}"
+                                       FontSize="11" TextWrapping="Wrap" Margin="2,6,0,0"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Visibility="{Binding PresetAssociationStatus, Converter={StaticResource NullToVisibilityConverter}}"/>
+                        </StackPanel>
 
                         <!-- Header À PROPOS (span 2 colonnes) -->
                         <TextBlock Grid.Row="16" Grid.ColumnSpan="2"

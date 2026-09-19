@@ -653,7 +653,7 @@ Détails techniques :
     <value>Générer gamelist.xml</value>
   </data>
   <data name="Rebase_GenerateGamelist_Tooltip" xml:space="preserve">
-    <value>Écrit titre, description, année, développeur, éditeur, genres et joueurs pour chaque jeu copié. Un gamelist.xml existant est fusionné : favoris, compteurs de parties et jeux masqués de l'appareil sont préservés.</value>
+    <value>Écrit titre, description, année, développeur, éditeur, genres et joueurs pour chaque jeu copié, dans le fichier que lit la cible. Un fichier existant est fusionné : favoris, compteurs de parties et jeux masqués de l'appareil sont préservés.</value>
   </data>
   <data name="Rebase_MetadataLanguage" xml:space="preserve">
     <value>Langue des métadonnées</value>
@@ -707,7 +707,7 @@ Détails techniques :
     <value>{0} jeu(x) · {1} fichier(s) à écrire</value>
   </data>
   <data name="Rebase_Error_GamelistWrite" xml:space="preserve">
-    <value>Impossible d'écrire gamelist.xml ({0}) : {1}</value>
+    <value>Impossible d'écrire {0} : {1}</value>
   </data>
   <data name="Rebase_Error_ArchiveInvalid" xml:space="preserve">
     <value>Archive invalide ou illisible</value>
@@ -716,16 +716,16 @@ Détails techniques :
     <value>Archive refusée : une entrée pointe hors du dossier cible</value>
   </data>
   <data name="Rebase_Gamelist_Backup" xml:space="preserve">
-    <value>Un gamelist.xml illisible a été sauvegardé sous {0}</value>
+    <value>Un fichier de métadonnées illisible a été sauvegardé sous {0}</value>
   </data>
   <data name="Rebase_Completed_Metadata" xml:space="preserve">
     <value>Métadonnées écrites dans {0} dossier(s) système.</value>
   </data>
   <data name="Rebase_BackupGamelist" xml:space="preserve">
-    <value>Sauvegarder le gamelist.xml existant</value>
+    <value>Sauvegarder le fichier existant</value>
   </data>
   <data name="Rebase_BackupGamelist_Tooltip" xml:space="preserve">
-    <value>Avant la fusion, une copie nommée gamelist.xml.aaaammjj est conservée à côté du fichier.</value>
+    <value>Avant la fusion, une copie datée (par exemple gamelist.xml.aaaammjj) est conservée à côté du fichier.</value>
   </data>
   <data name="Rebase_RemoveItem" xml:space="preserve">
     <value>Retirer de ce rebase</value>
@@ -791,7 +791,7 @@ Détails techniques :
     <value>Dossier</value>
   </data>
   <data name="ArchEditor_CoverFolder_Tooltip" xml:space="preserve">
-    <value>Dossier des jaquettes, relatif à chaque dossier système (ex. : images)</value>
+    <value>Dossier des jaquettes, relatif à chaque dossier système (ex : images). Avec le marqueur {system}, le chemin part de la racine de la destination (ex : ES-DE/downloaded_media/{system}/covers).</value>
   </data>
   <data name="ArchEditor_CoverSuffix" xml:space="preserve">
     <value>Suffixe</value>
@@ -809,16 +809,16 @@ Détails techniques :
     <value>En pixels, 0 = taille d'origine</value>
   </data>
   <data name="ArchEditor_GamelistFormat" xml:space="preserve">
-    <value>Format du gamelist</value>
+    <value>Fichier de métadonnées</value>
   </data>
   <data name="ArchEditor_GamelistFormat_None" xml:space="preserve">
     <value>Aucun</value>
   </data>
   <data name="ArchEditor_GamelistFormat_EmulationStation" xml:space="preserve">
-    <value>EmulationStation</value>
+    <value>EmulationStation (gamelist.xml)</value>
   </data>
   <data name="ArchEditor_GamelistByDefault" xml:space="preserve">
-    <value>Gamelist par défaut</value>
+    <value>Généré par défaut</value>
   </data>
   <data name="ArchEditor_Column_System" xml:space="preserve">
     <value>Système RomStation</value>
@@ -999,5 +999,253 @@ Détails techniques :
   </data>
   <data name="Rebase_PlanUnmapped" xml:space="preserve">
     <value> · {0} sans correspondance</value>
+  </data>
+  <data name="Rebase_GenerateMetadataFile" xml:space="preserve">
+    <value>Générer {0}</value>
+  </data>
+  <data name="Rebase_MetadataHint_EsDe" xml:space="preserve">
+    <value>Métadonnées et jaquettes vont dans un dossier ES-DE à la racine de la destination. À fusionner avec le dossier ES-DE de l'appareil, ou à importer depuis Cocoon.</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_EsDe" xml:space="preserve">
+    <value>ES-DE / Cocoon (gamelist.xml)</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_Miyoo" xml:space="preserve">
+    <value>Onion / Spruce (miyoogamelist.xml)</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_Pegasus" xml:space="preserve">
+    <value>Pegasus (metadata.pegasus.txt)</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_Logiqx" xml:space="preserve">
+    <value>Logiqx (.dat)</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_None" xml:space="preserve">
+    <value>Aucun fichier de métadonnées n'est écrit : la cible n'en lit pas, ou construit sa liste d'après les seuls fichiers.</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_EmulationStation" xml:space="preserve">
+    <value>gamelist.xml dans chaque dossier système, fusionné avec l'existant. Pour EmulationStation, RetroPie, ArkOS, dArkOS, Batocera, Knulli et ROCKNIX.</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_EsDe" xml:space="preserve">
+    <value>ES-DE/gamelists/&lt;système&gt;/gamelist.xml à la racine de la destination, sans balise image : ES-DE ignore un gamelist posé parmi les ROMs et retrouve les jaquettes par leur nom. Dossier des jaquettes à régler sur ES-DE/downloaded_media/{system}/covers. C'est aussi ce qu'importe Cocoon.</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_Miyoo" xml:space="preserve">
+    <value>miyoogamelist.xml dans chaque dossier système, réduit à path, name et image. Les jeux rangés dans un sous-dossier n'y figurent pas, Onion ne sait pas les lister. Jaquettes : dossier Imgs, 250 × 360 au plus.</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_Pegasus" xml:space="preserve">
+    <value>metadata.pegasus.txt dans chaque dossier système, fusionné avec l'existant. La commande de lancement reste dans votre propre collection Pegasus.</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_Logiqx" xml:space="preserve">
+    <value>&lt;système&gt;.dat dans chaque dossier système, au format Logiqx que produit Skraper. Lu par Daijisho et les gestionnaires de ROMs. Ne désigne aucune jaquette.</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Preset_Menu" xml:space="preserve">
+    <value>Sélection</value>
+  </data>
+  <data name="Preset_Menu_Tooltip" xml:space="preserve">
+    <value>Enregistrer les jeux cochés et les paramètres du rebase dans un fichier, pour les retrouver plus tard</value>
+  </data>
+  <data name="Preset_Open" xml:space="preserve">
+    <value>Ouvrir…</value>
+  </data>
+  <data name="Preset_Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Preset_SaveAs" xml:space="preserve">
+    <value>Enregistrer sous…</value>
+  </data>
+  <data name="Preset_Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="Preset_Close_Tooltip" xml:space="preserve">
+    <value>Fermer cette présélection : ses jeux sont décochés et la fenêtre de rebase revient aux derniers paramètres utilisés sans présélection</value>
+  </data>
+  <data name="Preset_File_Tooltip" xml:space="preserve">
+    <value>Présélection chargée. Un point après son nom signale des modifications non enregistrées.</value>
+  </data>
+  <data name="Preset_Saved" xml:space="preserve">
+    <value>Présélection enregistrée : {0}</value>
+  </data>
+  <data name="Preset_FileFilter" xml:space="preserve">
+    <value>Présélection RomStation Rebase</value>
+  </data>
+  <data name="Preset_DefaultFileName" xml:space="preserve">
+    <value>preselection</value>
+  </data>
+  <data name="Preset_SaveAs_DialogTitle" xml:space="preserve">
+    <value>Enregistrer la présélection</value>
+  </data>
+  <data name="Preset_Open_DialogTitle" xml:space="preserve">
+    <value>Ouvrir un fichier de présélection</value>
+  </data>
+  <data name="Preset_SaveError_Title" xml:space="preserve">
+    <value>Présélection non enregistrée</value>
+  </data>
+  <data name="Preset_SaveError_Message" xml:space="preserve">
+    <value>Le fichier n'a pas pu être écrit :
+{0}
+
+{1}</value>
+  </data>
+  <data name="Preset_Overwrite_Title" xml:space="preserve">
+    <value>Remplacer le fichier ?</value>
+  </data>
+  <data name="Preset_Overwrite_Message" xml:space="preserve">
+    <value>{0} existe déjà. Voulez-vous le remplacer ?</value>
+  </data>
+  <data name="Preset_Overwrite_Proceed" xml:space="preserve">
+    <value>Remplacer</value>
+  </data>
+  <data name="Preset_Unsaved_Title" xml:space="preserve">
+    <value>Modifications non enregistrées</value>
+  </data>
+  <data name="Preset_Unsaved_Message" xml:space="preserve">
+    <value>La présélection {0} a des modifications non enregistrées : jeux cochés, paramètres du rebase ou règles par jeu.
+
+Les enregistrer ?</value>
+  </data>
+  <data name="Preset_Unsaved_Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Preset_Unsaved_Discard" xml:space="preserve">
+    <value>Ne pas enregistrer</value>
+  </data>
+  <data name="Preset_OpenError_Title" xml:space="preserve">
+    <value>Présélection non ouverte</value>
+  </data>
+  <data name="Preset_OpenError_NotASelection" xml:space="preserve">
+    <value>Ce fichier n'est pas une présélection RomStation Rebase.</value>
+  </data>
+  <data name="Preset_OpenError_InvalidJson" xml:space="preserve">
+    <value>Le fichier est abîmé ou n'est pas du JSON valide :
+{0}</value>
+  </data>
+  <data name="Preset_OpenError_Unreadable" xml:space="preserve">
+    <value>Le fichier n'a pas pu être lu :
+{0}</value>
+  </data>
+  <data name="Preset_OpenError_NoGame" xml:space="preserve">
+    <value>Aucun des {1} jeux de {0} n'est encore dans la bibliothèque. Rien n'a été modifié.</value>
+  </data>
+  <data name="Preset_Replace_Title" xml:space="preserve">
+    <value>Remplacer les jeux cochés ?</value>
+  </data>
+  <data name="Preset_Replace_Message" xml:space="preserve">
+    <value>{0} jeu(x) sont cochés et n'appartiennent à aucune présélection. Ouvrir celle-ci les décochera pour cocher ses {1} jeu(x).</value>
+  </data>
+  <data name="Preset_Replace_Proceed" xml:space="preserve">
+    <value>Remplacer</value>
+  </data>
+  <data name="Preset_Opened_Title" xml:space="preserve">
+    <value>Présélection ouverte avec des écarts</value>
+  </data>
+  <data name="Preset_Opened_Summary" xml:space="preserve">
+    <value>{0} jeux retrouvés dans la bibliothèque sur les {1} de la présélection.</value>
+  </data>
+  <data name="Preset_Warn_NewerVersion" xml:space="preserve">
+    <value>À VÉRIFIER — cette présélection a été écrite par une version plus récente de RomStation Rebase : certains de ses réglages peuvent être ignorés.</value>
+  </data>
+  <data name="Preset_Warn_MissingGames" xml:space="preserve">
+    <value>IGNORÉS — {0} jeu(x) ne sont plus dans la bibliothèque. Ils sortiront de la présélection au prochain enregistrement :</value>
+  </data>
+  <data name="Preset_Warn_AndMore" xml:space="preserve">
+    <value>… et {0} autre(s)</value>
+  </data>
+  <data name="Preset_Warn_MatchedByTitle" xml:space="preserve">
+    <value>RETROUVÉS — {0} jeu(x) reconnus par leur titre et leur système, leur identifiant RomStation ayant changé.</value>
+  </data>
+  <data name="Preset_Warn_MissingArchitecture" xml:space="preserve">
+    <value>REMPLACÉE — l'architecture cible « {0} » n'existe plus. La fenêtre de rebase proposera celle par défaut, avec ses propres réglages de sortie.</value>
+  </data>
+  <data name="Preset_Warn_MissingTarget" xml:space="preserve">
+    <value>À VÉRIFIER — le dossier de destination est introuvable (support non branché ?) :
+{0}</value>
+  </data>
+  <data name="Preset_Warn_HiddenByFilters" xml:space="preserve">
+    <value>{0} jeu(x) cochés sont masqués par les filtres en cours. Le badge de sélection les compte.</value>
+  </data>
+  <data name="Rebase_SavePreset" xml:space="preserve">
+    <value>Enregistrer cette configuration</value>
+  </data>
+  <data name="Rebase_SavePreset_Tooltip" xml:space="preserve">
+    <value>Enregistre les jeux de cette liste, les paramètres ci-dessus et les règles par jeu dans le fichier de présélection (Ctrl+S)</value>
+  </data>
+  <data name="Rebase_SavePresetAs" xml:space="preserve">
+    <value>Enregistrer sous…</value>
+  </data>
+  <data name="Preset_SaveAs_Shortcut" xml:space="preserve">
+    <value>Ctrl+Maj+S</value>
+  </data>
+  <data name="Preset_FileFilter_All" xml:space="preserve">
+    <value>Tous les fichiers</value>
+  </data>
+  <data name="Preset_Open_Tooltip" xml:space="preserve">
+    <value>Ouvrir un fichier de présélection (.rsr) : ses jeux sont cochés et ses paramètres de rebase seront repris par « Rebase vers… » (Ctrl+O)</value>
+  </data>
+  <data name="Preset_Save_Tooltip" xml:space="preserve">
+    <value>Enregistrer la présélection : jeux cochés, paramètres du rebase et règles par jeu (Ctrl+S)</value>
+  </data>
+  <data name="Preset_More_Tooltip" xml:space="preserve">
+    <value>Enregistrer la présélection sous un autre nom</value>
+  </data>
+  <data name="Preset_Discrepancy_Continue" xml:space="preserve">
+    <value>Continuer</value>
+  </data>
+  <data name="Preset_Discrepancy_Cancel" xml:space="preserve">
+    <value>Annuler l'ouverture</value>
+  </data>
+  <data name="Main_RebaseDisabled_Tooltip" xml:space="preserve">
+    <value>Cochez des jeux ou ouvrez une présélection</value>
+  </data>
+  <data name="Main_EmptySelection" xml:space="preserve">
+    <value>Aucun jeu coché ·</value>
+  </data>
+  <data name="Main_EmptySelection_Open" xml:space="preserve">
+    <value>Ouvrir une présélection…</value>
+  </data>
+  <data name="Rebase_PresetBanner" xml:space="preserve">
+    <value>Présélection {0} : destination, options et règles par jeu y sont enregistrées.</value>
+  </data>
+  <data name="Preset_Busy_Title" xml:space="preserve">
+    <value>Un rebase est en cours</value>
+  </data>
+  <data name="Preset_Busy_Message" xml:space="preserve">
+    <value>Rouvrez {0} une fois le rebase terminé.</value>
+  </data>
+  <data name="Settings_Section_Presets" xml:space="preserve">
+    <value>PRÉSÉLECTIONS</value>
+  </data>
+  <data name="Settings_Presets_Description" xml:space="preserve">
+    <value>Une présélection (fichier .rsr) retient les jeux cochés et les paramètres du rebase. Associée à RomStation Rebase, elle s'ouvre d'un double-clic depuis l'Explorateur. L'association ne concerne que votre compte Windows.</value>
+  </data>
+  <data name="Settings_Presets_Associate" xml:space="preserve">
+    <value>Associer les fichiers .rsr à RomStation Rebase</value>
+  </data>
+  <data name="Settings_Presets_Dissociate" xml:space="preserve">
+    <value>Retirer l'association des fichiers .rsr</value>
+  </data>
+  <data name="Settings_Presets_State_This" xml:space="preserve">
+    <value>Les fichiers .rsr s'ouvrent avec cette copie de RomStation Rebase.</value>
+  </data>
+  <data name="Settings_Presets_State_Other" xml:space="preserve">
+    <value>Les fichiers .rsr s'ouvrent avec une autre copie de RomStation Rebase : {0}</value>
+  </data>
+  <data name="Settings_Presets_Error" xml:space="preserve">
+    <value>L'association n'a pas pu être modifiée : {0}</value>
+  </data>
+  <data name="Preset_Zone_Label" xml:space="preserve">
+    <value>PRÉSÉLECTION</value>
+  </data>
+  <data name="Preset_Zone_None" xml:space="preserve">
+    <value>Aucune chargée</value>
+  </data>
+  <data name="Preset_Zone_None_Tooltip" xml:space="preserve">
+    <value>Une présélection est un fichier .rsr qui retient vos jeux cochés et vos paramètres de rebase, pour les retrouver en un clic.</value>
+  </data>
+  <data name="Rebase_SavePreset_Tooltip_File" xml:space="preserve">
+    <value>Enregistre les jeux de cette liste, les paramètres ci-dessus et les règles par jeu dans la présélection {0} (Ctrl+S)</value>
+  </data>
+  <data name="Rebase_SavePreset_Tooltip_New" xml:space="preserve">
+    <value>Enregistre les jeux de cette liste, les paramètres ci-dessus et les règles par jeu dans un nouveau fichier de présélection (.rsr), pour tout retrouver plus tard (Ctrl+S)</value>
   </data>
 </root>

@@ -28,6 +28,9 @@ public class RebaseViewModel : ViewModelBase
     private readonly UserPreferences?        _preferences;
     private readonly ConfigService           _configService = new();
 
+    /// <summary>Sélection de travail partagée avec la fenêtre principale : paramètres et règles par jeu y sont lus à l'ouverture, rendus à la fermeture.</summary>
+    private readonly RebasePresetSessionViewModel? _session;
+
     // Caches de l'analyse : fichiers Derby, tailles, arborescences — remplis une fois, réutilisés à chaque replanification
     private readonly Dictionary<string, FolderTreeMapping> _mappings = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, long>              _fileSizes = new(StringComparer.OrdinalIgnoreCase);
@@ -100,10 +103,26 @@ public class RebaseViewModel : ViewModelBase
                 OnPropertyChanged(nameof(CanStart));
                 OnPropertyChanged(nameof(SupportsGamelist));
                 OnPropertyChanged(nameof(ShowMetadataLanguage));
+                OnPropertyChanged(nameof(GenerateGamelistLabel));
+                OnPropertyChanged(nameof(MetadataLocationHint));
                 RebuildPlan();
             }
         }
     }
+
+    /// <summary>Libellé de l'interrupteur : le nom du fichier que lit la cible ("Générer miyoogamelist.xml").</summary>
+    public string GenerateGamelistLabel
+        => string.Format(Strings.Rebase_GenerateMetadataFile,
+            MetadataFormats.DisplayFileName(_selectedArchitecture?.GamelistFormat));
+
+    /// <summary>
+    /// Rappel affiché quand les métadonnées sortent de l'arborescence des ROMs (ES-DE, Cocoon) :
+    /// l'utilisateur doit savoir qu'un dossier ES-DE apparaît à la racine de la destination, et quoi en faire.
+    /// </summary>
+    public string? MetadataLocationHint
+        => MetadataFormats.Normalize(_selectedArchitecture?.GamelistFormat) == MetadataFormats.EsDe
+            ? Strings.Rebase_MetadataHint_EsDe
+            : null;
 
     /// <summary>Traitement des archives : 0 = extraire selon l'architecture, 1 = ne jamais extraire, 2 = tout extraire.</summary>
     public int ArchiveModeIndex
@@ -393,6 +412,9 @@ public class RebaseViewModel : ViewModelBase
     public ICommand CancelCalculationCommand    { get; }
     public ICommand OpenFolderCommand           { get; }
     public ICommand ExportLogCommand            { get; }
+    /// <summary>Enregistre les jeux de la liste, les paramètres et les règles par jeu dans le fichier de sélection courant.</summary>
+    public ICommand SavePresetCommand        { get; }
+    public ICommand SavePresetAsCommand      { get; }
 
     /// <summary>Décrémente MaxParallelCopies (minimum 1).</summary>
     public ICommand DecrementParallelCommand    { get; }
@@ -422,8 +444,15 @@ public class RebaseViewModel : ViewModelBase
         string romStationPath,
         string dbCopyPath,
         UserPreferences? preferences = null,
-        IReadOnlyList<string>? systemNames = null)
+        IReadOnlyList<string>? systemNames = null,
+        RebasePresetSessionViewModel? session = null)
     {
+        _session        = session;
+        if (_session != null)
+        {
+            _session.PropertyChanged += OnSessionChanged;
+            PropertyChanged          += OnOwnSettingChanged;
+        }
         _selectedGames  = selectedGames;
         _allGames       = allGames;
         _romStationPath = romStationPath;
@@ -449,6 +478,26 @@ public class RebaseViewModel : ViewModelBase
             }
             // Les options de sortie sont restaurées après LoadArchitectures() ci-dessous
         }
+
+        // Une sélection ouverte depuis un fichier, ou déjà passée par cette fenêtre, l'emporte sur les préférences
+        var saved = session?.Settings;
+        if (saved != null)
+        {
+            if (!string.IsNullOrWhiteSpace(saved.TargetPath))
+                _targetPath = saved.TargetPath;
+            _duplicatePolicyIndex = saved.DuplicatePolicy == "Overwrite" ? 1 : 0;
+            _maxParallelCopies    = Math.Clamp(saved.MaxParallelCopies, 1, 16);
+            _retryCount           = Math.Clamp(saved.RetryCount, 0, 5);
+            _retryDelay           = Math.Clamp(saved.RetryDelaySeconds, 1, 30);
+            if (saved.MetadataLanguage is "fr" or "en")
+            {
+                _metadataLanguageIndex   = saved.MetadataLanguage == "fr" ? 0 : 1;
+                _metadataLanguageTouched = true;
+            }
+        }
+
+        SavePresetCommand   = new RelayCommand(() => OnSavePreset(saveAs: false), () => _session != null && !_isRunning && RebaseItems.Count > 0);
+        SavePresetAsCommand = new RelayCommand(() => OnSavePreset(saveAs: true),  () => _session != null && !_isRunning && RebaseItems.Count > 0);
 
         RemoveItemCommand           = new RelayCommand(param => { if (param is RebaseGameItemViewModel item) RemoveItem(item); }, _ => !_isRunning);
         EditArchitecturesCommand    = new RelayCommand(OnEditArchitectures, () => !_isRunning);
@@ -484,6 +533,22 @@ public class RebaseViewModel : ViewModelBase
                 _generateGamelist   = preferences.LastRebaseGenerateGamelist && match.SupportsGamelist;
             }
             _backupGamelist = preferences.LastRebaseBackupGamelist;
+        }
+
+        if (saved != null)
+        {
+            // Architecture disparue : celle par défaut reste sélectionnée avec ses propres réglages de sortie.
+            // L'utilisateur en a été prévenu à l'ouverture du fichier.
+            var match = Architectures.FirstOrDefault(a => a.Id == saved.ArchitectureId);
+            if (match != null)
+            {
+                SelectedArchitecture = match;
+                _archiveModeIndex   = saved.ArchiveMode switch { "Copy" => 1, "ExtractAll" => 2, _ => 0 };
+                _extractLayoutIndex = saved.ExtractLayout == "Subfolder" ? 1 : 0;
+                _copyCovers         = saved.CopyCovers;
+                _generateGamelist   = saved.GenerateGamelist && match.SupportsGamelist;
+            }
+            _backupGamelist = saved.BackupGamelist;
         }
         _suspendReplan = false;
 
@@ -533,7 +598,7 @@ public class RebaseViewModel : ViewModelBase
         RebaseItems.Clear();
         foreach (var g in _selectedGames)
         {
-            RebaseItems.Add(new RebaseGameItemViewModel
+            var row = new RebaseGameItemViewModel
             {
                 GameId          = g.Id,
                 Title           = g.Title,
@@ -542,9 +607,107 @@ public class RebaseViewModel : ViewModelBase
                 CoverPath       = g.CoverPath,
                 CoverExists     = g.CoverExists,
                 FileCount       = g.FileCount,
-                RuleChanged     = RebuildPlan, // une règle basculée sur la ligne replanifie aussitôt
-            });
+                // Une règle basculée sur la ligne replanifie aussitôt, et compte comme une modification de la présélection
+                RuleChanged     = () => { RebuildPlan(); if (_session?.HasFile == true) CaptureSession(); },
+            };
+
+            // Règles par jeu retrouvées dans la sélection de travail (fichier ouvert, ou passage précédent dans cette fenêtre)
+            if (_session != null && _session.Overrides.TryGetValue(g.Rid, out var o))
+                row.RestoreOverrides(o.KeepFileName, o.M3U, o.Extract);
+
+            RebaseItems.Add(row);
         }
+    }
+
+    // ── Sélection de travail ──────────────────────────────────────────────
+
+    /// <summary>Paramètres de la fenêtre dans leur état courant, au format du fichier de sélection.</summary>
+    private RebasePresetSettings CurrentPresetSettings() => new()
+    {
+        TargetPath        = _targetPath ?? string.Empty,
+        ArchitectureId    = _selectedArchitecture?.Id ?? string.Empty,
+        ArchitectureLabel = _selectedArchitecture?.Label ?? string.Empty,
+        ArchiveMode       = ArchiveMode.ToString(),
+        ExtractLayout     = ExtractLayout.ToString(),
+        CopyCovers        = _copyCovers,
+        GenerateGamelist  = _generateGamelist,
+        BackupGamelist    = _backupGamelist,
+        MetadataLanguage  = _metadataLanguageTouched ? MetadataLocale : "auto",
+        DuplicatePolicy   = _duplicatePolicyIndex == 1 ? "Overwrite" : "Ignore",
+        MaxParallelCopies = _maxParallelCopies,
+        RetryCount        = _retryCount,
+        RetryDelaySeconds = _retryDelay,
+    };
+
+    /// <summary>Rend à la sélection de travail les paramètres et les règles par jeu de cette fenêtre.</summary>
+    internal void CaptureSession()
+    {
+        if (_session is null) return;
+
+        var overrides = new Dictionary<int, GameRuleOverrides>();
+        foreach (var row in RebaseItems)
+        {
+            var game = _selectedGames.FirstOrDefault(g => g.Id == row.GameId);
+            if (game is null) continue;
+            var o = new GameRuleOverrides(row.KeepFileNameOverride, row.M3UOverride, row.ExtractOverride);
+            if (!o.IsEmpty) overrides[game.Rid] = o;
+        }
+        _session.Capture(CurrentPresetSettings(), overrides);
+    }
+
+    private void OnSavePreset(bool saveAs)
+    {
+        if (_session is null) return;
+        CaptureSession();
+        if (_session.SaveInteractive(OwnerWindow, saveAs))
+            StatusText = string.Format(Strings.Preset_Saved, _session.FileName);
+        RefreshPresetTexts();
+    }
+
+    /// <summary>Suffixe de la barre de titre : « — tests.rsr • ». Vide sans présélection.</summary>
+    public string PresetTitleSuffix => _session?.HasFile == true ? "  —  " + _session.DisplayText : string.Empty;
+
+    /// <summary>Rappel au-dessus des options : ce qui se règle ici appartient à la présélection chargée. Null sans présélection (ligne masquée).</summary>
+    public string? PresetBanner => _session?.HasFile == true
+        ? string.Format(Strings.Rebase_PresetBanner, _session.FileName)
+        : null;
+
+    /// <summary>Paramètres qui appartiennent à la présélection : les toucher allume aussitôt son « • », sans attendre la fermeture.</summary>
+    private static readonly HashSet<string> PresetSettingNames =
+    [
+        nameof(TargetPath), nameof(SelectedArchitecture), nameof(ArchiveModeIndex), nameof(ExtractLayoutIndex),
+        nameof(CopyCovers), nameof(GenerateGamelist), nameof(BackupGamelist), nameof(MetadataLanguageIndex),
+        nameof(DuplicatePolicyIndex), nameof(MaxParallelCopies), nameof(RetryCount), nameof(RetryDelay),
+    ];
+
+    private void OnSessionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        => RefreshPresetTexts();
+
+    private void OnOwnSettingChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (_suspendReplan || _session?.HasFile != true) return;
+        if (e.PropertyName is { } name && PresetSettingNames.Contains(name))
+            CaptureSession();
+    }
+
+    /// <summary>A la fermeture de la fenêtre : la session vit plus longtemps qu'elle et ne doit pas la retenir.</summary>
+    internal void DetachSession()
+    {
+        if (_session is null) return;
+        _session.PropertyChanged -= OnSessionChanged;
+        PropertyChanged          -= OnOwnSettingChanged;
+    }
+
+    /// <summary>Infobulle du bouton d'enregistrement : dit ce qui est enregistré, et où.</summary>
+    public string SavePresetTooltip => _session?.HasFile == true
+        ? string.Format(Strings.Rebase_SavePreset_Tooltip_File, _session.FileName)
+        : Strings.Rebase_SavePreset_Tooltip_New;
+
+    private void RefreshPresetTexts()
+    {
+        OnPropertyChanged(nameof(SavePresetTooltip));
+        OnPropertyChanged(nameof(PresetTitleSuffix));
+        OnPropertyChanged(nameof(PresetBanner));
     }
 
     // ── Analyse et plan ───────────────────────────────────────────────────
@@ -1213,7 +1376,24 @@ public class RebaseViewModel : ViewModelBase
     /// </summary>
     internal void SaveRebasePreferences(Models.WindowBounds? bounds = null)
     {
+        // Même moment que les préférences : la sélection de travail retient ce qui a été réglé ici
+        CaptureSession();
+
         if (_preferences == null) return;
+
+        // Présélection chargée : ses paramètres lui appartiennent et n'écrasent pas les « derniers paramètres » utilisés sans elle.
+        // Seule la géométrie de la fenêtre est alors mémorisée.
+        if (_session?.HasFile == true)
+        {
+            if (bounds == null) return;
+            try
+            {
+                _preferences.RebaseWindowBounds = bounds;
+                _configService.SaveUserPreferences(_preferences);
+            }
+            catch { /* confort seulement */ }
+            return;
+        }
 
         try
         {

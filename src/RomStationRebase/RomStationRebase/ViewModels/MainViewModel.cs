@@ -359,6 +359,17 @@ public class MainViewModel : ViewModelBase
     /// <summary>Décoche tous les jeux de la bibliothèque, masqués par les filtres compris — bouton ✕ du badge de sélection.</summary>
     public ICommand ClearSelectionCommand { get; private set; } = null!;
 
+    /// <summary>Ouvre un fichier de sélection (*.rsr) : coche ses jeux et reprend ses paramètres de rebase.</summary>
+    public ICommand OpenPresetCommand { get; private set; } = null!;
+
+    /// <summary>Enregistre la sélection dans son fichier, ou demande un nom s'il n'y en a pas encore.</summary>
+    public ICommand SavePresetCommand { get; private set; } = null!;
+
+    public ICommand SavePresetAsCommand { get; private set; } = null!;
+
+    /// <summary>Détache la sélection de son fichier, sans décocher les jeux.</summary>
+    public ICommand ClosePresetCommand { get; private set; } = null!;
+
     /// <summary>Resynchronise manuellement la base Derby depuis RomStation.</summary>
     public ICommand SyncDbCommand { get; private set; } = null!;
 
@@ -393,6 +404,20 @@ public class MainViewModel : ViewModelBase
         _showIssuesOnly   = preferences.ShowIssuesOnly;
         _hideEmptySystems = preferences.HideEmptySystems;
 
+        Preset = new RebasePresetSessionViewModel(
+            () => Games.Where(g => g.IsSelected).ToList(),
+            PresetSettingsFromPreferences)
+        {
+            LastDirectory = preferences.LastPresetDirectory,
+        };
+        Preset.PropertyChanged += (_, _) => RefreshPresetState();
+        Preset.DirectoryUsed += dir =>
+        {
+            if (_preferences.LastPresetDirectory == dir) return;
+            _preferences.LastPresetDirectory = dir;
+            try { _config.SaveUserPreferences(_preferences); } catch { /* confort seulement */ }
+        };
+
         // Initialisation de l'abécédaire — 26 lettres A-Z + # (tous désactivés par défaut)
         AlphabetItems = new ObservableCollection<AlphaItemViewModel>();
         for (char c = 'A'; c <= 'Z'; c++)
@@ -417,20 +442,19 @@ public class MainViewModel : ViewModelBase
         });
 
         SelectAllGamesCommand = new RelayCommand(() =>
-        {
-            foreach (var g in FilteredGames) g.IsSelected = true;
-            RefreshSelectedCount();
-        });
+            BulkSelect(() => { foreach (var g in FilteredGames) g.IsSelected = true; }));
         DeselectAllGamesCommand = new RelayCommand(() =>
-        {
-            foreach (var g in FilteredGames) g.IsSelected = false;
-            RefreshSelectedCount();
-        });
+            BulkSelect(() => { foreach (var g in FilteredGames) g.IsSelected = false; }));
         ClearSelectionCommand = new RelayCommand(() =>
-        {
-            foreach (var g in Games) g.IsSelected = false;
-            RefreshSelectedCount();
-        }, () => _selectedGameCount > 0);
+            BulkSelect(() => { foreach (var g in Games) g.IsSelected = false; }),
+            () => _selectedGameCount > 0);
+
+        OpenPresetCommand   = new RelayCommand(OpenPreset, () => !_isLoading && Games.Count > 0);
+        SavePresetCommand   = new RelayCommand(() => Preset.SaveInteractive(Application.Current.MainWindow, saveAs: false),
+                                                  () => _selectedGameCount > 0);
+        SavePresetAsCommand = new RelayCommand(() => Preset.SaveInteractive(Application.Current.MainWindow, saveAs: true),
+                                                  () => _selectedGameCount > 0);
+        ClosePresetCommand  = new RelayCommand(ClosePreset, () => Preset.HasFile);
 
         SwitchToMosaicCommand = new RelayCommand(() => IsMosaicView = true);
         SwitchToListCommand   = new RelayCommand(() => IsMosaicView = false);
@@ -442,7 +466,7 @@ public class MainViewModel : ViewModelBase
                 // ViewModel passé au constructeur pour que l'injection soit immédiate
                 // Toute la bibliothèque est transmise pour départager les homonymes de façon stable
                 var vm  = new RebaseViewModel(selected, Games.ToList(), _romStationPath, _dbCopyPath, _preferences,
-                                              Systems.Select(s => s.Name).ToList());
+                                              Systems.Select(s => s.Name).ToList(), Preset);
                 var win = new RebaseWindow(vm)
                 {
                     Owner = Application.Current.MainWindow,
@@ -777,13 +801,263 @@ public class MainViewModel : ViewModelBase
     /// </summary>
     private void RefreshSelectedCount()
     {
+        if (_bulkSelection) return; // un seul recalcul à la fin d'une opération groupée
+
         SelectedGameCount = Games.Count(g => g.IsSelected);
+        Preset.RefreshDirty();
+        RefreshPresetState();
 
         var bySystem = Games.Where(g => g.IsSelected)
             .GroupBy(g => g.SystemName, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(grp => grp.Key, grp => grp.Count(), StringComparer.OrdinalIgnoreCase);
         foreach (var sys in Systems)
             sys.SelectedCount = bySystem.GetValueOrDefault(sys.Name);
+    }
+
+    // ── Fichiers de sélection ─────────────────────────────────────────────
+
+    private bool _bulkSelection;
+
+    /// <summary>Sélection de travail : fichier courant, paramètres du rebase et règles par jeu, partagés avec la fenêtre de rebase.</summary>
+    public RebasePresetSessionViewModel Preset { get; }
+
+    /// <summary>Coche ou décoche en lot : chaque jeu notifierait sinon un recalcul complet des compteurs et de l'état « modifié ».</summary>
+    private void BulkSelect(Action change)
+    {
+        _bulkSelection = true;
+        try { change(); }
+        finally { _bulkSelection = false; }
+        RefreshSelectedCount();
+    }
+
+    /// <summary>Paramètres enregistrés tant que la fenêtre de rebase n'a pas été ouverte : les derniers utilisés.</summary>
+    private RebasePresetSettings PresetSettingsFromPreferences()
+    {
+        string label = string.Empty;
+        try
+        {
+            label = new ArchitectureService().LoadArchitectures()
+                .FirstOrDefault(a => a.Id == _preferences.LastRebaseArchitectureId)?.Label ?? string.Empty;
+        }
+        catch { /* le libellé ne sert qu'aux messages */ }
+
+        return new RebasePresetSettings
+        {
+            TargetPath        = _preferences.LastRebaseTargetPath,
+            ArchitectureId    = _preferences.LastRebaseArchitectureId,
+            ArchitectureLabel = label,
+            ArchiveMode       = _preferences.LastRebaseArchiveMode switch { "Copy" => "Copy", "ExtractAll" => "ExtractAll", _ => "ExtractRequired" },
+            ExtractLayout     = _preferences.LastRebaseExtractLayout == "Subfolder" ? "Subfolder" : "Auto",
+            CopyCovers        = _preferences.LastRebaseCopyCovers,
+            GenerateGamelist  = _preferences.LastRebaseGenerateGamelist,
+            BackupGamelist    = _preferences.LastRebaseBackupGamelist,
+            MetadataLanguage  = _preferences.LastRebaseMetadataLanguage is "fr" or "en" ? _preferences.LastRebaseMetadataLanguage : "auto",
+            DuplicatePolicy   = _preferences.DuplicatePolicy == "Overwrite" ? "Overwrite" : "Ignore",
+            MaxParallelCopies = _preferences.MaxParallelCopies,
+            RetryCount        = _preferences.RetryCount,
+            RetryDelaySeconds = _preferences.RetryDelaySeconds,
+        };
+    }
+
+    /// <summary>
+    /// Avant d'abandonner la sélection courante (autre fichier, fermeture du fichier, sortie de l'application) :
+    /// propose d'enregistrer ses modifications. False si l'utilisateur renonce à l'action.
+    /// </summary>
+    public bool ConfirmDiscardPresetChanges()
+    {
+        if (!Preset.HasFile || !Preset.IsDirty) return true;
+
+        // Plus aucun jeu coché (après une synchronisation, par exemple) : rien qui vaille d'être enregistré, et surtout pas un fichier vidé
+        if (_selectedGameCount == 0) return true;
+
+        var dialog = new ConfirmDialog(
+            Strings.Preset_Unsaved_Title,
+            string.Format(Strings.Preset_Unsaved_Message, Preset.FileName),
+            Strings.Preset_Unsaved_Save,
+            Strings.Preset_Unsaved_Discard,
+            Strings.Common_Cancel) { Owner = Application.Current.MainWindow };
+        dialog.ShowDialog();
+
+        return dialog.Choice switch
+        {
+            ConfirmChoice.Primary   => Preset.SaveInteractive(Application.Current.MainWindow, saveAs: false),
+            ConfirmChoice.Secondary => true,
+            _                       => false,
+        };
+    }
+
+    private void OpenPreset()
+    {
+        var owner = Application.Current.MainWindow;
+
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title  = Strings.Preset_Open_DialogTitle,
+            Filter = RebasePresetSessionViewModel.FileDialogFilter,
+        };
+        if (!string.IsNullOrEmpty(Preset.LastDirectory) && System.IO.Directory.Exists(Preset.LastDirectory))
+            dialog.InitialDirectory = Preset.LastDirectory;
+        if (dialog.ShowDialog(owner) != true) return;
+
+        OpenPresetFile(dialog.FileName);
+    }
+
+    /// <summary>Ouvre le fichier donné. Public pour un futur glisser-déposer ou une ouverture en ligne de commande.</summary>
+    public void OpenPresetFile(string path)
+    {
+        var owner = Application.Current.MainWindow;
+
+        RebasePreset file;
+        try
+        {
+            file = RebasePresetService.Load(path);
+        }
+        catch (RebasePresetException ex)
+        {
+            string reason = ex.Error switch
+            {
+                RebasePresetError.NotASelection => Strings.Preset_OpenError_NotASelection,
+                RebasePresetError.InvalidJson   => string.Format(Strings.Preset_OpenError_InvalidJson, ex.Message),
+                _                                => string.Format(Strings.Preset_OpenError_Unreadable, ex.Message),
+            };
+            new ConfirmDialog(Strings.Preset_OpenError_Title,
+                $"{System.IO.Path.GetFileName(path)}\n\n{reason}", "OK") { Owner = owner }.ShowDialog();
+            return;
+        }
+
+        var library = Games.Select(g => new LibraryGameRef(g.Id, g.Rid, g.Title, g.SystemName)).ToList();
+        var match   = RebasePresetService.Match(file, library);
+
+        if (match.Matched.Count == 0)
+        {
+            new ConfirmDialog(Strings.Preset_OpenError_Title,
+                string.Format(Strings.Preset_OpenError_NoGame, System.IO.Path.GetFileName(path), file.Games.Count),
+                "OK") { Owner = owner }.ShowDialog();
+            return;
+        }
+
+        // Une autre présélection est chargée et modifiée : proposer de l'enregistrer avant de la quitter.
+        // Placé ici et non avant la boîte Ouvrir, pour valoir aussi pour un double-clic dans l'Explorateur.
+        if (!ConfirmDiscardPresetChanges()) return;
+
+        // Des jeux cochés à la main, hors de toute présélection, seraient perdus sans prévenir
+        if (!Preset.HasFile && _selectedGameCount > 0)
+        {
+            var replace = new ConfirmDialog(
+                Strings.Preset_Replace_Title,
+                string.Format(Strings.Preset_Replace_Message, _selectedGameCount, match.Matched.Count),
+                Strings.Preset_Replace_Proceed,
+                Strings.Common_Cancel) { Owner = owner };
+            replace.ShowDialog();
+            if (!replace.Result) return;
+        }
+
+        // Les écarts s'annoncent avant de rien toucher : l'utilisateur peut encore renoncer
+        var discrepancies = PresetDiscrepancies(file, match);
+        if (discrepancies.Count > 0)
+        {
+            string summary = string.Format(Strings.Preset_Opened_Summary, match.Matched.Count, file.Games.Count);
+            var notice = new ConfirmDialog(Strings.Preset_Opened_Title,
+                summary + "\n\n" + string.Join("\n\n", discrepancies),
+                Strings.Preset_Discrepancy_Continue,
+                Strings.Preset_Discrepancy_Cancel) { Owner = owner };
+            notice.ShowDialog();
+            if (!notice.Result) return;
+        }
+
+        BulkSelect(() =>
+        {
+            foreach (var g in Games)
+                g.IsSelected = match.Matched.ContainsKey(g.Id);
+        });
+
+        var overrides = new Dictionary<int, GameRuleOverrides>();
+        foreach (var g in Games.Where(g => match.Matched.ContainsKey(g.Id)))
+        {
+            var saved = match.Matched[g.Id];
+            if (saved.HasOverride)
+                overrides[g.Rid] = new GameRuleOverrides(saved.KeepFileName, saved.M3U, saved.Extract);
+        }
+
+        Preset.Adopt(path, file.Settings, overrides);
+        Preset.NotifyDirectoryUsed(path);
+        RefreshPresetState();
+
+        // La fenêtre de rebase ne s'ouvre pas d'elle-même (essayé, écarté par le dev) : ouvrir une présélection coche
+        // ses jeux et retient ses paramètres, l'utilisateur voit le résultat dans la bibliothèque et décide de la suite.
+    }
+
+    /// <summary>Referme la présélection : ses jeux sont décochés et la fenêtre de rebase reviendra aux derniers paramètres utilisés sans présélection.</summary>
+    private void ClosePreset()
+    {
+        if (!ConfirmDiscardPresetChanges()) return;
+        Preset.Close();
+        BulkSelect(() => { foreach (var g in Games) g.IsSelected = false; });
+        RefreshPresetState();
+    }
+
+    /// <summary>Le bouton Enregistrer n'a de raison d'être qu'avec des jeux cochés ou une présélection chargée : sinon il est masqué, pas grisé.</summary>
+    public bool ShowSavePreset => _selectedGameCount > 0 || Preset.HasFile;
+
+    /// <summary>Démarrage à froid : rien de coché, aucune présélection. L'en-tête de la bibliothèque propose alors d'en ouvrir une.</summary>
+    public bool ShowOpenPresetHint => _selectedGameCount == 0 && !Preset.HasFile && !_isLoading;
+
+    /// <summary>Suffixe de la barre de titre : « — tests.rsr • ». Vide sans présélection.</summary>
+    public string PresetTitleSuffix => Preset.HasFile ? "  —  " + Preset.DisplayText : string.Empty;
+
+    /// <summary>Texte de la zone Présélection de l'en-tête : le nom du fichier chargé (et son « • »), ou « Aucune chargée ».</summary>
+    public string PresetZoneText => Preset.HasFile ? Preset.DisplayText : Strings.Preset_Zone_None;
+
+    /// <summary>Infobulle de la zone : le chemin complet du fichier, ou ce qu'est une présélection quand aucune n'est chargée.</summary>
+    public string PresetZoneTooltip => Preset.HasFile
+        ? Preset.FilePath + "\n" + Strings.Preset_File_Tooltip
+        : Strings.Preset_Zone_None_Tooltip;
+
+    private void RefreshPresetState()
+    {
+        OnPropertyChanged(nameof(PresetZoneText));
+        OnPropertyChanged(nameof(PresetZoneTooltip));
+        OnPropertyChanged(nameof(ShowSavePreset));
+        OnPropertyChanged(nameof(ShowOpenPresetHint));
+        OnPropertyChanged(nameof(PresetTitleSuffix));
+    }
+
+    /// <summary>Tout ce que l'utilisateur doit savoir sur l'écart entre le fichier et l'état présent de RSR et de la bibliothèque.</summary>
+    private List<string> PresetDiscrepancies(RebasePreset file, RebasePresetMatch match)
+    {
+        const int MaxListed = 8;
+        var warnings = new List<string>();
+
+        if (file.Version > RebasePreset.CurrentVersion)
+            warnings.Add(Strings.Preset_Warn_NewerVersion);
+
+        if (match.Missing.Count > 0)
+        {
+            var lines = match.Missing.Take(MaxListed).Select(g => $"  •  {g.Title} ({g.System})").ToList();
+            if (match.Missing.Count > MaxListed)
+                lines.Add("  " + string.Format(Strings.Preset_Warn_AndMore, match.Missing.Count - MaxListed));
+            warnings.Add(string.Format(Strings.Preset_Warn_MissingGames, match.Missing.Count) + "\n" + string.Join("\n", lines));
+        }
+
+        if (match.MatchedByTitle.Count > 0)
+            warnings.Add(string.Format(Strings.Preset_Warn_MatchedByTitle, match.MatchedByTitle.Count));
+
+        var settings = file.Settings;
+        if (!string.IsNullOrWhiteSpace(settings.ArchitectureId))
+        {
+            bool known = false;
+            try { known = new ArchitectureService().LoadArchitectures().Any(a => a.Id == settings.ArchitectureId); }
+            catch { /* traité comme une architecture absente */ }
+            if (!known)
+                warnings.Add(string.Format(Strings.Preset_Warn_MissingArchitecture,
+                    string.IsNullOrWhiteSpace(settings.ArchitectureLabel) ? settings.ArchitectureId : settings.ArchitectureLabel));
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.TargetPath) && !System.IO.Directory.Exists(settings.TargetPath))
+            warnings.Add(string.Format(Strings.Preset_Warn_MissingTarget, settings.TargetPath));
+
+
+        return warnings;
     }
 
     /// <summary>

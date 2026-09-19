@@ -89,6 +89,17 @@ public class RebaseGameItemViewModel : ViewModelBase
     /// <summary>L'extraction n'a de sens que hors romset ; le mode Archives de la fenêtre doit être « selon l'architecture ».</summary>
     public bool CanToggleExtract => _isMapped && !KeepFileName;
 
+    /// <summary>
+    /// Repose les surcharges lues dans un fichier de sélection, avant le premier plan : ni notification
+    /// ni replanification, et une surcharge égale à l'architecture sera effacée au premier basculement.
+    /// </summary>
+    public void RestoreOverrides(bool? keepFileName, bool? m3u, bool? extract)
+    {
+        _keepFileNameOverride = keepFileName;
+        _m3uOverride          = m3u;
+        _extractOverride      = extract;
+    }
+
     /// <summary>Surcharges de ce jeu, telles que transmises au planificateur (null = valeur de l'architecture).</summary>
     public bool? KeepFileNameOverride => _keepFileNameOverride;
     public bool? M3UOverride          => _m3uOverride;

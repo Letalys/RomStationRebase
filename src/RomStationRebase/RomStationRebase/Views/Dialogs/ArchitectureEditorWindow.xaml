@@ -518,9 +518,18 @@
                                 <ComboBox Grid.Column="1" SelectedIndex="{Binding Selected.GamelistFormatIndex}"
                                           Padding="6,4" Height="28" FontSize="12">
                                     <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_None}"/>
+                                    <!-- Même ordre que MetadataFormats.All : l'index du sélecteur en dépend -->
                                     <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_EmulationStation}"/>
+                                    <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_EsDe}"/>
+                                    <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_Miyoo}"/>
+                                    <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_Pegasus}"/>
+                                    <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_Logiqx}"/>
                                 </ComboBox>
                             </Grid>
+                            <!-- Quel fichier, où, pour qui : le nom du format seul ne dit rien à l'utilisateur -->
+                            <TextBlock Margin="0,8,0,0" FontSize="11" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="{Binding Selected.GamelistFormatHint}"/>
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0"
                                         IsEnabled="{Binding Selected.SupportsGamelist}">
                                 <ToggleButton IsChecked="{Binding Selected.GamelistByDefault}"

@@ -30,7 +30,7 @@ public static class GamelistService
     /// Variante avec horodatage injectable — sert à nommer les sauvegardes.
     /// Avec backupExisting, un fichier existant valide est d'abord copié en gamelist.xml.yyyyMMdd (jamais écrasé).
     /// </summary>
-    internal static GamelistWriteResult WriteOrMerge(string gamelistPath, IReadOnlyList<GamelistGame> games, DateTime now, bool backupExisting = false)
+    internal static GamelistWriteResult WriteOrMerge(string gamelistPath, IReadOnlyList<GamelistGame> games, DateTime now, bool backupExisting = false, bool withProvider = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(gamelistPath);
         ArgumentNullException.ThrowIfNull(games);
@@ -60,7 +60,7 @@ public static class GamelistService
         else if (merged && backupExisting)
             userBackupPath = CopyBackup(gamelistPath, now);
 
-        XElement  root = existingRoot ?? CreateNewRoot();
+        XElement  root = existingRoot ?? CreateNewRoot(withProvider);
         XDocument doc  = root.Document ?? new XDocument(new XDeclaration("1.0", "utf-8", null), root);
 
         // Index des jeux déjà présents, par chemin normalisé (le premier l'emporte en cas de doublon dans le fichier).
@@ -103,7 +103,7 @@ public static class GamelistService
     /// Copie de sauvegarde demandée par l'utilisateur avant fusion : gamelist.xml.yyyyMMdd, puis
     /// gamelist.xml.yyyyMMdd-HHmmss, puis suffixe -2, -3… Une sauvegarde n'est jamais écrasée.
     /// </summary>
-    private static string CopyBackup(string gamelistPath, DateTime now)
+    internal static string CopyBackup(string gamelistPath, DateTime now)
     {
         string candidate = $"{gamelistPath}.{now.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}";
         if (File.Exists(candidate))
@@ -155,11 +155,13 @@ public static class GamelistService
     }
 
     /// <summary>Racine neuve avec le bloc provider identifiant RomStation Rebase comme source.</summary>
-    private static XElement CreateNewRoot()
-        => new(RootName,
-            new XElement(ProviderName,
-                new XElement("software", "RomStation Rebase"),
-                new XElement("database", "RomStation")));
+    private static XElement CreateNewRoot(bool withProvider)
+        => withProvider
+            ? new(RootName,
+                new XElement(ProviderName,
+                    new XElement("software", "RomStation Rebase"),
+                    new XElement("database", "RomStation")))
+            : new(RootName);
 
     /// <summary>
     /// Met à jour ou crée uniquement les éléments gérés par RSR, sans toucher aux autres enfants
@@ -193,7 +195,7 @@ public static class GamelistService
     /// Renomme un fichier illisible en gamelist.xml.bak-yyyyMMdd-HHmmss, avec suffixe -2, -3…
     /// si une sauvegarde porte déjà ce nom. Une sauvegarde n'est jamais écrasée.
     /// </summary>
-    private static string BackupUnreadableFile(string gamelistPath, DateTime now)
+    internal static string BackupUnreadableFile(string gamelistPath, DateTime now)
     {
         string stamp     = now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
         string baseName  = $"{gamelistPath}.bak-{stamp}";

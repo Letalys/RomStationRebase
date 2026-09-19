@@ -47,6 +47,7 @@ public class RebasePlannerTests
         public bool M3U = true, Covers = true, Gamelist = true;
         public ArchiveMode Mode = ArchiveMode.ExtractRequired;
         public ExtractLayout Layout = ExtractLayout.Auto;
+        public ArchitectureEntry Arch = ArkOs;
 
         public Builder Add(PlanGameInput g, bool select, params GameFileInfo[] files)
         {
@@ -78,7 +79,7 @@ public class RebasePlannerTests
             DirectoryFilesLookup = d => Dirs.TryGetValue(d, out var l) ? l : new List<(string, long)> { ("x.zip", 100) },
             RomStationPath       = RsPath,
             Mapping              = ArkOsMapping,
-            Architecture         = ArkOs,
+            Architecture         = Arch,
             GenerateM3U          = M3U,
             ArchiveMode          = Mode,
             Layout               = Layout,
@@ -450,7 +451,146 @@ public class RebasePlannerTests
             g.OutputPaths);
     }
 
+    // ── Image disque livrée sans descripteur ──────────────────────────────
+
+    private const long DiscSize = 400L * 1024 * 1024;
+
+    [Fact]
+    public void Lone_bin_disc_image_gets_a_cue_sheet_that_becomes_the_launch_file()
+    {
+        // Cas réel : Ronin Blade (Playstation), sorti en .bin seul et invisible sous dArkOS
+        var g = new Builder { Mode = ArchiveMode.ExtractAll }
+            .Add(Game(10, "Ronin Blade", "Playstation", 4242), true,
+                 File(10, 1, "Ronin Blade", @"games\downloads\Ronin Blade - 4242\files\1\ronin.zip"))
+            .Archive(@"games\downloads\Ronin Blade - 4242\files\1\ronin.zip", ("SLES_024.13.bin", DiscSize))
+            .Plan().Games[0];
+
+        var f = g.Files[0];
+        Assert.Equal("Ronin Blade.bin", f.SingleEntryTargetName);
+        Assert.Equal("Ronin Blade.cue", f.CueRelativePath);
+        Assert.Equal("Ronin Blade.bin", f.CueBinRelativePath);
+        Assert.Equal("Ronin Blade.cue", f.LaunchRelativePath);
+        Assert.Equal("./Ronin Blade.cue", g.GamelistEntries[0].Path);
+        Assert.Equal("images/Ronin Blade-image.png", g.Covers[0].DestRelativePath);
+        Assert.Contains("psx/Ronin Blade.cue", g.OutputPaths);
+        Assert.Contains("psx/Ronin Blade.bin", g.OutputPaths);
+    }
+
+    [Fact]
+    public void Lone_bin_in_a_subfolder_gets_its_cue_next_to_it()
+    {
+        var g = new Builder { Mode = ArchiveMode.ExtractAll, Layout = ExtractLayout.Subfolder }
+            .Add(Game(10, "Ronin Blade", "Playstation", 4242), true,
+                 File(10, 1, "Ronin Blade", @"games\downloads\Ronin Blade - 4242\files\1\ronin.zip"))
+            .Archive(@"games\downloads\Ronin Blade - 4242\files\1\ronin.zip", ("SLES_024.13.bin", DiscSize))
+            .Plan().Games[0];
+
+        var f = g.Files[0];
+        Assert.Equal("Ronin Blade/SLES_024.13.cue", f.CueRelativePath);
+        Assert.Equal("Ronin Blade/SLES_024.13.bin", f.CueBinRelativePath);
+        Assert.Equal("Ronin Blade/SLES_024.13.cue", f.LaunchRelativePath);
+    }
+
+    [Fact]
+    public void Cartridge_bin_is_never_given_a_cue_sheet()
+    {
+        // Une ROM Megadrive porte aussi l'extension .bin : sa taille la distingue d'une image disque
+        var g = new Builder { Mode = ArchiveMode.ExtractAll }
+            .Add(Game(11, "Sonic", "Megadrive", 77), true,
+                 File(11, 1, "Sonic", @"games\downloads\Sonic - 77\files\1\sonic.zip"))
+            .Archive(@"games\downloads\Sonic - 77\files\1\sonic.zip", ("sonic.bin", 512 * 1024))
+            .Plan().Games[0];
+
+        Assert.Null(g.Files[0].CueRelativePath);
+        Assert.Equal("Sonic.bin", g.Files[0].LaunchRelativePath);
+    }
+
+    [Fact]
+    public void Archive_that_ships_its_own_cue_is_left_alone()
+    {
+        var g = new Builder { Mode = ArchiveMode.ExtractAll }
+            .Add(Game(12, "Wipeout", "Playstation", 88), true,
+                 File(12, 1, "Wipeout", @"games\downloads\Wipeout - 88\files\1\w.zip"))
+            .Archive(@"games\downloads\Wipeout - 88\files\1\w.zip", ("w.cue", 100), ("w.bin", DiscSize))
+            .Plan().Games[0];
+
+        Assert.Null(g.Files[0].CueRelativePath);
+        Assert.Equal("Wipeout/w.cue", g.Files[0].LaunchRelativePath);
+    }
+
+    // ── Jaquettes et métadonnées hors de l'arborescence des ROMs (ES-DE, Cocoon) ──
+
+    private static readonly ArchitectureEntry EsDe = new()
+    {
+        Id = "esde", CoverFolder = "ES-DE/downloaded_media/{system}/covers", CoverSuffix = "",
+        GamelistFormat = MetadataFormats.EsDe,
+    };
+
+    [Fact]
+    public void EsDe_covers_leave_the_rom_tree_and_the_gamelist_carries_no_image()
+    {
+        var g = new Builder { Arch = EsDe }
+            .Add(Game(20, "Kirby", "Super Nintendo", 5), true,
+                 File(20, 1, "Kirby", @"games\downloads\Kirby - 5\files\1\kirby.zip"))
+            .Plan().Games[0];
+
+        var cover = Assert.Single(g.Covers);
+        Assert.True(cover.IsRootRelative);
+        Assert.Equal("ES-DE/downloaded_media/snes/covers/Kirby.png", cover.DestRelativePath);
+        Assert.Null(g.GamelistEntries[0].Image);
+        Assert.Contains("ES-DE/downloaded_media/snes/covers/Kirby.png", g.OutputPaths);
+    }
+
+    [Fact]
+    public void EsDe_cover_mirrors_the_subfolder_of_the_launch_file()
+    {
+        // ES-DE cherche covers/Wipeout/w.png pour un jeu lancé par Wipeout/w.cue
+        var g = new Builder { Arch = EsDe, Mode = ArchiveMode.ExtractAll }
+            .Add(Game(12, "Wipeout", "Playstation", 88), true,
+                 File(12, 1, "Wipeout", @"games\downloads\Wipeout - 88\files\1\w.zip"))
+            .Archive(@"games\downloads\Wipeout - 88\files\1\w.zip", ("w.cue", 100), ("w.bin", DiscSize))
+            .Plan().Games[0];
+
+        Assert.Equal("ES-DE/downloaded_media/psx/covers/Wipeout/w.png", g.Covers[0].DestRelativePath);
+    }
+
+    [Fact]
+    public void Root_relative_covers_with_an_image_tag_climb_out_of_the_system_folder()
+    {
+        var arch = new ArchitectureEntry
+        {
+            Id = "custom", CoverFolder = "media/{system}/box", CoverSuffix = "",
+            GamelistFormat = MetadataFormats.EmulationStation,
+        };
+        var g = new Builder { Arch = arch }
+            .Add(Game(20, "Kirby", "Super Nintendo", 5), true,
+                 File(20, 1, "Kirby", @"games\downloads\Kirby - 5\files\1\kirby.zip"))
+            .Plan().Games[0];
+
+        Assert.Equal("../media/snes/box/Kirby.png", g.GamelistEntries[0].Image);
+    }
+
+    [Fact]
+    public void Unknown_metadata_format_is_treated_as_none()
+    {
+        var arch = new ArchitectureEntry { Id = "x", CoverFolder = "images", GamelistFormat = "format-du-futur" };
+        Assert.False(arch.SupportsGamelist);
+
+        var g = new Builder { Arch = arch }
+            .Add(Game(20, "Kirby", "Super Nintendo", 5), true,
+                 File(20, 1, "Kirby", @"games\downloads\Kirby - 5\files\1\kirby.zip"))
+            .Plan().Games[0];
+        Assert.Empty(g.GamelistEntries);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("a/b.c/game.cue", "a/b.c/game")]
+    [InlineData("Game v1.2.iso", "Game v1.2")]
+    [InlineData("dir.x/file", "dir.x/file")]
+    public void Extension_is_stripped_from_the_last_segment_only(string path, string expected)
+        => Assert.Equal(expected, RebasePlanner.WithoutExtension(path));
 
     [Theory]
     [InlineData("Chrono Cross (Disc 1)", 1)]

@@ -14,8 +14,6 @@ namespace RomStationRebase.ViewModels;
 /// </summary>
 public class ArchitectureDraftViewModel : ViewModelBase
 {
-    private const string EmulationStationFormat = "emulationstation";
-
     private ArchitectureEntry _entry;
     private bool   _isDirty;
     private bool   _suspendDirty;
@@ -173,13 +171,20 @@ public class ArchitectureDraftViewModel : ViewModelBase
 
     // ── Métadonnées ───────────────────────────────────────────────────────
 
-    /// <summary>0 = aucun fichier de métadonnées, 1 = EmulationStation. Passer à 0 désactive aussi "gamelist par défaut".</summary>
+    /// <summary>
+    /// 0 = aucun fichier de métadonnées, puis les formats de <see cref="MetadataFormats.All"/> dans leur ordre.
+    /// Passer à 0 désactive aussi "gamelist par défaut".
+    /// </summary>
     public int GamelistFormatIndex
     {
-        get => _entry.SupportsGamelist ? 1 : 0;
+        get
+        {
+            string? known = MetadataFormats.Normalize(_entry.GamelistFormat);
+            return known is null ? 0 : MetadataFormats.All.ToList().IndexOf(known) + 1;
+        }
         set
         {
-            string? format = value == 1 ? EmulationStationFormat : null;
+            string? format = value >= 1 && value <= MetadataFormats.All.Count ? MetadataFormats.All[value - 1] : null;
             if (string.Equals(_entry.GamelistFormat, format, StringComparison.OrdinalIgnoreCase)) return;
             _entry.GamelistFormat = format;
             if (format is null && _entry.GamelistByDefault)
@@ -189,11 +194,23 @@ public class ArchitectureDraftViewModel : ViewModelBase
             }
             OnPropertyChanged();
             OnPropertyChanged(nameof(SupportsGamelist));
+            OnPropertyChanged(nameof(GamelistFormatHint));
             MarkDirty();
         }
     }
 
     public bool SupportsGamelist => _entry.SupportsGamelist;
+
+    /// <summary>Une ligne sous le sélecteur : quel fichier sera écrit, où, et pour quels frontends.</summary>
+    public string GamelistFormatHint => MetadataFormats.Normalize(_entry.GamelistFormat) switch
+    {
+        MetadataFormats.EmulationStation => Strings.ArchEditor_GamelistHint_EmulationStation,
+        MetadataFormats.EsDe             => Strings.ArchEditor_GamelistHint_EsDe,
+        MetadataFormats.Miyoo            => Strings.ArchEditor_GamelistHint_Miyoo,
+        MetadataFormats.Pegasus          => Strings.ArchEditor_GamelistHint_Pegasus,
+        MetadataFormats.Logiqx           => Strings.ArchEditor_GamelistHint_Logiqx,
+        _                                => Strings.ArchEditor_GamelistHint_None,
+    };
 
     public bool GamelistByDefault
     {

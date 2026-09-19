@@ -146,8 +146,36 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Capture et sauvegarde les bounds avant fermeture.</summary>
+    // ── Menu du bouton scindé « Enregistrer » ────────────────────────────────────────────────
+
+    private DateTime _projectMenuClosedAt = DateTime.MinValue;
+
+    /// <summary>
+    /// Ouvre le menu. Un clic sur le bouton alors que le menu est ouvert le ferme d'abord (clic hors du Popup) :
+    /// sans ce garde-fou, le même clic le rouvrirait aussitôt.
+    /// </summary>
+    private void OnPresetMenuButtonClick(object sender, RoutedEventArgs e)
+    {
+        if ((DateTime.Now - _projectMenuClosedAt).TotalMilliseconds < 250) return;
+        PresetMenuPopup.IsOpen = true;
+    }
+
+    private void OnPresetMenuClosed(object? sender, EventArgs e)
+        => _projectMenuClosedAt = DateTime.Now;
+
+    /// <summary>Le menu se referme dès qu'une entrée est choisie ; la commande de l'entrée s'exécute ensuite.</summary>
+    private void OnPresetMenuItemClick(object sender, RoutedEventArgs e)
+        => PresetMenuPopup.IsOpen = false;
+
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
+        // Une sélection modifiée depuis son dernier enregistrement : proposer de l'enregistrer, ou renoncer à quitter
+        if (DataContext is MainViewModel vm && !vm.ConfirmDiscardPresetChanges())
+        {
+            e.Cancel = true;
+            return;
+        }
+
         try
         {
             var config = new Services.ConfigService();

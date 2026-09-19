@@ -132,6 +132,19 @@ public class RebaseService
                         }
 
                         string launchPath = Path.Combine(destSys, file.LaunchRelativePath.Replace('/', Path.DirectorySeparatorChar));
+                        string? cueBinPath = file.CueBinRelativePath is null
+                            ? null
+                            : Path.Combine(destSys, file.CueBinRelativePath.Replace('/', Path.DirectorySeparatorChar));
+
+                        // Image disque déjà extraite par un rebase précédent, mais sans son .cue : on n'écrit que lui
+                        if (cueBinPath is not null && !File.Exists(launchPath) && File.Exists(cueBinPath)
+                            && options.DuplicatePolicy == DuplicatePolicy.Ignore)
+                        {
+                            CueSheetService.WriteFor(cueBinPath, launchPath);
+                            Interlocked.Add(ref copiedBytes, file.PlannedBytes);
+                            continue;
+                        }
+
                         if (File.Exists(launchPath) && options.DuplicatePolicy == DuplicatePolicy.Ignore)
                         {
                             // Déjà présent : compté comme écrit pour que la barre et l'ETA restent justes
@@ -149,6 +162,10 @@ public class RebaseService
                         await RunWithRetryAsync(
                             () => TransferAsync(file, destSys, bytesProgress, ct),
                             file.SourcePath, options.RetryCount, options.RetryDelaySeconds, ct).ConfigureAwait(false);
+
+                        // Image disque brute livrée sans descripteur : le .cue qui la rend lançable
+                        if (cueBinPath is not null)
+                            CueSheetService.WriteFor(cueBinPath, launchPath);
                     }
 
                     // Playlist M3U des vrais disques, réécrite à chaque passage (idempotent, quelques octets)
@@ -163,7 +180,8 @@ public class RebaseService
                     foreach (var cover in plan.Covers)
                     {
                         ct.ThrowIfCancellationRequested();
-                        string coverDest = Path.Combine(destSys, cover.DestRelativePath.Replace('/', Path.DirectorySeparatorChar));
+                        string coverDest = Path.Combine(cover.IsRootRelative ? options.TargetPath : destSys,
+                            cover.DestRelativePath.Replace('/', Path.DirectorySeparatorChar));
                         long coverBytes  = GetFileSize(cover.SourcePath);
                         if (File.Exists(coverDest) && options.DuplicatePolicy == DuplicatePolicy.Ignore)
                         {
@@ -345,8 +363,13 @@ public class RebaseService
                         && !i.Plan.IsUnmapped && i.Plan.GamelistEntries.Count > 0)
             .GroupBy(i => i.Plan.TargetFolder!, StringComparer.OrdinalIgnoreCase);
 
+        string format = options.Architecture.GamelistFormat ?? string.Empty;
+        if (!MetadataFormats.IsKnown(format))
+            return (0, notes);
+
         foreach (var group in byFolder)
         {
+            string destSys = Path.Combine(options.TargetPath, group.Key);
             var games = new List<GamelistGame>();
             foreach (var item in group)
             {
@@ -354,6 +377,10 @@ public class RebaseService
                 options.Metadata?.TryGetValue(item.GameId, out meta);
                 foreach (var entry in item.Plan.GamelistEntries)
                 {
+                    // Taille réelle du fichier désigné, telle qu'elle est sur la cible (attribut size du .dat Logiqx)
+                    string launched = Path.Combine(destSys,
+                        GamelistService.NormalizePath(entry.Path).Replace('/', Path.DirectorySeparatorChar));
+
                     games.Add(new GamelistGame(
                         Path:        entry.Path,
                         Name:        entry.Name,
@@ -363,21 +390,24 @@ public class RebaseService
                         Developer:   meta?.DeveloperName,
                         Publisher:   meta?.PublisherName,
                         Genre:       meta is { Genres.Count: > 0 } ? string.Join(", ", meta.Genres) : null,
-                        Players:     FormatPlayers(meta?.Players)));
+                        Players:     FormatPlayers(meta?.Players),
+                        Size:        GetFileSize(launched)));
                 }
             }
 
-            string gamelistPath = Path.Combine(options.TargetPath, group.Key, "gamelist.xml");
+            // Nom et emplacement du fichier : décidés par le format de l'architecture (dossier système, ou ES-DE/gamelists)
+            string relative     = MetadataFormats.RelativePath(format, group.Key);
+            string metadataPath = Path.Combine(options.TargetPath, relative.Replace('/', Path.DirectorySeparatorChar));
             try
             {
-                var result = GamelistService.WriteOrMerge(gamelistPath, games, options.BackupGamelist);
+                var result = MetadataWriterService.Write(format, metadataPath, group.Key, games, options.BackupGamelist);
                 written++;
                 if (result.BackupPath is not null)
                     notes.Add(string.Format(Strings.Rebase_Gamelist_Backup, Path.GetFileName(result.BackupPath)));
             }
             catch (Exception ex)
             {
-                notes.Add(string.Format(Strings.Rebase_Error_GamelistWrite, group.Key, ErrorMessageClassifier.Classify(ex)));
+                notes.Add(string.Format(Strings.Rebase_Error_GamelistWrite, relative, ErrorMessageClassifier.Classify(ex)));
             }
         }
 

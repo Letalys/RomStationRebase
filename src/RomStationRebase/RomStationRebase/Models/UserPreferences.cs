@@ -33,6 +33,9 @@ public class UserPreferences
     /// <summary>Dernier dossier de destination utilisé dans RebaseWindow. Vide au premier lancement.</summary>
     public string LastRebaseTargetPath { get; set; } = string.Empty;
 
+    /// <summary>Dernier dossier d'où un fichier de sélection (*.rsr) a été ouvert ou enregistré.</summary>
+    public string LastPresetDirectory { get; set; } = string.Empty;
+
     /// <summary>Identifiant de la dernière architecture sélectionnée (ex : "retroarch", "lakka", "arkos"). Vide au premier lancement.</summary>
     public string LastRebaseArchitectureId { get; set; } = string.Empty;
 

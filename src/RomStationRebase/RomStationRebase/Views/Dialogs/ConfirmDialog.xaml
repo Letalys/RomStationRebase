@@ -66,6 +66,12 @@
                         Padding="16,10">
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Right">
+                        <!-- Troisième choix facultatif (« Annuler » d'un Enregistrer / Ne pas enregistrer / Annuler) -->
+                        <Button x:Name="TertiaryButton"
+                                Margin="0,0,8,0"
+                                Padding="16,7"
+                                Visibility="Collapsed"
+                                Click="TertiaryButton_Click"/>
                         <Button x:Name="SecondaryButton"
                                 Margin="0,0,8,0"
                                 Padding="16,7"

@@ -16,6 +16,12 @@ public partial class App : Application
 {
     private System.Threading.Mutex? _singleInstanceMutex;
 
+    // Présélection à ouvrir : reçue en argument (double-clic dans l'Explorateur) ou relayée par une seconde instance.
+    // Elle attend que la bibliothèque soit chargée et qu'aucune fenêtre modale ne soit ouverte.
+    private SingleInstanceChannel? _channel;
+    private MainViewModel?         _mainVm;
+    private string?                _pendingPresetPath;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         // === Instance unique : acquis en tout premier, avant toute autre logique ===
@@ -34,15 +40,28 @@ public partial class App : Application
             isNewInstance = true;
         }
 
+        string? presetArg = ShellOpenService.PresetPathFromArgs(e.Args);
+
         if (!isNewInstance)
         {
-            // Une autre instance tourne déjà : la mettre au premier plan puis se fermer.
-            BringExistingInstanceToFront();
+            // Une autre instance tourne déjà : lui confier la présélection à ouvrir (ou simplement lui demander de se montrer),
+            // puis se fermer. Si elle ne répond pas, on se rabat sur la mise au premier plan par handle de fenêtre.
+            if (!SingleInstanceChannel.TrySend(presetArg))
+                BringExistingInstanceToFront();
             Shutdown(0);
             return;
         }
 
         base.OnStartup(e);
+
+        // A l'écoute dès le splash : une demande reçue trop tôt reste en attente
+        _pendingPresetPath = presetArg;
+        _channel = new SingleInstanceChannel();
+        _channel.Start(OnRemoteRequest);
+
+        // L'utilisateur a associé les .rsr à RSR, puis déplacé son dossier : le double-clic doit continuer de marcher
+        if (Environment.ProcessPath is { } exe)
+            FileAssociationService.RepairIfMoved(exe, Strings.Preset_FileFilter);
 
         // ── Handlers globaux — enregistrés en premier pour capturer tout crash précoce ──
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
@@ -89,8 +108,44 @@ public partial class App : Application
         }
     }
 
+    // ── Ouverture d'une présélection depuis l'Explorateur ────────────────────────
+
+    /// <summary>Demande d'une seconde instance, reçue hors du thread d'interface.</summary>
+    private void OnRemoteRequest(string? rawPath) => Dispatcher.BeginInvoke(() =>
+    {
+        ActivateTopWindow();
+        if (ShellOpenService.ValidatePresetPath(rawPath) is { } path)
+            _pendingPresetPath = path; // la dernière demande l'emporte
+        TryOpenPendingPreset();
+    });
+
+    /// <summary>
+    /// Ouvre la présélection en attente dès que c'est possible : bibliothèque chargée, aucune fenêtre modale.
+    /// Une fenêtre de rebase ouverte (a fortiori un rebase en cours) n'est jamais interrompue : la présélection
+    /// s'ouvrira quand elle se refermera.
+    /// </summary>
+    private void TryOpenPendingPreset()
+    {
+        if (_pendingPresetPath is null || _mainVm is null || _mainVm.IsLoading) return;
+        if (System.Windows.Interop.ComponentDispatcher.IsThreadModal) return;
+
+        string path = _pendingPresetPath;
+        _pendingPresetPath = null;
+        _mainVm.OpenPresetFile(path);
+    }
+
+    /// <summary>Montre la fenêtre la plus haute de l'application : la modale ouverte s'il y en a une, sinon la fenêtre principale.</summary>
+    private void ActivateTopWindow()
+    {
+        if (MainWindow is { } main && main.WindowState == WindowState.Minimized)
+            main.WindowState = WindowState.Normal;
+        var top = Windows.OfType<Window>().LastOrDefault(w => w.IsVisible) ?? MainWindow;
+        top?.Activate();
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
+        _channel?.Dispose();
         try
         {
             _singleInstanceMutex?.ReleaseMutex();
@@ -345,6 +400,21 @@ public partial class App : Application
                 dlg.ShowDialog();
                 Shutdown(1);
             });
+            return;
         }
+
+        // Bibliothèque prête : la présélection reçue en argument peut s'ouvrir, et celles qui arriveront plus tard aussi.
+        // Hors du try ci-dessus : une erreur dans la fenêtre de rebase ne doit pas passer pour un échec de chargement.
+        _ = Dispatcher.BeginInvoke(() =>
+        {
+            _mainVm = vm;
+            vm.PropertyChanged += (_, a) =>
+            {
+                if (a.PropertyName == nameof(MainViewModel.IsLoading)) TryOpenPendingPreset(); // fin d'une synchronisation
+            };
+            System.Windows.Interop.ComponentDispatcher.LeaveThreadModal += (_, _) =>
+                Dispatcher.BeginInvoke(TryOpenPendingPreset, DispatcherPriority.ApplicationIdle);
+            TryOpenPendingPreset();
+        });
     }
 }

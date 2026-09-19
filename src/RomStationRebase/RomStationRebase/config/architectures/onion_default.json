@@ -1,0 +1,22 @@
+{
+  "folderTreeMappings": [
+    { "romStationSystem": "Playstation",     "targetFolder": "PS",         "m3u": true,  "extract": true },
+    { "romStationSystem": "Nintendo DS",     "targetFolder": "NDS"        },
+    { "romStationSystem": "GameBoy",         "targetFolder": "GB"         },
+    { "romStationSystem": "GameBoy Color",   "targetFolder": "GBC"        },
+    { "romStationSystem": "GameBoy Advance", "targetFolder": "GBA"        },
+    { "romStationSystem": "NES",             "targetFolder": "FC"         },
+    { "romStationSystem": "Super Nintendo",  "targetFolder": "SFC"        },
+    { "romStationSystem": "Megadrive",       "targetFolder": "MD"         },
+    { "romStationSystem": "Mega-CD",         "targetFolder": "SEGACD",     "m3u": true,  "extract": true },
+    { "romStationSystem": "32X",             "targetFolder": "THIRTYTWOX" },
+    { "romStationSystem": "Game Gear",       "targetFolder": "GG"         },
+    { "romStationSystem": "Master System",   "targetFolder": "MS"         },
+    { "romStationSystem": "Neo-Geo",         "targetFolder": "NEOGEO",     "keepFileName": true },
+    { "romStationSystem": "Neo-Geo CD",      "targetFolder": "NEOCD",      "m3u": true,  "extract": true },
+    { "romStationSystem": "Arcade",          "targetFolder": "ARCADE",     "keepFileName": true },
+    { "romStationSystem": "PC Engine",       "targetFolder": "PCE"        },
+    { "romStationSystem": "PC Engine CD",    "targetFolder": "PCECD",      "extract": true },
+    { "romStationSystem": "DOS",             "targetFolder": "DOS"        }
+  ]
+}

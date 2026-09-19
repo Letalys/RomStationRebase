@@ -75,6 +75,15 @@ public sealed class RebaseFilePlan
     /// <summary>Extract à plat d'une archive à entrée unique : nom cible de l'entrée. Null si les noms internes sont conservés.</summary>
     public string? SingleEntryTargetName { get; init; }
 
+    /// <summary>
+    /// Image disque brute extraite sans son descripteur : chemin du .cue à écrire après l'extraction,
+    /// relatif au dossier système. C'est alors lui le fichier lançable. Null dans tous les autres cas.
+    /// </summary>
+    public string? CueRelativePath { get; init; }
+
+    /// <summary>Chemin du .bin que décrit le .cue généré, relatif au dossier système. Même dossier que le .cue.</summary>
+    public string? CueBinRelativePath { get; init; }
+
     /// <summary>Dossier source à copier pour CopyTree (absolu).</summary>
     public string? SourceDirectory { get; init; }
 
@@ -95,8 +104,13 @@ public sealed class RebaseFilePlan
 public sealed class RebaseCoverPlan
 {
     public string SourcePath       { get; init; } = string.Empty;
-    /// <summary>Chemin cible relatif au dossier système, séparateur "/".</summary>
+    /// <summary>Chemin cible, séparateur "/" : relatif au dossier système, ou à la destination si <see cref="IsRootRelative"/>.</summary>
     public string DestRelativePath { get; init; } = string.Empty;
+    /// <summary>
+    /// True quand le dossier des jaquettes de l'architecture porte le marqueur {system} : la jaquette sort de
+    /// l'arborescence des ROMs (ES-DE/downloaded_media/psx/covers) et son chemin part de la destination.
+    /// </summary>
+    public bool IsRootRelative { get; init; }
 }
 
 /// <summary>Entrée à écrire dans le fichier de métadonnées du dossier système.</summary>

@@ -21,6 +21,13 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     internal static extern bool SetForegroundWindow(IntPtr hWnd);
 
+    /// <summary>Valeur de AllowSetForegroundWindow : tout processus peut ensuite passer au premier plan.</summary>
+    internal const int ASFW_ANY = -1;
+
+    /// <summary>La seconde instance cède le droit de passer au premier plan à la première, avant de se fermer.</summary>
+    [DllImport("user32.dll")]
+    internal static extern bool AllowSetForegroundWindow(int processId);
+
     /// <summary>Restaure une fenêtre minimisée ou maximisée à sa taille et position d'origine.</summary>
     internal const int SW_RESTORE = 9;
 

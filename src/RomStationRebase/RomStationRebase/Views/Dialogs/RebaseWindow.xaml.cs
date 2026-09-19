@@ -112,6 +112,29 @@ public partial class RebaseWindow : Window
     /// Intercepte la fermeture pendant un calcul ou un rebase actif.
     /// Propose d'annuler via un ConfirmDialog avant de laisser la fenêtre se fermer.
     /// </summary>
+    // ── Menu du bouton scindé « Enregistrer la présélection » ──────────────────
+
+    private DateTime _projectMenuClosedAt = DateTime.MinValue;
+
+    /// <summary>Un clic sur la flèche, menu ouvert, le ferme d'abord (clic hors du Popup) : ce garde-fou évite qu'il se rouvre aussitôt.</summary>
+    private void OnPresetMenuButtonClick(object sender, RoutedEventArgs e)
+    {
+        if ((DateTime.Now - _projectMenuClosedAt).TotalMilliseconds < 250) return;
+        PresetMenuPopup.IsOpen = true;
+    }
+
+    private void OnPresetMenuClosed(object? sender, EventArgs e)
+        => _projectMenuClosedAt = DateTime.Now;
+
+    private void OnPresetMenuItemClick(object sender, RoutedEventArgs e)
+        => PresetMenuPopup.IsOpen = false;
+
+    protected override void OnClosed(EventArgs e)
+    {
+        (DataContext as RebaseViewModel)?.DetachSession();
+        base.OnClosed(e);
+    }
+
     protected override void OnClosing(CancelEventArgs e)
     {
         // Capture les bounds avant toute logique d'annulation — même si la fermeture est annulée,

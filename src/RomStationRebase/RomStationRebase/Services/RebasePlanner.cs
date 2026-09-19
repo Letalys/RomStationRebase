@@ -66,6 +66,12 @@ public class RebasePlanner
     private static readonly string[] MainEntryPriority =
         [".cue", ".gdi", ".ccd", ".toc", ".chd", ".m3u", ".iso", ".cso", ".pbp", ".rvz", ".gcm", ".img", ".bin"];
 
+    /// <summary>Marqueur du dossier des jaquettes : remplacé par le dossier système, et le chemin part alors de la destination.</summary>
+    public const string SystemToken = "{system}";
+
+    /// <summary>En dessous de 16 Mo, un .bin seul est une ROM de cartouche, pas une image disque.</summary>
+    internal const long DiscImageMinBytes = 16L * 1024 * 1024;
+
     // ── Point d'entrée ────────────────────────────────────────────────────
 
     public RebasePlan Plan(RebasePlanRequest request)
@@ -196,31 +202,57 @@ public class RebasePlanner
         var covers  = new List<RebaseCoverPlan>();
         bool coversWanted = req.CopyCovers && game.CoverExists && !string.IsNullOrEmpty(game.CoverPath);
 
+        // Dossier des jaquettes : relatif au dossier système, ou à la destination s'il porte le marqueur {system}
+        // (ES-DE/downloaded_media/{system}/covers, MUOS/info/catalogue/{system}/box…)
+        string format      = req.Architecture.GamelistFormat ?? string.Empty;
+        string coverFolder = req.Architecture.CoverFolder.Replace('\\', '/').Trim('/');
+        bool   coversAtRoot = coverFolder.Contains(SystemToken, StringComparison.OrdinalIgnoreCase);
+        if (coversAtRoot)
+            coverFolder = coverFolder.Replace(SystemToken, mapping.TargetFolder.Replace('\\', '/').Trim('/'),
+                StringComparison.OrdinalIgnoreCase);
+
         string CoverRel(string stem)
-            => $"{req.Architecture.CoverFolder.Trim('/', '\\')}/{stem}{req.Architecture.CoverSuffix}.png";
+            => coverFolder.Length == 0
+                ? $"{stem}{req.Architecture.CoverSuffix}.png"
+                : $"{coverFolder}/{stem}{req.Architecture.CoverSuffix}.png";
+
+        // Balise image : seulement pour un format qui la porte. Hors du dossier système, on remonte d'autant de niveaux.
+        string? ImageTag(string? coverRel)
+        {
+            if (coverRel is null || !MetadataFormats.WritesImage(format)) return null;
+            if (!coversAtRoot) return "./" + coverRel;
+            int depth = mapping.TargetFolder.Replace('\\', '/').Trim('/').Split('/').Length;
+            return string.Concat(Enumerable.Repeat("../", depth)) + coverRel;
+        }
+
+        void AddCover(string coverRel)
+        {
+            if (!covers.Any(c => string.Equals(c.DestRelativePath, coverRel, StringComparison.OrdinalIgnoreCase)))
+                covers.Add(new RebaseCoverPlan { SourcePath = game.CoverPath!, DestRelativePath = coverRel, IsRootRelative = coversAtRoot });
+        }
+
+        bool mirror = MetadataFormats.MirrorsLaunchPath(format);
 
         if (withM3U)
         {
             string? img = coversWanted ? CoverRel(baseName) : null;
-            entries.Add(new GamelistEntryPlan { Path = "./" + m3uPath, Name = game.Title, Image = img is null ? null : "./" + img });
-            if (img is not null)
-                covers.Add(new RebaseCoverPlan { SourcePath = game.CoverPath!, DestRelativePath = img });
+            entries.Add(new GamelistEntryPlan { Path = "./" + m3uPath, Name = game.Title, Image = ImageTag(img) });
+            if (img is not null) AddCover(img);
         }
         else
         {
             for (int i = 0; i < files.Count; i++)
             {
                 var f = files[i];
-                string stem = CoverStem(f, stems[i]);
+                string stem = mirror ? WithoutExtension(f.LaunchRelativePath) : CoverStem(f, stems[i]);
                 string? img = coversWanted ? CoverRel(stem) : null;
                 entries.Add(new GamelistEntryPlan
                 {
                     Path  = "./" + f.LaunchRelativePath,
                     Name  = files.Count == 1 || keepFileName ? game.Title : f.Label,
-                    Image = img is null ? null : "./" + img,
+                    Image = ImageTag(img),
                 });
-                if (img is not null && !covers.Any(c => string.Equals(c.DestRelativePath, img, StringComparison.OrdinalIgnoreCase)))
-                    covers.Add(new RebaseCoverPlan { SourcePath = game.CoverPath!, DestRelativePath = img });
+                if (img is not null) AddCover(img);
             }
         }
 
@@ -241,11 +273,17 @@ public class RebasePlanner
 
         var outputs = new List<string>();
         foreach (var f in files)
+        {
             outputs.Add(f.DestRelativeDir.Length > 0
                 ? $"{mapping.TargetFolder}/{f.DestRelativeDir}/"
                 : $"{mapping.TargetFolder}/{f.LaunchRelativePath}");
+            // .cue généré à plat : le .bin qu'il décrit est écrit à côté de lui
+            if (f.CueBinRelativePath is not null && f.DestRelativeDir.Length == 0)
+                outputs.Add($"{mapping.TargetFolder}/{f.CueBinRelativePath}");
+        }
         if (m3uPath is not null) outputs.Add($"{mapping.TargetFolder}/{m3uPath}");
-        foreach (var c in covers) outputs.Add($"{mapping.TargetFolder}/{c.DestRelativePath}");
+        foreach (var c in covers)
+            outputs.Add(c.IsRootRelative ? c.DestRelativePath : $"{mapping.TargetFolder}/{c.DestRelativePath}");
 
         return new RebaseGamePlan
         {
@@ -335,6 +373,7 @@ public class RebasePlanner
         if (archive is { IsReadable: true } && archive.Entries.Count > 0)
         {
             var main = MainEntry(archive);
+            bool needsCue = NeedsCueSheet(archive, main);
             bool flat = archive.Entries.Count == 1 && req.Layout == ExtractLayout.Auto;
             if (flat)
             {
@@ -345,20 +384,27 @@ public class RebasePlanner
                     Label                 = file.Label,
                     Kind                  = FileTransferKind.Extract,
                     DestRelativeDir       = string.Empty,
-                    LaunchRelativePath    = target,
+                    LaunchRelativePath    = needsCue ? stem + ".cue" : target,
                     SingleEntryTargetName = target,
+                    CueRelativePath       = needsCue ? stem + ".cue" : null,
+                    CueBinRelativePath    = needsCue ? target : null,
                     Archive               = archive,
                     CopySize              = copySize,
                     ExtractedSize         = archive.UncompressedSize,
                 };
             }
+
+            string mainRel = $"{stem}/{main.InternalPath.Replace('\\', '/')}";
+            string? cueRel = needsCue ? WithoutExtension(mainRel) + ".cue" : null;
             return new RebaseFilePlan
             {
                 SourcePath         = source,
                 Label              = file.Label,
                 Kind               = FileTransferKind.Extract,
                 DestRelativeDir    = stem,
-                LaunchRelativePath = $"{stem}/{main.InternalPath.Replace('\\', '/')}",
+                LaunchRelativePath = cueRel ?? mainRel,
+                CueRelativePath    = cueRel,
+                CueBinRelativePath = needsCue ? mainRel : null,
                 Archive            = archive,
                 CopySize           = copySize,
                 ExtractedSize      = archive.UncompressedSize,
@@ -390,6 +436,32 @@ public class RebasePlanner
             if (hit is not null) return hit;
         }
         return archive.Entries.OrderBy(e => e.InternalPath, StringComparer.OrdinalIgnoreCase).First();
+    }
+
+    /// <summary>
+    /// True si l'archive ne livre qu'une image disque brute (.bin ou .img) sans aucun descripteur : aucun émulateur CD
+    /// ne la liste telle quelle, un .cue à piste unique sera écrit à côté. Le seuil de taille écarte les ROMs de
+    /// cartouche qui portent aussi l'extension .bin (Megadrive, 32X, Atari) : la plus grosse fait quelques mégaoctets.
+    /// </summary>
+    internal static bool NeedsCueSheet(ArchiveInfo archive, ArchiveEntryInfo main)
+        => IsRawDiscImage(main.FileName)
+           && main.Length >= DiscImageMinBytes
+           && archive.Entries.Count(e => IsRawDiscImage(e.FileName)) == 1;
+
+    private static bool IsRawDiscImage(string fileName)
+    {
+        string ext = Path.GetExtension(fileName);
+        return string.Equals(ext, ".bin", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(ext, ".img", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Chemin relatif sans l'extension de son dernier segment (un point dans un nom de dossier n'est pas une extension).</summary>
+    internal static string WithoutExtension(string relativePath)
+    {
+        int slash = relativePath.LastIndexOf('/');
+        string dir  = slash >= 0 ? relativePath[..(slash + 1)] : string.Empty;
+        string name = slash >= 0 ? relativePath[(slash + 1)..] : relativePath;
+        return dir + Path.GetFileNameWithoutExtension(name);
     }
 
     /// <summary>
