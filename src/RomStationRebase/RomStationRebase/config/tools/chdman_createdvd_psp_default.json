@@ -1,0 +1,38 @@
+{
+  "id": "chdman_createdvd_psp_default",
+  "label": "chdman : PSP vers CHD (Default)",
+  "description": "ISO PSP vers CHD, avec le bloc de 2048 octets qu'exige PPSSPP. Demande chdman 0.255 au moins.",
+  "executable": "chdman.exe",
+  "downloadUrl": "https://www.mamedev.org/release.html",
+  "searchPaths": [
+    "%ProgramFiles%\\MAME",
+    "%USERPROFILE%\\MAME",
+    "%USERPROFILE%\\Downloads\\mame"
+  ],
+  "inputExtensions": [
+    ".iso"
+  ],
+  "outputExtension": ".chd",
+  "arguments": [
+    "createdvd",
+    "-hs",
+    "2048",
+    "-i",
+    "{input}",
+    "-o",
+    "{output}",
+    "-f"
+  ],
+  "progressStream": "stderr",
+  "progressRegex": "(\\d+(?:\\.\\d+)?)% complete",
+  "successExitCodes": [
+    0
+  ],
+  "versionArguments": [
+    "-help"
+  ],
+  "versionRegex": "manager\\s+(\\d+\\.\\d+)",
+  "minVersion": "0.255",
+  "sizeRatioHint": 0.7,
+  "stallTimeoutSeconds": 300
+}

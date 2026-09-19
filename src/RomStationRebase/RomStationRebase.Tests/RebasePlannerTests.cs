@@ -17,7 +17,8 @@ public class RebasePlannerTests
             new() { RomStationSystem = "Playstation",    TargetFolder = "psx",    M3U = true },
             new() { RomStationSystem = "GameCube",       TargetFolder = "gc",     M3U = true, Extract = true },
             new() { RomStationSystem = "PSP",            TargetFolder = "psp",    Extract = true },
-            new() { RomStationSystem = "Neo-Geo",        TargetFolder = "neogeo", KeepFileName = true },
+            new() { RomStationSystem = "Neo-Geo",        TargetFolder = "neogeo", KeepFileName = true, Transform = "chd" },
+            new() { RomStationSystem = "Dreamcast",      TargetFolder = "dreamcast", M3U = true, Extract = true, Transform = "chd" },
             new() { RomStationSystem = "Super Nintendo", TargetFolder = "snes" },
             new() { RomStationSystem = "GameBoy Advance",TargetFolder = "gba" },
             new() { RomStationSystem = "Megadrive",      TargetFolder = "megadrive" },
@@ -48,6 +49,9 @@ public class RebasePlannerTests
         public ArchiveMode Mode = ArchiveMode.ExtractRequired;
         public ExtractLayout Layout = ExtractLayout.Auto;
         public ArchitectureEntry Arch = ArkOs;
+        // Conversion : désactivée par défaut, comme si aucun outil n'existait — les cas 1.3.0 d'origine n'en dépendent pas
+        public bool Convert;
+        public Dictionary<string, PlanTool> Tools = new(StringComparer.OrdinalIgnoreCase);
 
         public Builder Add(PlanGameInput g, bool select, params GameFileInfo[] files)
         {
@@ -85,6 +89,8 @@ public class RebasePlannerTests
             Layout               = Layout,
             CopyCovers           = Covers,
             GenerateGamelist     = Gamelist,
+            Convert              = Convert,
+            ToolLookup           = id => Tools.TryGetValue(id, out var t) ? t : null,
         });
     }
 
@@ -581,6 +587,145 @@ public class RebasePlannerTests
                  File(20, 1, "Kirby", @"games\downloads\Kirby - 5\files\1\kirby.zip"))
             .Plan().Games[0];
         Assert.Empty(g.GamelistEntries);
+    }
+
+    // ── Conversion par outil externe ──────────────────────────────────────
+
+    private static readonly PlanTool Chd    = new("chd", "chdman (CD)", [".gdi", ".cue"], ".chd", 0.6, IsAvailable: true);
+    private static readonly PlanTool ChdOff = Chd with { IsAvailable = false };
+
+    private static Builder Dreamcast(PlanTool tool, bool convert = true, string? gameOverride = null)
+    {
+        var b = new Builder { Convert = convert };
+        b.Tools["chd"] = tool;
+        var game = Game(1, "Crazy Taxi", "Dreamcast", 4821) with { TransformOverride = gameOverride };
+        return b.Add(game, true, File(1, 1, "Crazy Taxi", @"games\downloads\Crazy Taxi - 4821\files\901\ct.zip"))
+                .Archive(@"games\downloads\Crazy Taxi - 4821\files\901\ct.zip",
+                         ("disc.gdi", 200), ("track01.bin", 1_000_000), ("track02.raw", 2_000_000), ("track03.bin", 900_000_000));
+    }
+
+    [Fact]
+    public void Gdi_archive_becomes_a_single_flat_chd_named_by_the_plan()
+    {
+        var game = Dreamcast(Chd).Plan().Games.Single();
+        var file = game.Files.Single();
+
+        Assert.Equal(GameOutputKind.Converted, game.OutputKind);
+        Assert.Equal(FileTransferKind.Transform, file.Kind);
+        Assert.Equal("chd", file.TransformToolId);
+        Assert.Equal("disc.gdi", file.TransformInputEntry);       // le .gdi, pas la plus grosse piste
+        Assert.Equal("Crazy Taxi.chd", file.LaunchRelativePath);  // à plat, même si l'archive a plusieurs entrées
+        Assert.Equal("./Crazy Taxi.chd", game.GamelistEntries.Single().Path);
+
+        // Estimation annoncée comme telle : 60 % de l'extrait sur la cible, l'extrait plus le résultat dans le dossier de travail
+        long extracted = 200 + 1_000_000 + 2_000_000 + 900_000_000L;
+        Assert.Equal((long)(extracted * 0.6), file.PlannedBytes);
+        Assert.Equal(extracted + file.PlannedBytes, file.WorkBytes);
+    }
+
+    [Fact]
+    public void Tool_without_executable_falls_back_to_the_normal_path_and_is_reported()
+    {
+        var plan = Dreamcast(ChdOff).Plan();
+        var file = plan.Games.Single().Files.Single();
+
+        Assert.Equal(FileTransferKind.Extract, file.Kind);              // le système exige l'extraction : voie 1.3.0 habituelle
+        Assert.Equal("Crazy Taxi/disc.gdi", file.LaunchRelativePath);
+        Assert.Equal(["chdman (CD)"], plan.UnavailableTools);
+        Assert.Equal(0, plan.MaxWorkBytes);
+    }
+
+    [Fact]
+    public void Conversion_switched_off_for_the_run_or_for_one_game_is_not_planned_nor_reported()
+    {
+        foreach (var plan in new[] { Dreamcast(Chd, convert: false).Plan(), Dreamcast(Chd, gameOverride: "").Plan() })
+        {
+            Assert.Equal(FileTransferKind.Extract, plan.Games.Single().Files.Single().Kind);
+            Assert.Empty(plan.UnavailableTools);
+        }
+    }
+
+    [Fact]
+    public void Tool_chosen_for_one_game_applies_even_when_the_architecture_names_none()
+    {
+        // Playstation n'a aucun outil dans l'architecture : le choix vient de la colonne Conversion de la ligne
+        var b = new Builder { Convert = true };
+        b.Tools["chd"] = Chd;
+        var game = b.Add(Game(1, "Wipeout", "Playstation", 12) with { TransformOverride = "chd" }, true,
+                         File(1, 1, "Wipeout", @"games\downloads\Wipeout - 12\files\1\w.zip"))
+                    .Archive(@"games\downloads\Wipeout - 12\files\1\w.zip", ("Wipeout.cue", 100), ("Wipeout.bin", 500_000_000))
+                    .Plan().Games.Single();
+
+        Assert.Equal(FileTransferKind.Transform, game.Files.Single().Kind);
+        Assert.Equal("Wipeout.chd", game.Files.Single().LaunchRelativePath);
+    }
+
+    [Fact]
+    public void Plan_tells_the_rebase_table_what_each_game_can_be_offered()
+    {
+        var b = new Builder();
+        var plan = b
+            .Add(Game(1, "Crazy Taxi", "Dreamcast", 4821), true, File(1, 1, "Crazy Taxi", @"games\downloads\Crazy Taxi - 4821\files\901\ct.zip"))
+            .Archive(@"games\downloads\Crazy Taxi - 4821\files\901\ct.zip", ("disc.gdi", 200), ("track03.bin", 900_000_000))
+            .Add(Game(2, "Shenmue", "Dreamcast", 77), true,
+                 File(2, 1, "Shenmue (Disc 1)", @"games\downloads\Shenmue - 77\files\1\a.zip"),
+                 File(2, 2, "Shenmue (Disc 2)", @"games\downloads\Shenmue - 77\files\2\b.zip"))
+            .Archive(@"games\downloads\Shenmue - 77\files\1\a.zip", ("d1.gdi", 100), ("t.bin", 900))
+            .Archive(@"games\downloads\Shenmue - 77\files\2\b.zip", ("d2.gdi", 100), ("t.bin", 900))
+            .Add(Game(3, "Metal Slug", "Neo-Geo", 31995), true, File(3, 1, "Metal Slug", @"games\downloads\Metal Slug - 31995\files\12889\mslug.zip"))
+            .Plan();
+
+        var single = plan.Games.Single(g => g.GameId == 1);
+        Assert.False(single.IsDiscSet);                        // un seul disque : l'interrupteur M3U de la ligne sera éteint et grisé
+        Assert.True(single.HasArchive);
+        Assert.Equal([".gdi"], single.ToolInputExtensions);    // seuls les outils qui lisent un .gdi lui seront proposés
+
+        Assert.True(plan.Games.Single(g => g.GameId == 2).IsDiscSet);
+        Assert.Empty(plan.Games.Single(g => g.GameId == 3).ToolInputExtensions); // un romset ne se convertit pas
+    }
+
+    [Fact]
+    public void Romset_is_never_converted_even_when_its_system_names_a_tool()
+    {
+        var b = new Builder { Convert = true };
+        b.Tools["chd"] = Chd;
+        var file = b.Add(Game(1, "Metal Slug", "Neo-Geo", 31995), true,
+                         File(1, 1, "Metal Slug", @"games\downloads\Metal Slug - 31995\files\12889\mslug.zip"))
+                    .Plan().Games.Single().Files.Single();
+
+        Assert.Equal(FileTransferKind.Copy, file.Kind);
+        Assert.Equal("mslug.zip", file.LaunchRelativePath);
+    }
+
+    [Fact]
+    public void Archive_the_tool_cannot_read_follows_the_normal_path()
+    {
+        var b = new Builder { Convert = true };
+        b.Tools["chd"] = Chd;
+        var file = b.Add(Game(1, "Crazy Taxi", "Dreamcast", 4821), true,
+                         File(1, 1, "Crazy Taxi", @"games\downloads\Crazy Taxi - 4821\files\901\ct.zip"))
+                    .Archive(@"games\downloads\Crazy Taxi - 4821\files\901\ct.zip", ("Crazy Taxi.cdi", 700_000_000))
+                    .Plan().Games.Single().Files.Single();
+
+        Assert.Equal(FileTransferKind.Extract, file.Kind);
+        Assert.Equal("Crazy Taxi.cdi", file.LaunchRelativePath);
+    }
+
+    [Fact]
+    public void Multi_disc_set_lists_the_converted_files_in_its_m3u()
+    {
+        var b = new Builder { Convert = true };
+        b.Tools["chd"] = Chd;
+        var game = b.Add(Game(1, "Shenmue", "Dreamcast", 77), true,
+                         File(1, 1, "Shenmue (Disc 1)", @"games\downloads\Shenmue - 77\files\1\a.zip"),
+                         File(1, 2, "Shenmue (Disc 2)", @"games\downloads\Shenmue - 77\files\2\b.zip"))
+                    .Archive(@"games\downloads\Shenmue - 77\files\1\a.zip", ("d1.gdi", 100), ("track03.bin", 900_000_000))
+                    .Archive(@"games\downloads\Shenmue - 77\files\2\b.zip", ("d2.gdi", 100), ("track03.bin", 900_000_000))
+                    .Plan().Games.Single();
+
+        Assert.Equal("Shenmue.m3u", game.M3URelativePath);
+        Assert.Equal(["Shenmue (Disc 1).chd", "Shenmue (Disc 2).chd"], game.M3UEntries);
+        Assert.Equal("./Shenmue.m3u", game.GamelistEntries.Single().Path);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

@@ -21,6 +21,7 @@
     <Window.Resources>
         <BooleanToVisibilityConverter            x:Key="BoolToVisibilityConverter"/>
         <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <helpers:InverseBoolConverter             x:Key="InverseBoolConverter"/>
 
         <!-- Titlebar : même chrome que RebaseWindow -->
         <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -569,7 +570,7 @@
                             <DataGrid.Columns>
 
                                 <!-- Système RomStation : liste éditable si des suggestions existent, sinon champ texte -->
-                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_System}" Width="*" MinWidth="160">
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_System}" Width="*" MinWidth="130">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid>
@@ -587,7 +588,7 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- Dossier cible -->
-                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_TargetFolder}" Width="180" MinWidth="120">
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_TargetFolder}" Width="150" MinWidth="100">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBox Style="{StaticResource CellTextBox}"
@@ -597,7 +598,7 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- Nom d'origine (romset) -->
-                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_KeepFileName}" Width="110" CanUserResize="False">
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_KeepFileName}" Width="104" MinWidth="104" CanUserResize="False">
                                     <DataGridTemplateColumn.HeaderStyle>
                                         <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource CenteredHeader}">
                                             <Setter Property="ToolTip" Value="{x:Static res:Strings.ArchEditor_Column_KeepFileName_Tooltip}"/>
@@ -612,7 +613,7 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- M3U -->
-                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_M3U}" Width="80" CanUserResize="False">
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_M3U}" Width="56" MinWidth="56" CanUserResize="False">
                                     <DataGridTemplateColumn.HeaderStyle>
                                         <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource CenteredHeader}">
                                             <Setter Property="ToolTip" Value="{x:Static res:Strings.ArchEditor_Column_M3U_Tooltip}"/>
@@ -627,7 +628,7 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- Extraction -->
-                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_Extract}" Width="100" CanUserResize="False">
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_Extract}" Width="82" MinWidth="82" CanUserResize="False">
                                     <DataGridTemplateColumn.HeaderStyle>
                                         <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource CenteredHeader}">
                                             <Setter Property="ToolTip" Value="{x:Static res:Strings.ArchEditor_Column_Extract_Tooltip}"/>
@@ -637,6 +638,25 @@
                                         <DataTemplate>
                                             <ToggleButton Style="{StaticResource CellToggle}" IsChecked="{Binding Extract, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                           ToolTip="{x:Static res:Strings.ArchEditor_Column_Extract_Tooltip}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Conversion : outil externe lancé par RSR pour les fichiers de ce système (GDI → CHD…) -->
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_Convert}" Width="160" MinWidth="130">
+                                    <DataGridTemplateColumn.HeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                            <Setter Property="ToolTip" Value="{x:Static res:Strings.ArchEditor_Column_Convert_Tooltip}"/>
+                                        </Style>
+                                    </DataGridTemplateColumn.HeaderStyle>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox ItemsSource="{Binding DataContext.ToolChoices, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      SelectedValuePath="Id" DisplayMemberPath="Label"
+                                                      SelectedValue="{Binding Transform, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      IsEnabled="{Binding KeepFileName, Converter={StaticResource InverseBoolConverter}}"
+                                                      Padding="6,2" Height="26" FontSize="12"
+                                                      ToolTip="{x:Static res:Strings.ArchEditor_Column_Convert_Tooltip}"/>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -671,9 +691,16 @@
                             </DataGrid.Columns>
                         </DataGrid>
 
-                        <Button Grid.Row="2" Content="{x:Static res:Strings.ArchEditor_AddSystem}"
-                                Command="{Binding AddMappingCommand}"
-                                HorizontalAlignment="Left" Padding="10,6" Margin="0,8,0,0"/>
+                        <Grid Grid.Row="2" Margin="0,8,0,0">
+                            <Button Content="{x:Static res:Strings.ArchEditor_AddSystem}"
+                                    Command="{Binding AddMappingCommand}"
+                                    HorizontalAlignment="Left" Padding="10,6"/>
+                            <!-- Les outils de la colonne Conversion se règlent dans leur propre fenêtre -->
+                            <Button Style="{StaticResource LinkButton}" FontSize="11" Padding="0"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Content="{x:Static res:Strings.Rebase_ManageTools}"
+                                    Command="{Binding EditToolsCommand}"/>
+                        </Grid>
                     </Grid>
                 </Border>
             </Grid>

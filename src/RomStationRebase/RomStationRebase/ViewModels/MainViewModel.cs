@@ -851,6 +851,7 @@ public class MainViewModel : ViewModelBase
             CopyCovers        = _preferences.LastRebaseCopyCovers,
             GenerateGamelist  = _preferences.LastRebaseGenerateGamelist,
             BackupGamelist    = _preferences.LastRebaseBackupGamelist,
+            Convert           = _preferences.LastRebaseConvert,
             MetadataLanguage  = _preferences.LastRebaseMetadataLanguage is "fr" or "en" ? _preferences.LastRebaseMetadataLanguage : "auto",
             DuplicatePolicy   = _preferences.DuplicatePolicy == "Overwrite" ? "Overwrite" : "Ignore",
             MaxParallelCopies = _preferences.MaxParallelCopies,
@@ -976,7 +977,7 @@ public class MainViewModel : ViewModelBase
         {
             var saved = match.Matched[g.Id];
             if (saved.HasOverride)
-                overrides[g.Rid] = new GameRuleOverrides(saved.KeepFileName, saved.M3U, saved.Extract);
+                overrides[g.Rid] = new GameRuleOverrides(saved.KeepFileName, saved.M3U, saved.Extract, saved.Transform);
         }
 
         Preset.Adopt(path, file.Settings, overrides);

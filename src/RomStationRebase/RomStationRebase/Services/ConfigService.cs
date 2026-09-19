@@ -206,6 +206,7 @@ public class ConfigService
             GameDetailWindow         = new WindowSize { Width = 700,  Height = 820  },
             SettingsWindow           = new WindowSize { Width = 620,  Height = 780  },
             ArchitectureEditorWindow = new WindowSize { Width = 1000, Height = 720  },
+            ExternalToolsWindow      = new WindowSize { Width = 960,  Height = 700  },
         };
 
         try
@@ -222,6 +223,25 @@ public class ConfigService
         }
 
         return fallback;
+    }
+
+    /// <summary>
+    /// Une fenêtre fille (éditeur d'architectures, outils externes) mémorise sa géométrie sur disque à sa fermeture.
+    /// La fenêtre qui l'a ouverte tient sa propre copie des préférences et l'écrira plus tard : elle reprend ici
+    /// ces géométries, sinon elle les écraserait par les anciennes.
+    /// </summary>
+    public void AdoptChildWindowBounds(UserPreferences target)
+    {
+        try
+        {
+            var disk = LoadUserPreferences();
+            target.ArchitectureEditorWindowBounds = disk.ArchitectureEditorWindowBounds;
+            target.ExternalToolsWindowBounds      = disk.ExternalToolsWindowBounds;
+        }
+        catch
+        {
+            // Confort seulement : au pire la fenêtre fille retrouvera sa taille précédente
+        }
     }
 
     /// <summary>Valide que les tailles sont dans une plage raisonnable (évite un JSON avec width=0).</summary>

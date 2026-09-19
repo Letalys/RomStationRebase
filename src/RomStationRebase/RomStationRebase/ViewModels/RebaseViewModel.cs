@@ -27,6 +27,11 @@ public class RebaseViewModel : ViewModelBase
     private readonly string                  _dbCopyPath;
     private readonly UserPreferences?        _preferences;
     private readonly ConfigService           _configService = new();
+    private readonly ExternalToolService     _toolService   = new();
+
+    // Outils externes de conversion, et l'exécutable choisi par l'utilisateur pour chacun (null : non indiqué)
+    private List<ExternalTool> _tools = [];
+    private Dictionary<string, string> _toolExecutables = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Sélection de travail partagée avec la fenêtre principale : paramètres et règles par jeu y sont lus à l'ouverture, rendus à la fermeture.</summary>
     private readonly RebasePresetSessionViewModel? _session;
@@ -50,6 +55,7 @@ public class RebaseViewModel : ViewModelBase
     private bool                 _copyCovers           = true;
     private bool                 _generateGamelist     = true;
     private bool                 _backupGamelist;
+    private bool                 _convertFiles         = true;
     private int                  _metadataLanguageIndex;
     private bool                 _metadataLanguageTouched;
     private int                  _duplicatePolicyIndex;
@@ -178,6 +184,75 @@ public class RebaseViewModel : ViewModelBase
     {
         get => _backupGamelist;
         set => SetProperty(ref _backupGamelist, value);
+    }
+
+    // ── Conversion par outil externe ──────────────────────────────────────
+
+    /// <summary>Convertir les fichiers avec les outils que désigne l'architecture (GDI → CHD…), pour ce passage.</summary>
+    public bool ConvertFiles
+    {
+        get => _convertFiles;
+        set { if (SetProperty(ref _convertFiles, value)) RebuildPlan(); }
+    }
+
+    // L'interrupteur et la colonne Conversion sont toujours visibles (demande du dev) : sans outil réglé, chaque liste
+    // ne propose que « Aucune », et son infobulle renvoie vers « Gérer les outils externes… ».
+
+    /// <summary>Outils utilisables pour un jeu : ceux dont l'exécutable est indiqué et qui acceptent ce que contient le jeu. « Aucune » en tête.</summary>
+    private IReadOnlyList<ToolOption> ToolOptionsFor(RebaseGamePlan? plan)
+    {
+        var options = new List<ToolOption> { ToolOption.None };
+        if (plan is null || plan.ToolInputExtensions.Count == 0) return options;
+        options.AddRange(_tools
+            .Where(t => _toolExecutables.ContainsKey(t.Id) && plan.ToolInputExtensions.Any(t.Accepts))
+            .Select(t => new ToolOption(t.Id, t.Label)));
+        return options;
+    }
+
+    /// <summary>Outils que l'architecture demande mais dont l'exécutable n'a pas été indiqué. Null : rien à signaler (ligne masquée).</summary>
+    public string? MissingToolsHint
+        => _convertFiles && _plan is { UnavailableTools.Count: > 0 }
+            ? string.Format(Strings.Rebase_MissingTools, string.Join(", ", _plan.UnavailableTools))
+            : null;
+
+    /// <summary>Ouvre la fenêtre des outils externes (modal) — injecté depuis la View.</summary>
+    public Action? OpenExternalTools { get; set; }
+
+    public ICommand EditToolsCommand { get; private set; } = null!;
+
+    private void OnEditTools()
+    {
+        if (OpenExternalTools is null) return;
+        OpenExternalTools();
+        if (_preferences is not null) _configService.AdoptChildWindowBounds(_preferences);
+        LoadTools();               // un exécutable vient peut-être d'être indiqué
+        RebuildPlan();
+    }
+
+    private void LoadTools()
+    {
+        try   { _tools = _toolService.LoadTools(); }
+        catch { _tools = []; }
+
+        // Exécutables résolus une fois : le plan est recalculé à chaque option, sans accès disque
+        _toolExecutables.Clear();
+        try
+        {
+            var paths = _toolService.LoadExecutablePaths();
+            foreach (var tool in _tools)
+                if (ExternalToolService.ResolveExecutable(tool, paths) is { } exe)
+                    _toolExecutables[tool.Id] = exe;
+        }
+        catch { /* index illisible : aucun outil disponible, les conversions sont simplement écartées */ }
+    }
+
+    private PlanTool? LookupTool(string id)
+    {
+        var tool = _tools.FirstOrDefault(t => string.Equals(t.Id, id, StringComparison.OrdinalIgnoreCase));
+        return tool is null
+            ? null
+            : new PlanTool(tool.Id, tool.Label, tool.InputExtensions, tool.OutputExtension, tool.SizeRatioHint,
+                           _toolExecutables.ContainsKey(tool.Id));
     }
 
     /// <summary>True si l'architecture sélectionnée lit un fichier de métadonnées.</summary>
@@ -501,6 +576,10 @@ public class RebaseViewModel : ViewModelBase
 
         RemoveItemCommand           = new RelayCommand(param => { if (param is RebaseGameItemViewModel item) RemoveItem(item); }, _ => !_isRunning);
         EditArchitecturesCommand    = new RelayCommand(OnEditArchitectures, () => !_isRunning);
+        EditToolsCommand            = new RelayCommand(OnEditTools,         () => !_isRunning);
+        LoadTools();
+        if (preferences != null) _convertFiles = preferences.LastRebaseConvert;
+        if (session?.Settings is { } presetSettings) _convertFiles = presetSettings.Convert;
         BrowseCommand               = new RelayCommand(OnBrowse);
         StartRebaseCommand          = new RelayCommand(async () => await OnStartRebaseAsync(), () => CanStart);
         PauseResumeCommand          = new RelayCommand(OnPauseResume,         () => _isRunning);
@@ -613,7 +692,7 @@ public class RebaseViewModel : ViewModelBase
 
             // Règles par jeu retrouvées dans la sélection de travail (fichier ouvert, ou passage précédent dans cette fenêtre)
             if (_session != null && _session.Overrides.TryGetValue(g.Rid, out var o))
-                row.RestoreOverrides(o.KeepFileName, o.M3U, o.Extract);
+                row.RestoreOverrides(o.KeepFileName, o.M3U, o.Extract, o.Transform);
 
             RebaseItems.Add(row);
         }
@@ -632,6 +711,7 @@ public class RebaseViewModel : ViewModelBase
         CopyCovers        = _copyCovers,
         GenerateGamelist  = _generateGamelist,
         BackupGamelist    = _backupGamelist,
+        Convert           = _convertFiles,
         MetadataLanguage  = _metadataLanguageTouched ? MetadataLocale : "auto",
         DuplicatePolicy   = _duplicatePolicyIndex == 1 ? "Overwrite" : "Ignore",
         MaxParallelCopies = _maxParallelCopies,
@@ -649,7 +729,7 @@ public class RebaseViewModel : ViewModelBase
         {
             var game = _selectedGames.FirstOrDefault(g => g.Id == row.GameId);
             if (game is null) continue;
-            var o = new GameRuleOverrides(row.KeepFileNameOverride, row.M3UOverride, row.ExtractOverride);
+            var o = new GameRuleOverrides(row.KeepFileNameOverride, row.M3UOverride, row.ExtractOverride, row.TransformOverride);
             if (!o.IsEmpty) overrides[game.Rid] = o;
         }
         _session.Capture(CurrentPresetSettings(), overrides);
@@ -676,7 +756,7 @@ public class RebaseViewModel : ViewModelBase
     private static readonly HashSet<string> PresetSettingNames =
     [
         nameof(TargetPath), nameof(SelectedArchitecture), nameof(ArchiveModeIndex), nameof(ExtractLayoutIndex),
-        nameof(CopyCovers), nameof(GenerateGamelist), nameof(BackupGamelist), nameof(MetadataLanguageIndex),
+        nameof(CopyCovers), nameof(GenerateGamelist), nameof(BackupGamelist), nameof(MetadataLanguageIndex), nameof(ConvertFiles),
         nameof(DuplicatePolicyIndex), nameof(MaxParallelCopies), nameof(RetryCount), nameof(RetryDelay),
     ];
 
@@ -737,7 +817,7 @@ public class RebaseViewModel : ViewModelBase
     /// <summary>Entrée d'un jeu coché, avec les surcharges de règles posées sur sa ligne.</summary>
     private static PlanGameInput ToInput(GameItemViewModel g, RebaseGameItemViewModel? row)
         => new(g.Id, g.Title, g.SystemName, g.SystemImagePath, g.Rid, g.CoverPath, g.CoverExists,
-               row?.KeepFileNameOverride, row?.M3UOverride, row?.ExtractOverride);
+               row?.KeepFileNameOverride, row?.M3UOverride, row?.ExtractOverride, row?.TransformOverride);
 
     /// <summary>
     /// Analyse en arrière-plan : fichiers Derby de toute la bibliothèque, inspection des archives,
@@ -851,6 +931,8 @@ public class RebaseViewModel : ViewModelBase
             Layout               = ExtractLayout,
             CopyCovers           = _copyCovers,
             GenerateGamelist     = _generateGamelist && _selectedArchitecture.SupportsGamelist,
+            Convert              = _convertFiles,
+            ToolLookup           = LookupTool,
         });
 
         var byId = _plan.Games.ToDictionary(g => g.GameId);
@@ -861,8 +943,13 @@ public class RebaseViewModel : ViewModelBase
             // Les colonnes Romset / M3U / Extraction redisent l'architecture pour le système de la ligne
             var rule = mapping.FolderTreeMappings.FirstOrDefault(m =>
                 string.Equals(m.RomStationSystem, item.SystemName, StringComparison.OrdinalIgnoreCase));
-            item.SetArchitectureRules(rule is not null, rule?.KeepFileName ?? false, rule?.M3U ?? false, rule?.Extract ?? false);
+            item.SetArchitectureRules(rule is not null, rule?.KeepFileName ?? false, rule?.M3U ?? false, rule?.Extract ?? false, ArchiveMode);
+
+            // Colonne Conversion : pré-remplie par l'outil que l'architecture désigne pour ce système, et ouverte
+            // aux autres outils disponibles qui savent lire ce que contient le jeu
+            item.SetConversion(rule?.Transform ?? string.Empty, ToolOptionsFor(item.Plan), _convertFiles);
         }
+        OnPropertyChanged(nameof(MissingToolsHint));
 
         _estimatedSizeBytes = _plan.TotalBytes;
         EstimatedSizeText   = FormatSize(_plan.TotalBytes);
@@ -872,6 +959,16 @@ public class RebaseViewModel : ViewModelBase
             _plan.Games.Count - unmapped,
             _plan.Games.Sum(g => g.Files.Count + g.Covers.Count + (g.M3URelativePath is null ? 0 : 1)))
             + (unmapped > 0 ? string.Format(Strings.Rebase_PlanUnmapped, unmapped) : string.Empty);
+    }
+
+    /// <summary>Outils utilisables par ce rebase : ceux dont l'utilisateur a indiqué l'exécutable.</summary>
+    private Dictionary<string, (ExternalTool Tool, string ExecutablePath)> AvailableTools()
+    {
+        var map = new Dictionary<string, (ExternalTool, string)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var tool in _tools)
+            if (_toolExecutables.TryGetValue(tool.Id, out string? exe))
+                map[tool.Id] = (tool, exe);
+        return map;
     }
 
     private static long SafeFileSize(string path)
@@ -982,6 +1079,15 @@ public class RebaseViewModel : ViewModelBase
             return;
         }
 
+        // Conversions : elles passent par un dossier de travail sur le disque local, il lui faut la place du plus gros jeu
+        if (plan.MaxWorkBytes > 0 && !_archService.CheckDiskSpace(ExternalToolService.WorkDirectory, plan.MaxWorkBytes))
+        {
+            double gb = plan.MaxWorkBytes / 1_073_741_824.0;
+            ShowConfirm(Strings.Rebase_Title,
+                string.Format(Strings.Rebase_Validation_NoWorkSpace, gb.ToString("F1"), ExternalToolService.WorkDirectory), "OK");
+            return;
+        }
+
         // Métadonnées : chargées en lot avant le démarrage, dans la langue choisie
         bool withGamelist = _generateGamelist && _selectedArchitecture.SupportsGamelist;
         IReadOnlyDictionary<int, GameMetadata>? metadata = null;
@@ -1032,6 +1138,8 @@ public class RebaseViewModel : ViewModelBase
             GenerateGamelist  = withGamelist,
             BackupGamelist    = _backupGamelist,
             Metadata          = metadata,
+            Tools             = AvailableTools(),
+            WorkDirectory     = ExternalToolService.WorkDirectory,
             PauseEvent        = _pauseEvent,
         };
 
@@ -1076,7 +1184,7 @@ public class RebaseViewModel : ViewModelBase
             if (fatalError != null)
             {
                 string itemErrorMessage = ErrorMessageClassifier.Classify(fatalError);
-                foreach (var item in RebaseItems.Where(i => i.Status is RebaseItemStatus.Copying or RebaseItemStatus.Extracting))
+                foreach (var item in RebaseItems.Where(i => i.Status is RebaseItemStatus.Copying or RebaseItemStatus.Extracting or RebaseItemStatus.Converting))
                 {
                     item.Status      = RebaseItemStatus.Failed;
                     item.ErrorDetail = itemErrorMessage;
@@ -1199,6 +1307,8 @@ public class RebaseViewModel : ViewModelBase
     {
         if (OpenArchitectureEditor is null) return;
         OpenArchitectureEditor();
+        if (_preferences is not null) _configService.AdoptChildWindowBounds(_preferences);
+        LoadTools();               // l'éditeur donne accès à la fenêtre des outils
         ReloadArchitectures();
     }
 
@@ -1405,6 +1515,7 @@ public class RebaseViewModel : ViewModelBase
             _preferences.LastRebaseCopyCovers       = _copyCovers;
             _preferences.LastRebaseGenerateGamelist = _generateGamelist;
             _preferences.LastRebaseBackupGamelist   = _backupGamelist;
+            _preferences.LastRebaseConvert          = _convertFiles;
             _preferences.LastRebaseMetadataLanguage = _metadataLanguageTouched ? MetadataLocale : "auto";
             _preferences.DuplicatePolicy            = _duplicatePolicyIndex == 1 ? "Overwrite" : "Ignore";
             _preferences.MaxParallelCopies          = _maxParallelCopies;

@@ -67,6 +67,10 @@
     <Content Include="config\architectures\*.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <!-- Outils externes de conversion par défaut — copiés dans le dossier utilisateur au premier lancement -->
+    <Content Include="config\tools\*.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="config\window-defaults.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

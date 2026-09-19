@@ -28,7 +28,12 @@ public enum FileTransferKind
     /// <summary>Extraction de l'archive vers le dossier cible.</summary>
     Extract,
     /// <summary>Copie récursive du dossier du fichier (jeux DOS ou Windows déjà installés).</summary>
-    CopyTree
+    CopyTree,
+    /// <summary>
+    /// Conversion par un outil externe : extraction dans un dossier de travail local, conversion sur place,
+    /// puis copie du seul résultat vers la cible.
+    /// </summary>
+    Transform
 }
 
 /// <summary>Résumé du traitement prévu pour un jeu — affiché dans la fenêtre de rebase.</summary>
@@ -46,6 +51,8 @@ public enum GameOutputKind
     Variants,
     /// <summary>Archive(s) extraite(s).</summary>
     Extract,
+    /// <summary>Fichier(s) converti(s) par un outil externe.</summary>
+    Converted,
     /// <summary>Dossier de jeu copié tel quel.</summary>
     Folder,
     /// <summary>Système sans correspondance dans l'architecture : ignoré.</summary>
@@ -87,6 +94,18 @@ public sealed class RebaseFilePlan
     /// <summary>Dossier source à copier pour CopyTree (absolu).</summary>
     public string? SourceDirectory { get; init; }
 
+    /// <summary>Transform : identifiant de l'outil externe à lancer.</summary>
+    public string? TransformToolId { get; init; }
+
+    /// <summary>
+    /// Transform : chemin interne, dans l'archive source, du fichier à donner à l'outil (le .gdi, le .cue, l'.iso).
+    /// Null quand la source n'est pas une archive : c'est alors elle qui est convertie.
+    /// </summary>
+    public string? TransformInputEntry { get; init; }
+
+    /// <summary>Transform : taille attendue du résultat, d'après le ratio indicatif de l'outil. Une estimation.</summary>
+    public long TransformedSizeEstimate { get; init; }
+
     /// <summary>Archive inspectée, pour Extract.</summary>
     public ArchiveInfo? Archive { get; init; }
 
@@ -97,7 +116,15 @@ public sealed class RebaseFilePlan
     public long ExtractedSize { get; init; }
 
     /// <summary>Octets qui seront écrits sur la cible.</summary>
-    public long PlannedBytes => Kind == FileTransferKind.Extract ? ExtractedSize : CopySize;
+    public long PlannedBytes => Kind switch
+    {
+        FileTransferKind.Extract   => ExtractedSize,
+        FileTransferKind.Transform => TransformedSizeEstimate,
+        _                          => CopySize,
+    };
+
+    /// <summary>Place nécessaire dans le dossier de travail local pendant une conversion : l'entrée extraite et le résultat.</summary>
+    public long WorkBytes => Kind == FileTransferKind.Transform ? ExtractedSize + TransformedSizeEstimate : 0;
 }
 
 /// <summary>Jaquette à copier.</summary>
@@ -150,6 +177,18 @@ public sealed class RebaseGamePlan
 
     public bool IsUnmapped => TargetFolder is null;
 
+    /// <summary>True si les fichiers du jeu sont de vrais disques numérotés (et non des versions d'un même jeu) : seul cas où un M3U a un objet.</summary>
+    public bool IsDiscSet { get; init; }
+
+    /// <summary>True si au moins un fichier du jeu est une archive : sans archive, l'extraction n'a pas d'objet.</summary>
+    public bool HasArchive { get; init; }
+
+    /// <summary>
+    /// Extensions de ce qu'un outil de conversion recevrait pour ce jeu (l'entrée principale de chaque archive, ou le fichier
+    /// lui-même). Vide pour un romset ou un jeu en dossier. Sert à ne proposer, jeu par jeu, que les outils qui conviennent.
+    /// </summary>
+    public IReadOnlyList<string> ToolInputExtensions { get; init; } = [];
+
     /// <summary>Octets prévus pour ce jeu, jaquettes comprises.</summary>
     public long PlannedBytes { get; init; }
 
@@ -162,4 +201,10 @@ public sealed class RebasePlan
 {
     public IReadOnlyList<RebaseGamePlan> Games { get; init; } = [];
     public long TotalBytes => Games.Sum(g => g.PlannedBytes);
+
+    /// <summary>Place à prévoir dans le dossier de travail : la plus grosse conversion, elles passent une à la fois.</summary>
+    public long MaxWorkBytes => Games.SelectMany(g => g.Files).Select(f => f.WorkBytes).DefaultIfEmpty(0).Max();
+
+    /// <summary>Outils demandés par l'architecture mais indisponibles (exécutable non indiqué) : libellés, sans doublon.</summary>
+    public IReadOnlyList<string> UnavailableTools { get; init; } = [];
 }

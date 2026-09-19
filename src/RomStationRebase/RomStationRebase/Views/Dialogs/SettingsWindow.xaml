@@ -216,6 +216,17 @@
                                     HorizontalContentAlignment="Left"
                                     Padding="12,8"/>
 
+                            <!-- Outils externes : les conversions que désignent les architectures (GDI → CHD…) -->
+                            <TextBlock Text="{x:Static res:Strings.Settings_Tools_Description}"
+                                       FontSize="12" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,14,0,10"/>
+                            <Button Content="{x:Static res:Strings.Settings_Tools_Edit}"
+                                    Command="{Binding EditToolsCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Padding="12,8"/>
+
                             <!-- Header PRÉSÉLECTIONS -->
                             <TextBlock Text="{x:Static res:Strings.Settings_Section_Presets}"
                                        FontSize="11" FontWeight="SemiBold"

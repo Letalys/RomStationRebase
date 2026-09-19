@@ -1,0 +1,45 @@
+{
+  "id": "dolphintool_rvz_default",
+  "label": "DolphinTool : GameCube et Wii vers RVZ (Default)",
+  "description": "ISO GameCube ou Wii vers RVZ, le format compact de Dolphin. DolphinTool est livré à côté de Dolphin.exe.",
+  "executable": "DolphinTool.exe",
+  "downloadUrl": "https://dolphin-emu.org/download/",
+  "searchPaths": [
+    "%ProgramFiles%\\Dolphin",
+    "%USERPROFILE%\\Downloads\\Dolphin-x64"
+  ],
+  "inputExtensions": [
+    ".iso",
+    ".gcm",
+    ".gcz",
+    ".wbfs"
+  ],
+  "outputExtension": ".rvz",
+  "arguments": [
+    "convert",
+    "-i",
+    "{input}",
+    "-o",
+    "{output}",
+    "-f",
+    "rvz",
+    "-c",
+    "zstd",
+    "-l",
+    "5",
+    "-b",
+    "131072"
+  ],
+  "progressStream": "both",
+  "progressRegex": "",
+  "successExitCodes": [
+    0
+  ],
+  "versionArguments": [
+    "--help"
+  ],
+  "versionRegex": "",
+  "minVersion": "",
+  "sizeRatioHint": 0.6,
+  "stallTimeoutSeconds": 900
+}

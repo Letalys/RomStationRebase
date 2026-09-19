@@ -6,29 +6,24 @@ using RomStationRebase.ViewModels;
 namespace RomStationRebase.Views.Dialogs;
 
 /// <summary>
-/// Code-behind de l'éditeur d'architectures cibles — drag de la titlebar, fermeture,
-/// persistance des bounds. Toute la logique est dans ArchitectureEditorViewModel.
+/// Code-behind de la fenêtre des outils externes — drag de la titlebar, fermeture,
+/// persistance des bounds. Toute la logique est dans ExternalToolsViewModel.
 /// </summary>
-public partial class ArchitectureEditorWindow : Window
+public partial class ExternalToolsWindow : Window
 {
-    /// <param name="systemNames">Noms de systèmes proposés dans la colonne Système ; vide = saisie libre seule.</param>
-    public ArchitectureEditorWindow(IReadOnlyList<string> systemNames)
+    public ExternalToolsWindow()
     {
         InitializeComponent();
         SourceInitialized += OnSourceInitialized;
 
-        var vm = new ArchitectureEditorViewModel(systemNames);
+        var vm = new ExternalToolsViewModel();
         DataContext    = vm;
         vm.OwnerWindow = this;
         vm.CloseWindow = Close; // OnClosing demande confirmation si des brouillons sont modifiés
-        vm.OpenExternalTools = () => new ExternalToolsWindow { Owner = this }.ShowDialog();
-
-        // Les erreurs de chargement attendent que la fenêtre soit visible pour avoir un Owner valide
-        Loaded += (_, _) => vm.ReportPendingErrors();
     }
 
-    /// <summary>True si l'éditeur a écrit au moins une fois sur disque — l'appelant recharge alors ses architectures.</summary>
-    public bool Saved => (DataContext as ArchitectureEditorViewModel)?.Saved ?? false;
+    /// <summary>True si la fenêtre a écrit au moins une fois sur disque.</summary>
+    public bool Saved => (DataContext as ExternalToolsViewModel)?.Saved ?? false;
 
     /// <summary>Restaure les bounds mémorisés avant affichage.</summary>
     private void OnSourceInitialized(object? sender, EventArgs e)
@@ -36,7 +31,7 @@ public partial class ArchitectureEditorWindow : Window
         var config   = new Services.ConfigService();
         var prefs    = SafeLoadPrefs(config);
         var defaults = config.LoadWindowDefaults();
-        Helpers.WindowStatePersistence.Restore(this, prefs.ArchitectureEditorWindowBounds, defaults.ArchitectureEditorWindow);
+        Helpers.WindowStatePersistence.Restore(this, prefs.ExternalToolsWindowBounds, defaults.ExternalToolsWindow);
 
         // Fenêtre sans chrome : bornée à la zone de travail pour ne pas recouvrir la barre des tâches
         Helpers.WorkAreaMaximizeHelper.Attach(this);
@@ -52,7 +47,7 @@ public partial class ArchitectureEditorWindow : Window
     /// <summary>Confirme l'abandon des brouillons modifiés, puis mémorise les bounds.</summary>
     protected override void OnClosing(CancelEventArgs e)
     {
-        if (DataContext is ArchitectureEditorViewModel vm && !vm.ConfirmClose())
+        if (DataContext is ExternalToolsViewModel vm && !vm.ConfirmClose())
         {
             e.Cancel = true;
             return;
@@ -62,7 +57,7 @@ public partial class ArchitectureEditorWindow : Window
         {
             var config = new Services.ConfigService();
             var prefs  = SafeLoadPrefs(config);
-            prefs.ArchitectureEditorWindowBounds = Helpers.WindowStatePersistence.Capture(this);
+            prefs.ExternalToolsWindowBounds = Helpers.WindowStatePersistence.Capture(this);
             config.SaveUserPreferences(prefs);
         }
         catch

@@ -40,9 +40,11 @@ public sealed class RebasePresetGame
     public bool? KeepFileName { get; set; }
     public bool? M3U          { get; set; }
     public bool? Extract      { get; set; }
+    /// <summary>Outil de conversion choisi pour ce jeu : son identifiant, "" pour aucune conversion, null pour suivre l'architecture.</summary>
+    public string? Transform  { get; set; }
 
     [global::System.Text.Json.Serialization.JsonIgnore]
-    public bool HasOverride => KeepFileName is not null || M3U is not null || Extract is not null;
+    public bool HasOverride => KeepFileName is not null || M3U is not null || Extract is not null || Transform is not null;
 }
 
 /// <summary>Paramètres de la fenêtre de rebase, tels qu'ils étaient à l'enregistrement.</summary>
@@ -59,6 +61,8 @@ public sealed class RebasePresetSettings
     public bool   CopyCovers        { get; set; }
     public bool   GenerateGamelist  { get; set; }
     public bool   BackupGamelist    { get; set; }
+    /// <summary>Convertir avec les outils externes que désigne l'architecture. Vrai par défaut, y compris pour un fichier plus ancien.</summary>
+    public bool   Convert           { get; set; } = true;
     /// <summary>"fr", "en" ou "auto" (langue de l'interface).</summary>
     public string MetadataLanguage  { get; set; } = "auto";
     /// <summary>"Ignore" ou "Overwrite".</summary>

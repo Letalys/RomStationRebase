@@ -1547,5 +1547,361 @@ namespace RomStationRebase.Resources {
         public static string Rebase_SavePreset_Tooltip_New {
             get { return ResourceManager.GetString("Rebase_SavePreset_Tooltip_New", resourceCulture); }
         }
+
+        public static string Rebase_Convert {
+            get { return ResourceManager.GetString("Rebase_Convert", resourceCulture); }
+        }
+
+        public static string Rebase_Convert_Tooltip {
+            get { return ResourceManager.GetString("Rebase_Convert_Tooltip", resourceCulture); }
+        }
+
+        public static string Rebase_ManageTools {
+            get { return ResourceManager.GetString("Rebase_ManageTools", resourceCulture); }
+        }
+
+        public static string Rebase_MissingTools {
+            get { return ResourceManager.GetString("Rebase_MissingTools", resourceCulture); }
+        }
+
+        public static string Rebase_Validation_NoWorkSpace {
+            get { return ResourceManager.GetString("Rebase_Validation_NoWorkSpace", resourceCulture); }
+        }
+
+        public static string Rebase_Output_Converted {
+            get { return ResourceManager.GetString("Rebase_Output_Converted", resourceCulture); }
+        }
+
+        public static string Rebase_Status_Converting {
+            get { return ResourceManager.GetString("Rebase_Status_Converting", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Convert {
+            get { return ResourceManager.GetString("Rebase_Column_Convert", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Convert_Tooltip {
+            get { return ResourceManager.GetString("Rebase_Column_Convert_Tooltip", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Convert_Tool {
+            get { return ResourceManager.GetString("Rebase_Column_Convert_Tool", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Convert_None {
+            get { return ResourceManager.GetString("Rebase_Column_Convert_None", resourceCulture); }
+        }
+
+        public static string ArchEditor_Column_Convert {
+            get { return ResourceManager.GetString("ArchEditor_Column_Convert", resourceCulture); }
+        }
+
+        public static string ArchEditor_Column_Convert_Tooltip {
+            get { return ResourceManager.GetString("ArchEditor_Column_Convert_Tooltip", resourceCulture); }
+        }
+
+        public static string ArchEditor_Convert_None {
+            get { return ResourceManager.GetString("ArchEditor_Convert_None", resourceCulture); }
+        }
+
+        public static string ArchEditor_Convert_Unknown {
+            get { return ResourceManager.GetString("ArchEditor_Convert_Unknown", resourceCulture); }
+        }
+
+        public static string Settings_Tools_Description {
+            get { return ResourceManager.GetString("Settings_Tools_Description", resourceCulture); }
+        }
+
+        public static string Settings_Tools_Edit {
+            get { return ResourceManager.GetString("Settings_Tools_Edit", resourceCulture); }
+        }
+
+        public static string Tools_Title {
+            get { return ResourceManager.GetString("Tools_Title", resourceCulture); }
+        }
+
+        public static string Tools_Intro {
+            get { return ResourceManager.GetString("Tools_Intro", resourceCulture); }
+        }
+
+        public static string Tools_Group_Executable {
+            get { return ResourceManager.GetString("Tools_Group_Executable", resourceCulture); }
+        }
+
+        public static string Tools_Group_Conversion {
+            get { return ResourceManager.GetString("Tools_Group_Conversion", resourceCulture); }
+        }
+
+        public static string Tools_Group_Monitoring {
+            get { return ResourceManager.GetString("Tools_Group_Monitoring", resourceCulture); }
+        }
+
+        public static string Tools_Path {
+            get { return ResourceManager.GetString("Tools_Path", resourceCulture); }
+        }
+
+        public static string Tools_Path_Tooltip {
+            get { return ResourceManager.GetString("Tools_Path_Tooltip", resourceCulture); }
+        }
+
+        public static string Tools_Browse {
+            get { return ResourceManager.GetString("Tools_Browse", resourceCulture); }
+        }
+
+        public static string Tools_Browse_Title {
+            get { return ResourceManager.GetString("Tools_Browse_Title", resourceCulture); }
+        }
+
+        public static string Tools_Browse_Filter {
+            get { return ResourceManager.GetString("Tools_Browse_Filter", resourceCulture); }
+        }
+
+        public static string Tools_Test {
+            get { return ResourceManager.GetString("Tools_Test", resourceCulture); }
+        }
+
+        public static string Tools_Test_Tooltip {
+            get { return ResourceManager.GetString("Tools_Test_Tooltip", resourceCulture); }
+        }
+
+        public static string Tools_Test_NotFound {
+            get { return ResourceManager.GetString("Tools_Test_NotFound", resourceCulture); }
+        }
+
+        public static string Tools_Test_TooOld {
+            get { return ResourceManager.GetString("Tools_Test_TooOld", resourceCulture); }
+        }
+
+        public static string Tools_Test_Answers {
+            get { return ResourceManager.GetString("Tools_Test_Answers", resourceCulture); }
+        }
+
+        public static string Tools_Test_Version {
+            get { return ResourceManager.GetString("Tools_Test_Version", resourceCulture); }
+        }
+
+        public static string Tools_Test_Timeout {
+            get { return ResourceManager.GetString("Tools_Test_Timeout", resourceCulture); }
+        }
+
+        public static string Tools_State_NotSet {
+            get { return ResourceManager.GetString("Tools_State_NotSet", resourceCulture); }
+        }
+
+        public static string Tools_State_Ready {
+            get { return ResourceManager.GetString("Tools_State_Ready", resourceCulture); }
+        }
+
+        public static string Tools_State_Missing {
+            get { return ResourceManager.GetString("Tools_State_Missing", resourceCulture); }
+        }
+
+        public static string Tools_Detected {
+            get { return ResourceManager.GetString("Tools_Detected", resourceCulture); }
+        }
+
+        public static string Tools_UseDetected {
+            get { return ResourceManager.GetString("Tools_UseDetected", resourceCulture); }
+        }
+
+        public static string Tools_Download_Hint {
+            get { return ResourceManager.GetString("Tools_Download_Hint", resourceCulture); }
+        }
+
+        public static string Tools_Download {
+            get { return ResourceManager.GetString("Tools_Download", resourceCulture); }
+        }
+
+        public static string Tools_DownloadUrl {
+            get { return ResourceManager.GetString("Tools_DownloadUrl", resourceCulture); }
+        }
+
+        public static string Tools_Executable {
+            get { return ResourceManager.GetString("Tools_Executable", resourceCulture); }
+        }
+
+        public static string Tools_Executable_Tooltip {
+            get { return ResourceManager.GetString("Tools_Executable_Tooltip", resourceCulture); }
+        }
+
+        public static string Tools_Input {
+            get { return ResourceManager.GetString("Tools_Input", resourceCulture); }
+        }
+
+        public static string Tools_Input_Tooltip {
+            get { return ResourceManager.GetString("Tools_Input_Tooltip", resourceCulture); }
+        }
+
+        public static string Tools_Output {
+            get { return ResourceManager.GetString("Tools_Output", resourceCulture); }
+        }
+
+        public static string Tools_Arguments {
+            get { return ResourceManager.GetString("Tools_Arguments", resourceCulture); }
+        }
+
+        public static string Tools_Arguments_Hint {
+            get { return ResourceManager.GetString("Tools_Arguments_Hint", resourceCulture); }
+        }
+
+        public static string Tools_ProgressStream {
+            get { return ResourceManager.GetString("Tools_ProgressStream", resourceCulture); }
+        }
+
+        public static string Tools_ProgressStream_Both {
+            get { return ResourceManager.GetString("Tools_ProgressStream_Both", resourceCulture); }
+        }
+
+        public static string Tools_ProgressRegex {
+            get { return ResourceManager.GetString("Tools_ProgressRegex", resourceCulture); }
+        }
+
+        public static string Tools_ProgressRegex_Tooltip {
+            get { return ResourceManager.GetString("Tools_ProgressRegex_Tooltip", resourceCulture); }
+        }
+
+        public static string Tools_ExitCodes {
+            get { return ResourceManager.GetString("Tools_ExitCodes", resourceCulture); }
+        }
+
+        public static string Tools_ExitCodes_Tooltip {
+            get { return ResourceManager.GetString("Tools_ExitCodes_Tooltip", resourceCulture); }
+        }
+
+        public static string Tools_VersionRegex {
+            get { return ResourceManager.GetString("Tools_VersionRegex", resourceCulture); }
+        }
+
+        public static string Tools_VersionRegex_Tooltip {
+            get { return ResourceManager.GetString("Tools_VersionRegex_Tooltip", resourceCulture); }
+        }
+
+        public static string Tools_MinVersion {
+            get { return ResourceManager.GetString("Tools_MinVersion", resourceCulture); }
+        }
+
+        public static string Tools_VersionArguments {
+            get { return ResourceManager.GetString("Tools_VersionArguments", resourceCulture); }
+        }
+
+        public static string Tools_NewLabel {
+            get { return ResourceManager.GetString("Tools_NewLabel", resourceCulture); }
+        }
+
+        public static string Tools_OpenFolder {
+            get { return ResourceManager.GetString("Tools_OpenFolder", resourceCulture); }
+        }
+
+        public static string Tools_Restore {
+            get { return ResourceManager.GetString("Tools_Restore", resourceCulture); }
+        }
+
+        public static string Tools_Restore_Message {
+            get { return ResourceManager.GetString("Tools_Restore_Message", resourceCulture); }
+        }
+
+        public static string Tools_Delete_Title {
+            get { return ResourceManager.GetString("Tools_Delete_Title", resourceCulture); }
+        }
+
+        public static string Tools_Delete_Message {
+            get { return ResourceManager.GetString("Tools_Delete_Message", resourceCulture); }
+        }
+
+        public static string Tools_Validation_Label {
+            get { return ResourceManager.GetString("Tools_Validation_Label", resourceCulture); }
+        }
+
+        public static string Tools_Validation_Executable {
+            get { return ResourceManager.GetString("Tools_Validation_Executable", resourceCulture); }
+        }
+
+        public static string Tools_Validation_Input {
+            get { return ResourceManager.GetString("Tools_Validation_Input", resourceCulture); }
+        }
+
+        public static string Tools_Validation_Output {
+            get { return ResourceManager.GetString("Tools_Validation_Output", resourceCulture); }
+        }
+
+        public static string Tools_Validation_Arguments {
+            get { return ResourceManager.GetString("Tools_Validation_Arguments", resourceCulture); }
+        }
+
+        public static string Tools_Validation_Regex {
+            get { return ResourceManager.GetString("Tools_Validation_Regex", resourceCulture); }
+        }
+
+        public static string Tools_Error_ExitCode {
+            get { return ResourceManager.GetString("Tools_Error_ExitCode", resourceCulture); }
+        }
+
+        public static string Tools_Error_NoOutput {
+            get { return ResourceManager.GetString("Tools_Error_NoOutput", resourceCulture); }
+        }
+
+        public static string Tools_Error_Launch {
+            get { return ResourceManager.GetString("Tools_Error_Launch", resourceCulture); }
+        }
+
+        public static string Tools_Error_Stalled {
+            get { return ResourceManager.GetString("Tools_Error_Stalled", resourceCulture); }
+        }
+
+        public static string Tools_Error_Unavailable {
+            get { return ResourceManager.GetString("Tools_Error_Unavailable", resourceCulture); }
+        }
+
+        public static string Tools_Error_InputMissing {
+            get { return ResourceManager.GetString("Tools_Error_InputMissing", resourceCulture); }
+        }
+
+        public static string Tools_Detected_RomStation {
+            get { return ResourceManager.GetString("Tools_Detected_RomStation", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Off_Romset {
+            get { return ResourceManager.GetString("Rebase_Column_Off_Romset", resourceCulture); }
+        }
+
+        public static string Rebase_Column_M3U_Off_SingleDisc {
+            get { return ResourceManager.GetString("Rebase_Column_M3U_Off_SingleDisc", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Extract_Converted {
+            get { return ResourceManager.GetString("Rebase_Column_Extract_Converted", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Extract_Off_NoArchive {
+            get { return ResourceManager.GetString("Rebase_Column_Extract_Off_NoArchive", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Extract_Off_Mode {
+            get { return ResourceManager.GetString("Rebase_Column_Extract_Off_Mode", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Convert_Off_Switch {
+            get { return ResourceManager.GetString("Rebase_Column_Convert_Off_Switch", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Convert_Off_NoTool {
+            get { return ResourceManager.GetString("Rebase_Column_Convert_Off_NoTool", resourceCulture); }
+        }
+
+        public static string Tools_Advanced_Show {
+            get { return ResourceManager.GetString("Tools_Advanced_Show", resourceCulture); }
+        }
+
+        public static string Tools_Advanced_Hide {
+            get { return ResourceManager.GetString("Tools_Advanced_Hide", resourceCulture); }
+        }
+
+        public static string Rebase_Column_Convert_Off_NoToolFor {
+            get { return ResourceManager.GetString("Rebase_Column_Convert_Off_NoToolFor", resourceCulture); }
+        }
+
+        public static string Rebase_Output_DiscSet_Converted {
+            get { return ResourceManager.GetString("Rebase_Output_DiscSet_Converted", resourceCulture); }
+        }
     }
 }

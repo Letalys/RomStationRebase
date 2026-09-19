@@ -13,6 +13,7 @@ public class SystemMappingRowViewModel : ViewModelBase
     private bool   _keepFileName;
     private bool   _m3u;
     private bool   _extract;
+    private string _transform;
     private IReadOnlyList<string> _availableSystems = [];
 
     /// <summary>
@@ -35,6 +36,7 @@ public class SystemMappingRowViewModel : ViewModelBase
         _keepFileName     = mapping.KeepFileName;
         _m3u              = mapping.M3U;
         _extract          = mapping.Extract;
+        _transform        = mapping.Transform ?? string.Empty;
     }
 
     /// <summary>Nom du système tel qu'il apparaît dans la base RomStation.</summary>
@@ -72,6 +74,13 @@ public class SystemMappingRowViewModel : ViewModelBase
         set => SetProperty(ref _extract, value);
     }
 
+    /// <summary>Identifiant de l'outil externe qui convertit les fichiers de ce système ("" = aucune conversion).</summary>
+    public string Transform
+    {
+        get => _transform;
+        set => SetProperty(ref _transform, value ?? string.Empty);
+    }
+
     /// <summary>Modèle sérialisable, valeurs texte nettoyées des espaces.</summary>
     public SystemMapping ToModel() => new()
     {
@@ -80,5 +89,6 @@ public class SystemMappingRowViewModel : ViewModelBase
         KeepFileName     = _keepFileName,
         M3U              = _m3u,
         Extract          = _extract,
+        Transform        = string.IsNullOrWhiteSpace(_transform) ? null : _transform.Trim(),
     };
 }

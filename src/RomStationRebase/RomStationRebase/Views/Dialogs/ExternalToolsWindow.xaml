@@ -1,0 +1,503 @@
+<Window x:Class="RomStationRebase.Views.Dialogs.ExternalToolsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:res="clr-namespace:RomStationRebase.Resources"
+        xmlns:vm="clr-namespace:RomStationRebase.ViewModels"
+        xmlns:helpers="clr-namespace:RomStationRebase.Helpers"
+        xmlns:models="clr-namespace:RomStationRebase.Models"
+        mc:Ignorable="d"
+        Title="{x:Static res:Strings.Tools_Title}"
+        Icon="/Resources/Images/rsr-logo.ico"
+        Height="700" Width="960"
+        MinHeight="560" MinWidth="820"
+        WindowStyle="None" AllowsTransparency="False"
+        ResizeMode="CanResizeWithGrip"
+        Background="{DynamicResource BackgroundBrush}"
+        ShowInTaskbar="False"
+        d:DataContext="{d:DesignInstance Type=vm:ExternalToolsViewModel, IsDesignTimeCreatable=False}">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter     x:Key="BoolToVisibilityConverter"/>
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+
+        <!-- Titlebar : même chrome que RebaseWindow -->
+        <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width"           Value="46"/>
+            <Setter Property="Height"          Value="36"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="Foreground"      Value="White"/>
+            <Setter Property="FontSize"        Value="12"/>
+        </Style>
+        <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource CloseButtonHoverBrush}"/>
+                    <Setter Property="Opacity"    Value="1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Libellés et cartes : mêmes styles que l'éditeur d'architectures -->
+        <Style x:Key="OptionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize"          Value="11"/>
+            <Setter Property="FontWeight"        Value="SemiBold"/>
+            <Setter Property="Foreground"        Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Margin"            Value="0,0,10,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="FontSize"     Value="11"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground"   Value="{DynamicResource TextSecondaryBrush}"/>
+        </Style>
+        <Style x:Key="GroupTitle" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Margin"     Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="OptionCard" TargetType="Border">
+            <Setter Property="Background"      Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius"    Value="6"/>
+            <Setter Property="Padding"         Value="12,10"/>
+        </Style>
+        <Style x:Key="FieldTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="MinHeight"                Value="30"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize"                 Value="12"/>
+        </Style>
+        <!-- Champ à plusieurs lignes (arguments) : police à chasse fixe, un argument par ligne -->
+        <Style x:Key="LinesTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="AcceptsReturn"            Value="True"/>
+            <Setter Property="TextWrapping"             Value="NoWrap"/>
+            <Setter Property="FontFamily"               Value="Consolas"/>
+            <Setter Property="FontSize"                 Value="12"/>
+            <Setter Property="VerticalContentAlignment" Value="Top"/>
+            <Setter Property="VerticalScrollBarVisibility"   Value="Auto"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+        </Style>
+
+        <!-- Liste des outils : items façon sidebar, filet accent à gauche de la sélection -->
+        <Style x:Key="ToolListItem" TargetType="ListBoxItem">
+            <Setter Property="Cursor"                     Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent"
+                                BorderBrush="Transparent" BorderThickness="3,0,0,0"
+                                Padding="11,8,14,8">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ListViewRowHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background"  Value="{DynamicResource ListViewRowSelectedBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36"/>   <!-- Titlebar -->
+            <RowDefinition Height="*"/>    <!-- Liste + fiche -->
+            <RowDefinition Height="48"/>   <!-- Footer -->
+        </Grid.RowDefinitions>
+
+        <!-- ── Titlebar ── -->
+        <Border Grid.Row="0" Background="{DynamicResource AccentBrush}"
+                MouseLeftButtonDown="Titlebar_MouseLeftButtonDown">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{x:Static res:Strings.Tools_Title}"
+                           Foreground="White" FontWeight="SemiBold" FontSize="13"
+                           VerticalAlignment="Center" Margin="14,0"/>
+                <Button Grid.Column="1" x:Name="MaximizeButton"
+                        Style="{StaticResource ChromeButton}"
+                        Content="□" Click="MaximizeButton_Click"/>
+                <Button Grid.Column="2"
+                        Style="{StaticResource CloseButton}"
+                        Content="✕" Click="CloseButton_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- ── Corps ── -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Colonne gauche : liste des outils -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <Border.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+                </Border.Resources>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ListBox Grid.Row="0"
+                             ItemsSource="{Binding Tools}"
+                             SelectedItem="{Binding Selected}"
+                             ItemContainerStyle="{StaticResource ToolListItem}"
+                             Background="Transparent" BorderThickness="0" Padding="0,6"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding DisplayName}" FontSize="12"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <!-- Prêt / à indiquer : ce qui compte au premier coup d'œil, c'est de savoir si l'outil servira -->
+                                        <TextBlock FontSize="10" Margin="0,1,0,0" Text="{Binding AvailabilityText}"
+                                                   TextTrimming="CharacterEllipsis">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsAvailable}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <Border CornerRadius="3" Padding="5,1" Margin="0,3,0,0" HorizontalAlignment="Left">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Origin}" Value="{x:Static models:ArchitectureOrigin.Distributed}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding OriginText}" FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <!-- Point accent : modifications non enregistrées -->
+                                    <TextBlock Grid.Column="1" Text="●" FontSize="10"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               VerticalAlignment="Center" Margin="6,0,0,0"
+                                               ToolTip="{x:Static res:Strings.ArchEditor_Modified_Tooltip}"
+                                               Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Border Grid.Row="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="0,1,0,0" Padding="14,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Button Grid.Row="0" Grid.Column="0" Content="{x:Static res:Strings.ArchEditor_Add}"
+                                    Command="{Binding AddCommand}" Padding="8,6"/>
+                            <Button Grid.Row="0" Grid.Column="2" Content="{x:Static res:Strings.ArchEditor_Duplicate}"
+                                    Command="{Binding DuplicateCommand}" Padding="8,6"/>
+                            <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Content="{x:Static res:Strings.ArchEditor_Delete}"
+                                    Command="{Binding DeleteCommand}" Padding="8,6"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Colonne droite : fiche de l'outil sélectionné -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          IsEnabled="{Binding HasSelection}">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+                </ScrollViewer.Resources>
+                <StackPanel Margin="16,12,16,12">
+
+                    <!-- Ce que fait l'outil sélectionné, en clair : c'est la première chose à savoir -->
+                    <TextBlock Text="{Binding Selected.DisplayName}" FontSize="15" FontWeight="SemiBold" Margin="2,0,0,2"
+                               Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Style="{StaticResource Hint}" FontSize="12" Margin="2,0,0,10"
+                               Text="{Binding Selected.Description}"
+                               Visibility="{Binding Selected.Description, Converter={StaticResource NullToVisibilityConverter}, FallbackValue=Collapsed}"/>
+
+                    <!-- RSR ne distribue aucun de ces programmes : le dire d'emblée -->
+                    <TextBlock Style="{StaticResource Hint}" Margin="2,0,0,10"
+                               Text="{x:Static res:Strings.Tools_Intro}"/>
+
+                    <!-- Carte Exécutable : la seule chose à faire pour un outil par défaut -->
+                    <Border Style="{StaticResource OptionCard}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.Tools_Group_Executable}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource OptionLabel}"
+                                           Text="{x:Static res:Strings.Tools_Path}"/>
+                                <TextBox Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                         Text="{Binding Selected.ExecutablePath, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{x:Static res:Strings.Tools_Path_Tooltip}"/>
+                                <Button Grid.Column="2" Content="{x:Static res:Strings.Tools_Browse}"
+                                        Command="{Binding BrowseCommand}" Padding="10,6" Margin="8,0,0,0"/>
+                                <Button Grid.Column="3" Content="{x:Static res:Strings.Tools_Test}"
+                                        Command="{Binding TestCommand}" Padding="10,6" Margin="8,0,0,0"
+                                        ToolTip="{x:Static res:Strings.Tools_Test_Tooltip}"/>
+                            </Grid>
+
+                            <!-- Etat : prêt, introuvable, à indiquer -->
+                            <TextBlock Margin="0,6,0,0" FontSize="11" Text="{Binding Selected.AvailabilityText}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Selected.IsAvailable}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <!-- Résultat du test -->
+                            <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap"
+                                       Text="{Binding Selected.TestMessage}"
+                                       Visibility="{Binding Selected.TestMessage, Converter={StaticResource NullToVisibilityConverter}}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Selected.TestSucceeded}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <!-- Proposition : un exécutable trouvé sur la machine, adopté seulement sur clic -->
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                                        Visibility="{Binding Selected.ShowDetected, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
+                                <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center"
+                                           Text="{Binding Selected.DetectedText}" MaxWidth="420" TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding Selected.DetectedPath}"/>
+                                <Button Content="{x:Static res:Strings.Tools_UseDetected}"
+                                        Command="{Binding UseDetectedCommand}" Padding="10,4" Margin="10,0,0,0"/>
+                            </StackPanel>
+
+                            <!-- Où se procurer l'outil : seulement tant qu'il manque et que rien n'a été trouvé sur la machine -->
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
+                                       Visibility="{Binding Selected.ShowDownloadHint, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
+                                <Run Text="{x:Static res:Strings.Tools_Download_Hint}"/>
+                                <InlineUIContainer BaselineAlignment="Center">
+                                    <Button Style="{StaticResource LinkButton}" FontSize="11" Padding="0"
+                                            Content="{x:Static res:Strings.Tools_Download}"
+                                            ToolTip="{Binding Selected.DownloadUrl}"
+                                            Command="{Binding OpenDownloadCommand}"/>
+                                </InlineUIContainer>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Pour un outil par défaut, tout est dit : le reste décrit la ligne de commande et ne sert qu'à qui
+                         veut l'ajuster ou créer son propre outil. Replié d'office, ouvert d'office pour un outil personnalisé -->
+                    <Button Style="{StaticResource LinkButton}" FontSize="12" Padding="0" Margin="2,14,0,0"
+                            HorizontalAlignment="Left"
+                            Content="{Binding AdvancedToggleText}"
+                            Command="{Binding ToggleAdvancedCommand}"/>
+
+                    <StackPanel Visibility="{Binding ShowAdvanced, Converter={StaticResource BoolToVisibilityConverter}}">
+
+                    <!-- Carte Général -->
+                    <Border Style="{StaticResource OptionCard}" Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.ArchEditor_Group_General}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="6"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="6"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="6"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.ArchEditor_Label}"/>
+                                <TextBox   Grid.Row="0" Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                           Text="{Binding Selected.Label, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Grid.Row="2" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.ArchEditor_Description}"/>
+                                <TextBox   Grid.Row="2" Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                           Text="{Binding Selected.Description, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Grid.Row="4" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.Tools_Executable}"
+                                           ToolTip="{x:Static res:Strings.Tools_Executable_Tooltip}"/>
+                                <TextBox   Grid.Row="4" Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                           Text="{Binding Selected.Executable, UpdateSourceTrigger=PropertyChanged}"
+                                           ToolTip="{x:Static res:Strings.Tools_Executable_Tooltip}"/>
+                                <TextBlock Grid.Row="6" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.Tools_DownloadUrl}"/>
+                                <TextBox   Grid.Row="6" Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                           Text="{Binding Selected.DownloadUrl, UpdateSourceTrigger=PropertyChanged}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Carte Conversion : ce que l'outil prend, ce qu'il rend, comment on l'appelle -->
+                    <Border Style="{StaticResource OptionCard}" Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.Tools_Group_Conversion}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="110"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.Tools_Input}"
+                                           ToolTip="{x:Static res:Strings.Tools_Input_Tooltip}"/>
+                                <TextBox   Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                           Text="{Binding Selected.InputExtensionsText, UpdateSourceTrigger=LostFocus}"
+                                           ToolTip="{x:Static res:Strings.Tools_Input_Tooltip}"/>
+                                <TextBlock Grid.Column="3" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.Tools_Output}"/>
+                                <TextBox   Grid.Column="4" Style="{StaticResource FieldTextBox}"
+                                           Text="{Binding Selected.OutputExtension, UpdateSourceTrigger=PropertyChanged}"/>
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource OptionLabel}" Margin="0,10,0,4" Text="{x:Static res:Strings.Tools_Arguments}"/>
+                            <TextBox Style="{StaticResource LinesTextBox}" Height="120"
+                                     Text="{Binding Selected.ArgumentsText, UpdateSourceTrigger=LostFocus}"/>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0" Text="{x:Static res:Strings.Tools_Arguments_Hint}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Carte Suivi : progression, codes de sortie, version -->
+                    <Border Style="{StaticResource OptionCard}" Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.Tools_Group_Monitoring}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="6"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="6"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.Tools_ProgressStream}"/>
+                                <ComboBox  Grid.Row="0" Grid.Column="1" SelectedIndex="{Binding Selected.ProgressStreamIndex}" Padding="6,4" Height="30">
+                                    <ComboBoxItem Content="stderr"/>
+                                    <ComboBoxItem Content="stdout"/>
+                                    <ComboBoxItem Content="{x:Static res:Strings.Tools_ProgressStream_Both}"/>
+                                </ComboBox>
+                                <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.Tools_ExitCodes}"
+                                           ToolTip="{x:Static res:Strings.Tools_ExitCodes_Tooltip}"/>
+                                <TextBox   Grid.Row="0" Grid.Column="4" Style="{StaticResource FieldTextBox}"
+                                           Text="{Binding Selected.SuccessExitCodesText, UpdateSourceTrigger=LostFocus}"
+                                           ToolTip="{x:Static res:Strings.Tools_ExitCodes_Tooltip}"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.Tools_ProgressRegex}"
+                                           ToolTip="{x:Static res:Strings.Tools_ProgressRegex_Tooltip}"/>
+                                <TextBox   Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4" Style="{StaticResource FieldTextBox}" FontFamily="Consolas"
+                                           Text="{Binding Selected.ProgressRegex, UpdateSourceTrigger=PropertyChanged}"
+                                           ToolTip="{x:Static res:Strings.Tools_ProgressRegex_Tooltip}"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.Tools_VersionRegex}"
+                                           ToolTip="{x:Static res:Strings.Tools_VersionRegex_Tooltip}"/>
+                                <TextBox   Grid.Row="4" Grid.Column="1" Style="{StaticResource FieldTextBox}" FontFamily="Consolas"
+                                           Text="{Binding Selected.VersionRegex, UpdateSourceTrigger=PropertyChanged}"
+                                           ToolTip="{x:Static res:Strings.Tools_VersionRegex_Tooltip}"/>
+                                <TextBlock Grid.Row="4" Grid.Column="3" Style="{StaticResource OptionLabel}" Text="{x:Static res:Strings.Tools_MinVersion}"/>
+                                <TextBox   Grid.Row="4" Grid.Column="4" Style="{StaticResource FieldTextBox}"
+                                           Text="{Binding Selected.MinVersion, UpdateSourceTrigger=PropertyChanged}"/>
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource OptionLabel}" Margin="0,10,0,4" Text="{x:Static res:Strings.Tools_VersionArguments}"/>
+                            <TextBox Style="{StaticResource LinesTextBox}" Height="48"
+                                     Text="{Binding Selected.VersionArgumentsText, UpdateSourceTrigger=LostFocus}"/>
+                        </StackPanel>
+                    </Border>
+
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ── Footer ── -->
+        <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+            <Grid Margin="12,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="{x:Static res:Strings.Tools_OpenFolder}"
+                            Command="{Binding OpenFolderCommand}"
+                            Padding="10,6" Margin="0,0,8,0"/>
+                    <Button Content="{x:Static res:Strings.Tools_Restore}"
+                            Command="{Binding RestoreDefaultsCommand}"
+                            Padding="10,6"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="{x:Static res:Strings.ArchEditor_Cancel}"
+                            Command="{Binding CancelCommand}"
+                            Padding="10,6" Margin="0,0,8,0"/>
+                    <Button Content="{x:Static res:Strings.ArchEditor_Save}"
+                            Command="{Binding SaveCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            Padding="14,6"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

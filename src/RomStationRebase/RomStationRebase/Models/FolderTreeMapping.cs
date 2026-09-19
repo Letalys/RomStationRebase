@@ -26,4 +26,10 @@ public class SystemMapping
 
     /// <summary>L'émulateur de ce système ne lit pas les archives : extraction requise sur cette cible.</summary>
     public bool Extract { get; set; }
+
+    /// <summary>
+    /// Identifiant de l'outil externe qui convertit les fichiers de ce système pour cette cible (ex : "chdman_createcd_default"
+    /// pour la Dreamcast, stockée en GDI par RomStation et attendue en CHD). Null ou vide : aucune conversion.
+    /// </summary>
+    public string? Transform { get; set; }
 }

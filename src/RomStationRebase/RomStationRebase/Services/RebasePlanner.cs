@@ -6,7 +6,8 @@ namespace RomStationRebase.Services;
 
 /// <summary>
 /// Jeu candidat au plan : le strict nécessaire, sans dépendance aux ViewModels.
-/// Les trois surcharges, null par défaut, remplacent pour ce seul jeu les marqueurs du système dans l'architecture.
+/// Les surcharges, null par défaut, remplacent pour ce seul jeu les marqueurs du système dans l'architecture.
+/// TransformOverride : identifiant d'un outil de conversion, "" pour aucune conversion, null pour suivre l'architecture.
 /// </summary>
 public sealed record PlanGameInput(
     int     Id,
@@ -18,7 +19,8 @@ public sealed record PlanGameInput(
     bool    CoverExists,
     bool?   KeepFileNameOverride = null,
     bool?   M3UOverride          = null,
-    bool?   ExtractOverride      = null);
+    bool?   ExtractOverride      = null,
+    string? TransformOverride    = null);
 
 /// <summary>Entrées du planificateur : jeux, fichiers Derby, architecture et options de sortie.</summary>
 public sealed class RebasePlanRequest
@@ -50,6 +52,12 @@ public sealed class RebasePlanRequest
     public ExtractLayout Layout           { get; init; }
     public bool          CopyCovers       { get; init; }
     public bool          GenerateGamelist { get; init; }
+
+    /// <summary>Convertir avec les outils externes que désigne l'architecture. False : aucune conversion, quoi que dise l'architecture.</summary>
+    public bool Convert { get; init; }
+
+    /// <summary>Outil connu par son identifiant, ou null. Le planificateur n'a pas d'accès disque : la disponibilité de l'exécutable lui est donnée.</summary>
+    public Func<string, PlanTool?> ToolLookup { get; init; } = _ => null;
 }
 
 /// <summary>
@@ -76,13 +84,18 @@ public class RebasePlanner
 
     public RebasePlan Plan(RebasePlanRequest request)
     {
-        var baseNames = ComputeBaseNames(request);
-        var games     = new List<RebaseGamePlan>(request.SelectedGames.Count);
+        var baseNames   = ComputeBaseNames(request);
+        var games       = new List<RebaseGamePlan>(request.SelectedGames.Count);
+        var unavailable = new List<string>();
 
         foreach (var game in request.SelectedGames)
-            games.Add(PlanGame(game, baseNames[game.Id], request));
+            games.Add(PlanGame(game, baseNames[game.Id], request, unavailable));
 
-        return new RebasePlan { Games = games };
+        return new RebasePlan
+        {
+            Games            = games,
+            UnavailableTools = unavailable.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+        };
     }
 
     // ── Noms de base et homonymes ─────────────────────────────────────────
@@ -140,7 +153,7 @@ public class RebasePlanner
 
     // ── Plan d'un jeu ─────────────────────────────────────────────────────
 
-    private static RebaseGamePlan PlanGame(PlanGameInput game, string baseName, RebasePlanRequest req)
+    private static RebaseGamePlan PlanGame(PlanGameInput game, string baseName, RebasePlanRequest req, List<string> unavailableTools)
     {
         var mapping = req.Mapping.FolderTreeMappings.FirstOrDefault(m =>
             string.Equals(m.RomStationSystem, game.SystemName, StringComparison.OrdinalIgnoreCase));
@@ -167,6 +180,19 @@ public class RebasePlanner
         bool m3uSupported    = game.M3UOverride          ?? mapping.M3U;
         bool extractRequired = game.ExtractOverride      ?? mapping.Extract;
 
+        // Conversion : l'outil que désigne l'architecture pour ce système, si l'utilisateur la veut pour ce passage et pour ce jeu.
+        // Un romset n'est jamais converti. Un outil dont l'exécutable n'a pas été indiqué est signalé, et le jeu suit la voie normale.
+        PlanTool? tool = null;
+        string toolId = game.TransformOverride ?? mapping.Transform ?? string.Empty;
+        if (req.Convert && !keepFileName && !string.IsNullOrWhiteSpace(toolId))
+        {
+            var candidate = req.ToolLookup(toolId);
+            if (candidate is { IsAvailable: true })
+                tool = candidate;
+            else
+                unavailableTools.Add(candidate?.Label ?? toolId);
+        }
+
         req.FilesByGame.TryGetValue(game.Id, out var dbFiles);
         var sources = (dbFiles ?? []).ToList();
 
@@ -182,11 +208,12 @@ public class RebasePlanner
 
         var stems = TargetStems(order, baseName, isDiscSet, keepFileName);
         var files = new List<RebaseFilePlan>(order.Count);
-        bool anyExtract = false, isFolder = false;
+        bool anyExtract = false, anyConvert = false, isFolder = false;
 
         for (int i = 0; i < order.Count; i++)
         {
-            var plan = PlanFile(order[i], stems[i], keepFileName, extractRequired, req);
+            var plan = PlanFile(order[i], stems[i], keepFileName, extractRequired, req, tool);
+            anyConvert |= plan.Kind == FileTransferKind.Transform;
             anyExtract |= plan.Kind == FileTransferKind.Extract;
             isFolder   |= plan.Kind == FileTransferKind.CopyTree;
             files.Add(plan);
@@ -266,6 +293,7 @@ public class RebasePlanner
                  : isFolder                ? GameOutputKind.Folder
                  : keepFileName            ? GameOutputKind.Romset
                  : withM3U                 ? GameOutputKind.DiscSet
+                 : anyConvert              ? GameOutputKind.Converted
                  : anyExtract              ? GameOutputKind.Extract
                  : isDiscSet               ? GameOutputKind.Discs
                  : files.Count > 1         ? GameOutputKind.Variants
@@ -294,6 +322,10 @@ public class RebasePlanner
             BaseName        = baseName,
             TargetFolder    = mapping.TargetFolder,
             OutputKind      = kind,
+            IsDiscSet       = isDiscSet,
+            HasArchive      = files.Any(f => ArchiveInspector.IsArchive(f.SourcePath)),
+            ToolInputExtensions = keepFileName ? [] : files.Select(f => ToolInputExtension(f, req))
+                .Where(e => !string.IsNullOrEmpty(e)).Select(e => e!.ToLowerInvariant()).Distinct().ToList(),
             Files           = files,
             M3URelativePath = m3uPath,
             M3UEntries      = m3uEntries,
@@ -333,7 +365,8 @@ public class RebasePlanner
         return stems;
     }
 
-    private static RebaseFilePlan PlanFile(GameFileInfo file, string stem, bool keepFileName, bool extractRequired, RebasePlanRequest req)
+    private static RebaseFilePlan PlanFile(GameFileInfo file, string stem, bool keepFileName, bool extractRequired,
+                                           RebasePlanRequest req, PlanTool? tool)
     {
         string source    = Path.Combine(req.RomStationPath, "app", file.RelativePath.Replace('/', Path.DirectorySeparatorChar));
         string sourceDir = Path.GetDirectoryName(source) ?? string.Empty;
@@ -363,6 +396,49 @@ public class RebasePlanner
         }
 
         long copySize = req.FileSizeLookup(source);
+
+        // Conversion par outil externe : le résultat est un fichier unique, à plat, sous le nom du plan.
+        // L'extraction se fait dans un dossier de travail local, quel que soit le mode Archives : seul le résultat atteint la cible.
+        if (tool is not null)
+        {
+            if (isArchive)
+            {
+                var content = req.ArchiveLookup(source);
+                if (content is { IsReadable: true } && content.Entries.Count > 0)
+                {
+                    var input = MainEntry(content);
+                    if (tool.Accepts(Path.GetExtension(input.FileName)))
+                        return new RebaseFilePlan
+                        {
+                            SourcePath              = source,
+                            Label                   = file.Label,
+                            Kind                    = FileTransferKind.Transform,
+                            LaunchRelativePath      = stem + tool.OutputExtension,
+                            TransformToolId         = tool.Id,
+                            TransformInputEntry     = input.InternalPath,
+                            Archive                 = content,
+                            CopySize                = copySize,
+                            ExtractedSize           = content.UncompressedSize,
+                            TransformedSizeEstimate = Estimate(content.UncompressedSize, tool),
+                        };
+                }
+            }
+            else if (tool.Accepts(ext))
+            {
+                return new RebaseFilePlan
+                {
+                    SourcePath              = source,
+                    Label                   = file.Label,
+                    Kind                    = FileTransferKind.Transform,
+                    LaunchRelativePath      = stem + tool.OutputExtension,
+                    TransformToolId         = tool.Id,
+                    CopySize                = copySize,
+                    ExtractedSize           = 0, // rien à extraire : l'outil lit la source en place
+                    TransformedSizeEstimate = Estimate(copySize, tool),
+                };
+            }
+            // L'outil n'accepte pas ce que contient ce fichier : voie normale ci-dessous
+        }
 
         bool extractWanted = isArchive
             && !keepFileName
@@ -423,6 +499,18 @@ public class RebasePlanner
             ExtractedSize      = copySize,
         };
     }
+
+    /// <summary>Extension de ce qu'un outil de conversion recevrait pour ce fichier : l'entrée principale de l'archive, ou le fichier lui-même.</summary>
+    private static string? ToolInputExtension(RebaseFilePlan plan, RebasePlanRequest req)
+    {
+        if (plan.Kind == FileTransferKind.CopyTree) return null;
+        if (!ArchiveInspector.IsArchive(plan.SourcePath)) return Path.GetExtension(plan.SourcePath);
+        var content = plan.Archive ?? req.ArchiveLookup(plan.SourcePath);
+        return content is { IsReadable: true, Entries.Count: > 0 } ? Path.GetExtension(MainEntry(content).FileName) : null;
+    }
+
+    private static long Estimate(long inputBytes, PlanTool tool)
+        => (long)(inputBytes * (tool.SizeRatioHint > 0 ? tool.SizeRatioHint : 1.0));
 
     /// <summary>Entrée lançable d'une archive : par priorité d'extension, puis la première par ordre alphabétique.</summary>
     internal static ArchiveEntryInfo MainEntry(ArchiveInfo archive)

@@ -34,6 +34,10 @@ public class RebaseService
             Plan            = p,
         }).ToList();
 
+        // Restes d'une conversion interrompue brutalement (coupure, plantage) : le dossier de travail repart vide
+        if (options.Plan.Games.Any(g => g.Files.Any(f => f.Kind == FileTransferKind.Transform)))
+            CleanWorkDirectory(string.IsNullOrWhiteSpace(options.WorkDirectory) ? ExternalToolService.WorkDirectory : options.WorkDirectory);
+
         long totalBytes  = options.Plan.TotalBytes;
         long copiedBytes = 0;
         int  completed   = 0;
@@ -153,15 +157,23 @@ public class RebaseService
                             continue;
                         }
 
-                        item.Status = file.Kind == FileTransferKind.Extract
-                            ? RebaseItemStatus.Extracting
-                            : RebaseItemStatus.Copying;
+                        item.Status = file.Kind switch
+                        {
+                            FileTransferKind.Extract   => RebaseItemStatus.Extracting,
+                            FileTransferKind.Transform => RebaseItemStatus.Converting,
+                            _                          => RebaseItemStatus.Copying,
+                        };
                         Report(item);
 
                         var bytesProgress = BytesProgress(item);
-                        await RunWithRetryAsync(
-                            () => TransferAsync(file, destSys, bytesProgress, ct),
-                            file.SourcePath, options.RetryCount, options.RetryDelaySeconds, ct).ConfigureAwait(false);
+                        if (file.Kind == FileTransferKind.Transform)
+                            await RunWithRetryAsync(
+                                () => TransformAsync(file, destSys, options, bytesProgress, ct),
+                                file.SourcePath, options.RetryCount, options.RetryDelaySeconds, ct).ConfigureAwait(false);
+                        else
+                            await RunWithRetryAsync(
+                                () => TransferAsync(file, destSys, bytesProgress, ct),
+                                file.SourcePath, options.RetryCount, options.RetryDelaySeconds, ct).ConfigureAwait(false);
 
                         // Image disque brute livrée sans descripteur : le .cue qui la rend lançable
                         if (cueBinPath is not null)
@@ -293,6 +305,131 @@ public class RebaseService
         }
     }
 
+    // ── Conversion par outil externe ──────────────────────────────────────
+
+    /// <summary>
+    /// Progression rapportée sur place, dans l'ordre. Progress&lt;T&gt; poste ses rappels sur le pool de threads : ils peuvent
+    /// arriver dans le désordre, voire après la fin de l'étape, ce qui fausserait une progression cumulée.
+    /// </summary>
+    private sealed class InlineProgress<T>(Action<T> handler) : IProgress<T>
+    {
+        public void Report(T value) => handler(value);
+    }
+
+    /// <summary>Vide le dossier de travail. Un seul rebase tourne à la fois (instance unique, fenêtre modale) : rien d'utile ne peut s'y trouver.</summary>
+    private static void CleanWorkDirectory(string workRoot)
+    {
+        try
+        {
+            if (!Directory.Exists(workRoot)) return;
+            foreach (string dir in Directory.GetDirectories(workRoot))
+            {
+                try { Directory.Delete(dir, recursive: true); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* encore tenu : repris au prochain rebase */ }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* dossier inaccessible : la conversion le dira elle-même */ }
+    }
+
+    /// <summary>Les outils de conversion occupent déjà tous les cœurs : une conversion à la fois, pendant que les copies continuent.</summary>
+    private readonly SemaphoreSlim _conversionGate = new(1, 1);
+
+    // Part de la taille prévue créditée à chaque étape, pour une barre qui avance du début à la fin
+    private const double ExtractShare = 0.15, ConvertShare = 0.75;
+
+    /// <summary>
+    /// Conversion pilotée de bout en bout : extraction dans un dossier de travail local (un .gdi a besoin de ses pistes
+    /// à côté de lui), lancement de l'outil, copie du seul résultat vers la cible sous le nom du plan, nettoyage.
+    /// Rien n'est écrit sur la cible avant que l'outil ait réussi.
+    /// </summary>
+    private async Task TransformAsync(RebaseFilePlan file, string destSys, RebaseOptions options,
+                                      IProgress<long> bytesProgress, CancellationToken ct)
+    {
+        if (file.TransformToolId is null || !options.Tools.TryGetValue(file.TransformToolId, out var entry))
+            throw new ExternalToolException(string.Format(Strings.Tools_Error_Unavailable, file.TransformToolId));
+
+        long planned  = Math.Max(1, file.PlannedBytes);
+        long credited = 0;
+        object creditLock = new();
+        // Progression toujours croissante et bornée à la taille prévue : l'outil écrit sur deux flux, donc deux threads
+        void Credit(long upTo)
+        {
+            lock (creditLock)
+            {
+                upTo = Math.Clamp(upTo, credited, planned);
+                if (upTo > credited) { bytesProgress.Report(upTo - credited); credited = upTo; }
+            }
+        }
+
+        string workRoot = string.IsNullOrWhiteSpace(options.WorkDirectory) ? ExternalToolService.WorkDirectory : options.WorkDirectory;
+        string workDir  = Path.Combine(workRoot, Guid.NewGuid().ToString("N"));
+
+        await _conversionGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            Directory.CreateDirectory(workDir);
+
+            // 1. L'entrée de l'outil : extraite de l'archive, ou la source elle-même
+            string input;
+            if (file.TransformInputEntry is not null)
+            {
+                string extractDir = Path.Combine(workDir, "in");
+                long extracted = 0, total = Math.Max(1, file.ExtractedSize);
+                var extractProgress = new InlineProgress<long>(b =>
+                {
+                    extracted += b;
+                    Credit((long)(planned * ExtractShare * Math.Min(1.0, (double)extracted / total)));
+                });
+                await ArchiveExtractor.ExtractAsync(file.SourcePath, extractDir, null, extractProgress, ct).ConfigureAwait(false);
+                input = Path.Combine(extractDir, file.TransformInputEntry.Replace('/', Path.DirectorySeparatorChar));
+                if (!File.Exists(input))
+                    throw new ExternalToolException(string.Format(Strings.Tools_Error_InputMissing, file.TransformInputEntry));
+            }
+            else
+            {
+                input = file.SourcePath;
+            }
+            Credit((long)(planned * ExtractShare));
+
+            // 2. L'outil, dans le dossier de travail : jamais sur la carte de destination, bien plus lente
+            string outDir = Path.Combine(workDir, "out");
+            Directory.CreateDirectory(outDir);
+            string output = Path.Combine(outDir, Path.GetFileName(file.LaunchRelativePath));
+
+            var percent = new InlineProgress<double>(p =>
+                Credit((long)(planned * (ExtractShare + ConvertShare * p / 100.0))));
+            await ExternalToolRunner.ConvertAsync(entry.Tool, entry.ExecutablePath, input, output, percent, ct).ConfigureAwait(false);
+            Credit((long)(planned * (ExtractShare + ConvertShare)));
+
+            // 3. Le seul résultat atteint la cible, sous le nom décidé par le plan
+            string dest = Path.Combine(destSys, file.LaunchRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+            long size = Math.Max(1, new FileInfo(output).Length), copied = 0;
+            long copyFrom = credited;
+            var copyProgress = new InlineProgress<long>(b =>
+            {
+                copied += b;
+                Credit(copyFrom + (long)((planned - copyFrom) * Math.Min(1.0, (double)copied / size)));
+            });
+            try
+            {
+                await CopyFileInternalAsync(output, dest, copyProgress, ct).ConfigureAwait(false);
+            }
+            catch
+            {
+                ExternalToolRunner.TryDelete(dest); // jamais de fichier converti tronqué sur la cible
+                throw;
+            }
+            Credit(planned);
+        }
+        finally
+        {
+            _conversionGate.Release();
+            try { if (Directory.Exists(workDir)) Directory.Delete(workDir, recursive: true); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* sera repris au prochain nettoyage du dossier de travail */ }
+        }
+    }
+
     /// <summary>Relance une opération en cas d'échec, avec délai entre deux tentatives.</summary>
     internal static async Task RunWithRetryAsync(
         Func<Task> operation, string sourceForLog,
@@ -307,7 +444,8 @@ public class RebaseService
             }
             // Une archive dangereuse ou corrompue ne le sera pas moins au prochain essai
             catch (Exception ex) when (attempt < retryCount && !ct.IsCancellationRequested
-                                       && ex is not UnsafeArchiveException and not InvalidDataException)
+                                       && ex is not UnsafeArchiveException and not InvalidDataException
+                                                and not ExternalToolException) // un outil qui échoue échouera pareil au second essai
             {
                 System.Diagnostics.Debug.WriteLine(
                     $"[Rebase] Retry {attempt + 1}/{retryCount} for {Path.GetFileName(sourceForLog)}");

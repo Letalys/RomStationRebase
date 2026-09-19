@@ -596,6 +596,37 @@ public class DerbyService
         return result;
     }
 
+    // ── Emulateurs installés ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Dossiers des émulateurs que RomStation a installés, tels qu'il les enregistre (APP.EMULATOR_FILE.DIRECTORY,
+    /// relatif au dossier app de RomStation, ou absolu pour un émulateur ajouté à la main), version la plus récente
+    /// en premier. Leurs paquets contiennent des outils de conversion : chdman dans MAME, DolphinTool dans Dolphin.
+    /// Connexion impossible → liste vide. Les erreurs Derby remontent à l'appelant.
+    /// </summary>
+    /// <param name="dbCopyPath">Chemin du dossier de la copie de la base Derby.</param>
+    public List<string> GetEmulatorDirectories(string dbCopyPath)
+    {
+        var result = new List<string>();
+
+        // L'identifiant RomStation du fichier croît avec les versions publiées : la plus récente d'abord
+        const string sql = "SELECT ef.DIRECTORY FROM APP.EMULATOR_FILE ef WHERE ef.DIRECTORY IS NOT NULL ORDER BY ef.RID DESC";
+
+        using var conn = OpenConnection(dbCopyPath);
+        if (conn is null) return result;
+
+        var stmt = conn.createStatement();
+        var rs   = stmt.executeQuery(sql);
+        while (rs.next())
+        {
+            string? directory = rs.getString("DIRECTORY");
+            if (!string.IsNullOrWhiteSpace(directory)) result.Add(directory);
+        }
+        rs.close();
+        stmt.close();
+        return result;
+    }
+
     // ── Métadonnées gamelist ─────────────────────────────────────────────
 
     /// <summary>

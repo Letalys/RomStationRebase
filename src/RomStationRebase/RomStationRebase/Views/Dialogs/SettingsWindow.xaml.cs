@@ -23,6 +23,9 @@ public partial class SettingsWindow : Window
             var editor = new ArchitectureEditorWindow(vm.SystemNames) { Owner = this };
             editor.ShowDialog();
         };
+
+        // Outils externes de conversion — modal
+        vm.OpenExternalTools = () => new ExternalToolsWindow { Owner = this }.ShowDialog();
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)

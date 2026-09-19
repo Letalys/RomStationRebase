@@ -8,6 +8,8 @@ public class WindowDefaults
     public WindowSize GameDetailWindow  { get; set; } = new();
     public WindowSize SettingsWindow    { get; set; } = new();
     public WindowSize ArchitectureEditorWindow { get; set; } = new();
+    /// <summary>Valeur par défaut posée ici : un window-defaults.json d'avant la 1.3.0 n'a pas cette entrée et reste valide.</summary>
+    public WindowSize ExternalToolsWindow { get; set; } = new() { Width = 960, Height = 700 };
 }
 
 /// <summary>Taille par défaut d'une fenêtre (la position n'est pas stockée ici — toujours centrée au 1er lancement).</summary>

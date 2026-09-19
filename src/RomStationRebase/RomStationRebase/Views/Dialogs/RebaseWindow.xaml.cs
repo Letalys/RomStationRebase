@@ -50,6 +50,13 @@ public partial class RebaseWindow : Window
             var editor = new ArchitectureEditorWindow(vm.SystemNames) { Owner = this };
             editor.ShowDialog();
         };
+
+        // Outils externes de conversion — modal, le VM relit les outils et replanifie au retour
+        vm.OpenExternalTools = () =>
+        {
+            var tools = new ExternalToolsWindow { Owner = this };
+            tools.ShowDialog();
+        };
     }
 
     /// <summary>Restaure les bounds mémorisés avant affichage.</summary>

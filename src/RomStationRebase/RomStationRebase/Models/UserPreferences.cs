@@ -54,6 +54,12 @@ public class UserPreferences
     /// <summary>Dernière valeur du toggle "Sauvegarder le gamelist.xml existant".</summary>
     public bool LastRebaseBackupGamelist { get; set; } = false;
 
+    /// <summary>Convertir les fichiers avec les outils externes que désigne l'architecture (GDI → CHD…).</summary>
+    public bool LastRebaseConvert { get; set; } = true;
+
+    /// <summary>Bounds de la fenêtre des outils externes.</summary>
+    public WindowBounds? ExternalToolsWindowBounds { get; set; }
+
     /// <summary>Langue des métadonnées écrites : "auto" (langue de l'interface), "fr" ou "en".</summary>
     public string LastRebaseMetadataLanguage { get; set; } = "auto";
 

@@ -23,6 +23,16 @@ public class RebaseOptions
     /// <summary>Métadonnées par identifiant de jeu, déjà dans la langue choisie. Null si aucun gamelist n'est demandé.</summary>
     public IReadOnlyDictionary<int, GameMetadata>? Metadata { get; set; }
 
+    /// <summary>
+    /// Outils externes disponibles pour ce rebase, par identifiant : le descripteur et l'exécutable choisi par l'utilisateur.
+    /// Tout fichier du plan de genre Transform désigne l'un d'eux.
+    /// </summary>
+    public IReadOnlyDictionary<string, (ExternalTool Tool, string ExecutablePath)> Tools { get; set; }
+        = new Dictionary<string, (ExternalTool, string)>();
+
+    /// <summary>Dossier de travail des conversions, sur le disque local.</summary>
+    public string WorkDirectory { get; set; } = string.Empty;
+
     /// <summary>Événement de pause — Reset() pour mettre en pause, Set() pour reprendre.</summary>
     public ManualResetEventSlim   PauseEvent        { get; set; } = new ManualResetEventSlim(true);
 }

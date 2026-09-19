@@ -18,5 +18,9 @@
   "architectureEditorWindow": {
     "width": 1000,
     "height": 720
+  },
+  "externalToolsWindow": {
+    "width": 960,
+    "height": 700
   }
 }

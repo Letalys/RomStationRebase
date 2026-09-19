@@ -6,9 +6,9 @@ using RomStationRebase.Services;
 namespace RomStationRebase.ViewModels;
 
 /// <summary>Règles basculées pour un seul jeu dans le tableau du rebase (null : la valeur de l'architecture).</summary>
-public readonly record struct GameRuleOverrides(bool? KeepFileName, bool? M3U, bool? Extract)
+public readonly record struct GameRuleOverrides(bool? KeepFileName, bool? M3U, bool? Extract, string? Transform = null)
 {
-    public bool IsEmpty => KeepFileName is null && M3U is null && Extract is null;
+    public bool IsEmpty => KeepFileName is null && M3U is null && Extract is null && Transform is null;
 }
 
 /// <summary>
@@ -128,7 +128,7 @@ public sealed class RebasePresetSessionViewModel : ViewModelBase
             file.Games.Add(new RebasePresetGame
             {
                 Rid = g.Rid, Title = g.Title, System = g.SystemName,
-                KeepFileName = o.KeepFileName, M3U = o.M3U, Extract = o.Extract,
+                KeepFileName = o.KeepFileName, M3U = o.M3U, Extract = o.Extract, Transform = o.Transform,
             });
         }
         return file;

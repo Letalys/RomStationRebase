@@ -23,6 +23,8 @@ public enum RebaseItemStatus
     Pending,
     Copying,
     Extracting,
+    /// <summary>Conversion par un outil externe en cours.</summary>
+    Converting,
     Done,
     Skipped,
     Failed

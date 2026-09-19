@@ -88,7 +88,10 @@ public class SettingsViewModel : ViewModelBase
         CheckForUpdateCommand = new RelayCommand(OnCheckForUpdate);
         OpenUpdateLinkCommand = new RelayCommand(OpenUpdateLink, () => IsUpdateStatusClickable);
 
-        EditArchitecturesCommand = new RelayCommand(() => OpenArchitectureEditor?.Invoke(), () => OpenArchitectureEditor is not null);
+        EditArchitecturesCommand = new RelayCommand(() => { OpenArchitectureEditor?.Invoke(); _config.AdoptChildWindowBounds(_originalPrefs); },
+                                                    () => OpenArchitectureEditor is not null);
+        EditToolsCommand         = new RelayCommand(() => { OpenExternalTools?.Invoke(); _config.AdoptChildWindowBounds(_originalPrefs); },
+                                                    () => OpenExternalTools is not null);
         TogglePresetAssociationCommand = new RelayCommand(TogglePresetAssociation, () => Environment.ProcessPath is not null);
 
         LoadInitialUpdateCheckState();
@@ -205,6 +208,11 @@ public class SettingsViewModel : ViewModelBase
 
     /// <summary>Ouvre l'éditeur d'architectures cibles via le callback de la View.</summary>
     public ICommand EditArchitecturesCommand    { get; }
+
+    /// <summary>Ouvre la fenêtre des outils externes de conversion (modal) — injecté depuis la View.</summary>
+    public Action? OpenExternalTools { get; set; }
+
+    public ICommand EditToolsCommand            { get; }
 
     // ── Association des présélections (.rsr) ── ──────────────────────────
     // Effet immédiat, comme les boutons « Ouvrir le dossier » : ce n'est pas une préférence soumise à Enregistrer / Annuler.

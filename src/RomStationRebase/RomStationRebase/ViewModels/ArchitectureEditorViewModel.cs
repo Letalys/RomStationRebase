@@ -32,6 +32,41 @@ public class ArchitectureEditorViewModel : ViewModelBase
     /// <summary>Noms de systèmes proposés dans la colonne Système — la saisie reste libre.</summary>
     public IReadOnlyList<string> SystemNames { get; }
 
+    /// <summary>Choix de la colonne Conversion : « Aucune » puis les outils externes du dossier utilisateur.</summary>
+    public ObservableCollection<ToolChoice> ToolChoices { get; } = new();
+
+    /// <summary>Ouvre la fenêtre des outils externes (modal) — injecté depuis la View.</summary>
+    public Action? OpenExternalTools { get; set; }
+
+    public ICommand EditToolsCommand { get; }
+
+    /// <summary>Relit les outils : au chargement, et au retour de la fenêtre des outils. Un identifiant encore cité mais disparu reste proposé, signalé.</summary>
+    public void ReloadToolChoices()
+    {
+        List<ExternalTool> tools;
+        try   { tools = new ExternalToolService().LoadTools(); }
+        catch { tools = []; }
+
+        var choices = new List<ToolChoice> { new(string.Empty, Strings.ArchEditor_Convert_None) };
+        choices.AddRange(tools.Select(t => new ToolChoice(t.Id, t.Label)));
+
+        var known = new HashSet<string>(tools.Select(t => t.Id), StringComparer.OrdinalIgnoreCase);
+        foreach (string id in Architectures.SelectMany(a => a.Mappings).Select(m => m.Transform)
+                     .Where(id => id.Length > 0 && !known.Contains(id)).Distinct(StringComparer.OrdinalIgnoreCase))
+            choices.Add(new ToolChoice(id, string.Format(Strings.ArchEditor_Convert_Unknown, id)));
+
+        // Mise à jour en place : vider la liste ferait perdre leur sélection aux ComboBox, donc écrire "" dans
+        // chaque ligne et marquer à tort toutes les architectures comme modifiées
+        foreach (var gone in ToolChoices.Where(c => choices.All(n => !string.Equals(n.Id, c.Id, StringComparison.OrdinalIgnoreCase))).ToList())
+            ToolChoices.Remove(gone);
+        foreach (var choice in choices)
+        {
+            var existing = ToolChoices.FirstOrDefault(c => string.Equals(c.Id, choice.Id, StringComparison.OrdinalIgnoreCase));
+            if (existing is null) ToolChoices.Add(choice);
+            else                  existing.Label = choice.Label;
+        }
+    }
+
     /// <summary>True si des suggestions existent : la colonne Système devient une liste éditable.</summary>
     public bool HasSystemNames => SystemNames.Count > 0;
 
@@ -109,7 +144,9 @@ public class ArchitectureEditorViewModel : ViewModelBase
         OpenFolderCommand    = new RelayCommand(OpenFolder);
         SaveCommand          = new RelayCommand(Save);
         CancelCommand        = new RelayCommand(() => CloseWindow?.Invoke());
+        EditToolsCommand     = new RelayCommand(() => { OpenExternalTools?.Invoke(); ReloadToolChoices(); });
 
+        ReloadToolChoices();
         Load();
     }
 
@@ -169,6 +206,9 @@ public class ArchitectureEditorViewModel : ViewModelBase
         try
         {
             draft.LoadMappings(_service.LoadFolderTreeMapping(draft.Entry.FolderTreeMapping));
+            // Un outil cité par cette architecture mais absent du dossier doit rester visible dans la liste
+            if (draft.Mappings.Any(m => m.Transform.Length > 0 && ToolChoices.All(c => !string.Equals(c.Id, m.Transform, StringComparison.OrdinalIgnoreCase))))
+                ReloadToolChoices();
         }
         catch (Exception ex)
         {
@@ -389,6 +429,14 @@ public class ArchitectureEditorViewModel : ViewModelBase
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
+
+    /// <summary>Entrée de la liste Conversion d'une ligne de système. Le libellé se met à jour en place.</summary>
+    public sealed class ToolChoice(string id, string label) : ViewModelBase
+    {
+        private string _label = label;
+        public string Id { get; } = id;
+        public string Label { get => _label; set => SetProperty(ref _label, value); }
+    }
 
     /// <summary>Ouvre un ConfirmDialog modal avec OwnerWindow comme propriétaire (centré écran si null).</summary>
     private ConfirmDialog ShowConfirm(string title, string message, string primary, string? secondary = null)

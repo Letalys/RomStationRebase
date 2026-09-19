@@ -194,6 +194,9 @@
                 <DataTrigger Binding="{Binding Status}" Value="{x:Static models:RebaseItemStatus.Extracting}">
                     <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
                 </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="{x:Static models:RebaseItemStatus.Converting}">
+                    <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="{x:Static models:RebaseItemStatus.Failed}">
                     <Setter Property="Background" Value="{DynamicResource DataGridRowFailedBrush}"/>
                 </DataTrigger>
@@ -328,6 +331,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="8"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource OptionLabel}"
@@ -354,9 +358,24 @@
                                 <ComboBoxItem Content="{x:Static res:Strings.Rebase_ExtractLayout_Subfolder}"/>
                             </ComboBox>
 
+                            <!-- Conversion par outil externe : n'apparaît que si l'architecture désigne un outil pour au moins un système -->
+                            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+                                <StackPanel Orientation="Horizontal"
+                                            ToolTip="{x:Static res:Strings.Rebase_Convert_Tooltip}">
+                                    <ToggleButton IsChecked="{Binding ConvertFiles}"
+                                                  Style="{StaticResource ToggleSwitchButton}"/>
+                                    <TextBlock Style="{StaticResource ToggleLabel}" Text="{x:Static res:Strings.Rebase_Convert}"/>
+                                </StackPanel>
+                                <!-- Exécutable non indiqué : le dire ici, avec le chemin pour y remédier -->
+                                <TextBlock Margin="0,6,0,0" FontSize="11" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource ErrorTextBrush}"
+                                           Text="{Binding MissingToolsHint}"
+                                           Visibility="{Binding MissingToolsHint, Converter={StaticResource NullToVisibilityConverter}}"/>
+                            </StackPanel>
+
                             <!-- Les règles par système (romset, M3U, extraction) vivent dans l'architecture :
                                  un seul endroit décide, la fenêtre ne fait que le rappeler et y donner accès -->
-                            <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                            <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
                                        FontSize="11" TextWrapping="Wrap"
                                        Foreground="{DynamicResource TextSecondaryBrush}">
                                 <Run Text="{x:Static res:Strings.Rebase_Rules_Hint}"/>
@@ -365,6 +384,13 @@
                                     <Button Style="{StaticResource LinkButton}" FontSize="11" Padding="0"
                                             Content="{x:Static res:Strings.Rebase_ManageArchitectures}"
                                             Command="{Binding EditArchitecturesCommand}"/>
+                                </InlineUIContainer>
+                                <Run Text="  ·  "/>
+                                <!-- Toujours visible : c'est par là qu'on rend une conversion possible -->
+                                <InlineUIContainer BaselineAlignment="Center">
+                                    <Button Style="{StaticResource LinkButton}" FontSize="11" Padding="0"
+                                            Content="{x:Static res:Strings.Rebase_ManageTools}"
+                                            Command="{Binding EditToolsCommand}"/>
                                 </InlineUIContainer>
                             </TextBlock>
                         </Grid>
@@ -638,7 +664,7 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <ToggleButton IsChecked="{Binding M3U, UpdateSourceTrigger=PropertyChanged}"
-                                          ToolTip="{x:Static res:Strings.Rebase_Rule_Tooltip}">
+                                          ToolTip="{Binding M3UTooltip}" ToolTipService.ShowOnDisabled="True">
                                 <ToggleButton.Style>
                                     <Style TargetType="ToggleButton" BasedOn="{StaticResource RuleToggle}">
                                         <Style.Triggers>
@@ -659,22 +685,50 @@
                     </DataGridTemplateColumn.Header>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
+                            <!-- Grisé, l'interrupteur montre quand même ce qui arrivera : éteint pour un romset ou en mode « Ne jamais extraire »,
+                                 allumé en mode « Tout extraire » ou quand une conversion extrait elle-même l'archive -->
                             <ToggleButton IsChecked="{Binding Extract, UpdateSourceTrigger=PropertyChanged}"
-                                          ToolTip="{x:Static res:Strings.Rebase_Column_Extract_Tooltip}">
+                                          ToolTip="{Binding ExtractTooltip}" ToolTipService.ShowOnDisabled="True">
                                 <ToggleButton.Style>
                                     <Style TargetType="ToggleButton" BasedOn="{StaticResource RuleToggle}">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding CanToggleExtract}" Value="False">
                                                 <Setter Property="IsEnabled" Value="False"/>
                                             </DataTrigger>
-                                            <!-- Hors du mode « selon l'architecture », la règle par système n'a plus prise -->
-                                            <DataTrigger Binding="{Binding DataContext.IsExtractionAsConfigured, RelativeSource={RelativeSource AncestorType=DataGrid}}" Value="False">
-                                                <Setter Property="IsEnabled" Value="False"/>
-                                            </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </ToggleButton.Style>
                             </ToggleButton>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <!-- Conversion : l'outil qui convertira ce jeu, pré-rempli par l'architecture. Toujours visible : sans outil
+                     réglé, la liste ne propose que « Aucune » -->
+                <DataGridTemplateColumn Width="190" MinWidth="120" CanUserSort="False">
+                    <DataGridTemplateColumn.Header>
+                        <TextBlock Text="{x:Static res:Strings.Rebase_Column_Convert}"
+                                   ToolTip="{x:Static res:Strings.Rebase_Column_Convert_Tooltip}"/>
+                    </DataGridTemplateColumn.Header>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding ToolOptions}"
+                                      SelectedValuePath="Id" DisplayMemberPath="Label"
+                                      SelectedValue="{Binding Transform, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTip="{Binding TransformTooltip}" ToolTipService.ShowOnDisabled="True"
+                                      Padding="6,2" Height="26" FontSize="12" VerticalAlignment="Center">
+                                <ComboBox.Style>
+                                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanChooseTransform}" Value="False">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding DataContext.IsRunning, RelativeSource={RelativeSource AncestorType=DataGrid}}" Value="True">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ComboBox.Style>
+                            </ComboBox>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -698,7 +752,7 @@
 
                 <!-- Statut texte -->
                 <DataGridTextColumn Header="{x:Static res:Strings.Rebase_Column_Status}"
-                                    Width="110" Binding="{Binding StatusText}"/>
+                                    Width="130" Binding="{Binding StatusText}"/>
 
                 <!-- Erreur -->
                 <DataGridTextColumn Header="{x:Static res:Strings.Rebase_Column_Error}"
