@@ -44,6 +44,48 @@ public static class CueSheetService
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Répare un .cue dont la ligne FILE cite un fichier absent. Beaucoup d'archives de RomStation contiennent un .bin
+    /// renommé et un .cue resté sur l'ancien nom (« ALUNDRA_PAL.BIN » pour « Alundra.bin ») : certains émulateurs s'en
+    /// accommodent, chdman non. La correction n'est faite que si elle est sans ambiguïté : une seule ligne FILE, et une
+    /// seule image (.bin ou .img) dans le dossier. Le fichier est traité en octets, son encodage n'est pas touché.
+    /// Renvoie true si le .cue a été réécrit.
+    /// </summary>
+    public static bool RepairFileReference(string cuePath)
+    {
+        try
+        {
+            string? folder = Path.GetDirectoryName(cuePath);
+            if (folder is null || !File.Exists(cuePath)) return false;
+
+            // Latin-1 : un octet par caractère dans les deux sens, quel que soit l'encodage réel du fichier
+            string text = Encoding.Latin1.GetString(File.ReadAllBytes(cuePath));
+            var refs = System.Text.RegularExpressions.Regex.Matches(text, "FILE\\s+\"([^\"]+)\"",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (refs.Count != 1) return false;
+
+            string citedRaw = refs[0].Groups[1].Value;
+            string cited    = Path.GetFileName(Encoding.UTF8.GetString(Encoding.Latin1.GetBytes(citedRaw)).Replace('\\', '/'));
+            if (File.Exists(Path.Combine(folder, cited))
+                || File.Exists(Path.Combine(folder, Path.GetFileName(citedRaw.Replace('\\', '/'))))) return false;
+
+            var images = Directory.EnumerateFiles(folder)
+                .Where(f => Path.GetExtension(f).ToLowerInvariant() is ".bin" or ".img")
+                .ToList();
+            if (images.Count != 1) return false;
+
+            string name = Encoding.Latin1.GetString(Encoding.UTF8.GetBytes(Path.GetFileName(images[0])));
+            var group = refs[0].Groups[1];
+            string repaired = text[..group.Index] + name + text[(group.Index + group.Length)..];
+            File.WriteAllBytes(cuePath, Encoding.Latin1.GetBytes(repaired));
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false; // réparation de confort : le jeu est copié tel que RomStation le livre
+        }
+    }
+
     /// <summary>Écrit le .cue à côté du .bin déjà présent sur la cible. Le .cue et le .bin doivent partager leur dossier.</summary>
     public static void WriteFor(string binPath, string cuePath)
     {

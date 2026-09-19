@@ -3,9 +3,10 @@
     {
       "id": "arkos_default",
       "label": "ArkOS / dArkOS (Default)",
-      "description": "Anbernic RG353, RG351, RK3326 et clones sous ArkOS ou dArkOS (EmulationStation + RetroArch)",
+      "description": "Consoles Anbernic et clones sous ArkOS ou dArkOS",
       "folderTreeMapping": "arkos_default.json",
       "isDefault": true,
+      "hideGameFiles": true,
       "coversByDefault": true,
       "coverFolder": "images",
       "coverSuffix": "-image",
@@ -17,7 +18,7 @@
     {
       "id": "retroarch_default",
       "label": "RetroArch / Lakka (Default)",
-      "description": "RetroArch seul ou Lakka : dossiers par système, sans gamelist ni jaquettes locales",
+      "description": "RetroArch seul ou Lakka",
       "folderTreeMapping": "retroarch_default.json",
       "isDefault": false,
       "coversByDefault": false,
@@ -31,7 +32,7 @@
     {
       "id": "batocera_default",
       "label": "Batocera / Knulli (Default)",
-      "description": "Batocera, Knulli et dérivés : dossiers Batocera, gamelist EmulationStation",
+      "description": "Batocera, Knulli et dérivés",
       "folderTreeMapping": "batocera_default.json",
       "isDefault": false,
       "coversByDefault": true,
@@ -45,7 +46,7 @@
     {
       "id": "emulationstation_default",
       "label": "EmulationStation / RetroPie (Default)",
-      "description": "EmulationStation d'origine et RetroPie : gamelist.xml et jaquettes dans chaque dossier système. Pour ES-DE, choisir l'architecture ES-DE",
+      "description": "EmulationStation d'origine et RetroPie",
       "folderTreeMapping": "emulationstation_default.json",
       "isDefault": false,
       "coversByDefault": true,
@@ -59,7 +60,7 @@
     {
       "id": "esde_default",
       "label": "ES-DE (Default)",
-      "description": "ES-DE sur PC ou Android : ES-DE ignore un gamelist posé parmi les ROMs, métadonnées et jaquettes vont dans un dossier ES-DE à fusionner avec celui de l'appareil",
+      "description": "ES-DE sur PC ou Android",
       "folderTreeMapping": "esde_default.json",
       "isDefault": false,
       "coversByDefault": true,
@@ -73,7 +74,7 @@
     {
       "id": "cocoon_default",
       "label": "Cocoon (Android) (Default)",
-      "description": "Frontend Cocoon sur Android : dossiers Cocoon, métadonnées et jaquettes au format ES-DE, à importer depuis Cocoon (migration ES-DE)",
+      "description": "Frontend Cocoon sur Android",
       "folderTreeMapping": "cocoon_default.json",
       "isDefault": false,
       "coversByDefault": true,
@@ -87,7 +88,7 @@
     {
       "id": "onion_default",
       "label": "Onion / Miyoo Mini (Default)",
-      "description": "Onion OS sur Miyoo Mini et Mini Plus : dossiers en majuscules, miyoogamelist.xml, jaquettes Imgs en 250 × 360. Lancer « Refresh all roms » sur la console après la copie",
+      "description": "Onion OS sur Miyoo Mini et Mini Plus",
       "folderTreeMapping": "onion_default.json",
       "isDefault": false,
       "coversByDefault": true,
@@ -101,7 +102,7 @@
     {
       "id": "anbernic-stock_default",
       "label": "Anbernic OS stock (Default)",
-      "description": "Firmware d'origine des Anbernic RG35XX et RG40XX : dossiers en majuscules, jaquettes Imgs en 300 px",
+      "description": "Firmware d'origine des Anbernic RG35XX et RG40XX",
       "folderTreeMapping": "anbernic-stock_default.json",
       "isDefault": false,
       "coversByDefault": true,

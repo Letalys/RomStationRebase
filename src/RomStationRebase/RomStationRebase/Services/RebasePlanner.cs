@@ -222,7 +222,32 @@ public class RebasePlanner
         // M3U : seulement de vrais disques, sur un système dont l'émulateur le lit, jamais pour un romset
         bool withM3U = req.GenerateM3U && m3uSupported && isDiscSet && !keepFileName;
         string? m3uPath = withM3U ? baseName + ".m3u" : null;
-        var m3uEntries  = withM3U ? files.Select(f => f.LaunchRelativePath).ToList() : [];
+
+        // Dossier masqué : le frontend liste tout fichier d'extension connue, donc le M3U ET chacun de ses disques,
+        // et montre un dossier à ouvrir pour chaque jeu extrait en CUE et BIN. Quand l'architecture le demande, les
+        // fichiers du jeu vont dans un dossier au nom précédé d'un point, qu'EmulationStation ignore, et un M3U posé
+        // à la racine devient le seul élément visible. Un fichier unique déjà à plat reste tel quel.
+        bool hide = req.Architecture.HideGameFiles && req.GenerateM3U && m3uSupported && !keepFileName && !isFolder;
+        var playlists = new List<RebasePlaylistPlan>();
+        var wrappers  = new string?[files.Count]; // M3U qui remplace le fichier i comme élément lançable
+
+        if (withM3U)
+        {
+            if (hide)
+                files = files.Select(f => InFolder(f, HiddenPrefix + baseName)).ToList();
+            playlists.Add(new RebasePlaylistPlan(m3uPath!, game.Title, files.Select(f => f.LaunchRelativePath).ToList()));
+        }
+        else if (hide)
+        {
+            for (int i = 0; i < files.Count; i++)
+            {
+                if (files[i].DestRelativeDir.Length == 0) continue; // un seul fichier à plat : rien à masquer
+                files[i]    = InHiddenFolder(files[i]);
+                wrappers[i] = stems[i] + ".m3u";
+                playlists.Add(new RebasePlaylistPlan(wrappers[i]!, files.Count == 1 ? game.Title : files[i].Label,
+                                                     [files[i].LaunchRelativePath]));
+            }
+        }
 
         // Entrées gamelist : une par élément lançable
         var entries = new List<GamelistEntryPlan>();
@@ -271,11 +296,14 @@ public class RebasePlanner
             for (int i = 0; i < files.Count; i++)
             {
                 var f = files[i];
-                string stem = mirror ? WithoutExtension(f.LaunchRelativePath) : CoverStem(f, stems[i]);
+                // Fichier lancé par son M3U : c'est lui que le frontend affiche, la jaquette porte son nom
+                string launch = wrappers[i] ?? f.LaunchRelativePath;
+                string stem = wrappers[i] is not null ? stems[i]
+                            : mirror ? WithoutExtension(f.LaunchRelativePath) : CoverStem(f, stems[i]);
                 string? img = coversWanted ? CoverRel(stem) : null;
                 entries.Add(new GamelistEntryPlan
                 {
-                    Path  = "./" + f.LaunchRelativePath,
+                    Path  = "./" + launch,
                     Name  = files.Count == 1 || keepFileName ? game.Title : f.Label,
                     Image = ImageTag(img),
                 });
@@ -309,7 +337,7 @@ public class RebasePlanner
             if (f.CueBinRelativePath is not null && f.DestRelativeDir.Length == 0)
                 outputs.Add($"{mapping.TargetFolder}/{f.CueBinRelativePath}");
         }
-        if (m3uPath is not null) outputs.Add($"{mapping.TargetFolder}/{m3uPath}");
+        foreach (var playlist in playlists) outputs.Add($"{mapping.TargetFolder}/{playlist.RelativePath}");
         foreach (var c in covers)
             outputs.Add(c.IsRootRelative ? c.DestRelativePath : $"{mapping.TargetFolder}/{c.DestRelativePath}");
 
@@ -327,8 +355,7 @@ public class RebasePlanner
             ToolInputExtensions = keepFileName ? [] : files.Select(f => ToolInputExtension(f, req))
                 .Where(e => !string.IsNullOrEmpty(e)).Select(e => e!.ToLowerInvariant()).Distinct().ToList(),
             Files           = files,
-            M3URelativePath = m3uPath,
-            M3UEntries      = m3uEntries,
+            Playlists       = playlists,
             Covers          = covers,
             GamelistEntries = entries,
             PlannedBytes    = bytes,
@@ -556,6 +583,31 @@ public class RebasePlanner
     /// Nom (sans extension) qui sert à la jaquette : celui du fichier lançable quand il est à plat
     /// (convention d'art local d'EmulationStation), celui du dossier sinon.
     /// </summary>
+    // ── Dossier masqué ────────────────────────────────────────────────────
+
+    /// <summary>Préfixe des dossiers masqués : EmulationStation et ses dérivés ignorent un nom qui commence par un point.</summary>
+    internal const string HiddenPrefix = ".";
+
+    /// <summary>Déplace tout ce que produit ce fichier dans le dossier donné, relatif au dossier système.</summary>
+    private static RebaseFilePlan InFolder(RebaseFilePlan f, string folder) => f with
+    {
+        LaunchRelativePath = $"{folder}/{f.LaunchRelativePath}",
+        DestRelativeDir    = f.Kind is FileTransferKind.Extract or FileTransferKind.CopyTree
+                                 ? (f.DestRelativeDir.Length == 0 ? folder : $"{folder}/{f.DestRelativeDir}")
+                                 : f.DestRelativeDir,
+        CueRelativePath    = f.CueRelativePath    is null ? null : $"{folder}/{f.CueRelativePath}",
+        CueBinRelativePath = f.CueBinRelativePath is null ? null : $"{folder}/{f.CueBinRelativePath}",
+    };
+
+    /// <summary>Le sous-dossier du jeu devient un dossier masqué : « Alundra/ » devient « .Alundra/ », contenu inchangé.</summary>
+    private static RebaseFilePlan InHiddenFolder(RebaseFilePlan f) => f with
+    {
+        LaunchRelativePath = HiddenPrefix + f.LaunchRelativePath,
+        DestRelativeDir    = HiddenPrefix + f.DestRelativeDir,
+        CueRelativePath    = f.CueRelativePath    is null ? null : HiddenPrefix + f.CueRelativePath,
+        CueBinRelativePath = f.CueBinRelativePath is null ? null : HiddenPrefix + f.CueBinRelativePath,
+    };
+
     private static string CoverStem(RebaseFilePlan file, string stem)
         => file.DestRelativeDir.Length == 0
             ? Path.GetFileNameWithoutExtension(file.LaunchRelativePath)

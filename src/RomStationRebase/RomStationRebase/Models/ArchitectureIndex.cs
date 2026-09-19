@@ -45,6 +45,13 @@ public class ArchitectureEntry
     public int CoverMaxHeight { get; set; }
 
     /// <summary>Format du fichier de métadonnées, un identifiant de <see cref="MetadataFormats"/>, ou null si la cible n'en lit aucun.</summary>
+    /// <summary>
+    /// Range les fichiers d'un jeu qui en a plusieurs (disques, CUE et BIN, GDI et pistes) dans un dossier au nom
+    /// précédé d'un point, lancé par un M3U posé à la racine du système. EmulationStation ignore ces dossiers :
+    /// la liste n'affiche alors qu'une entrée par jeu. Ne vaut que pour les systèmes marqués M3U.
+    /// </summary>
+    public bool HideGameFiles { get; set; }
+
     public string? GamelistFormat { get; set; }
 
     /// <summary>Générer le fichier de métadonnées par défaut.</summary>
@@ -66,6 +73,7 @@ public class ArchitectureEntry
         CoverFolder = CoverFolder, CoverSuffix = CoverSuffix,
         CoverMaxWidth = CoverMaxWidth, CoverMaxHeight = CoverMaxHeight,
         GamelistFormat = GamelistFormat, GamelistByDefault = GamelistByDefault,
+        HideGameFiles = HideGameFiles,
         Origin = Origin,
     };
 }

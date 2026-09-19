@@ -125,6 +125,13 @@ public class ArchitectureDraftViewModel : ViewModelBase
 
     // ── Jaquettes ─────────────────────────────────────────────────────────
 
+    /// <summary>Fichiers des jeux à plusieurs fichiers rangés dans un dossier masqué, lancé par un M3U.</summary>
+    public bool HideGameFiles
+    {
+        get => _entry.HideGameFiles;
+        set => SetEntryValue(_entry.HideGameFiles, value, v => _entry.HideGameFiles = v);
+    }
+
     public bool CoversByDefault
     {
         get => _entry.CoversByDefault;

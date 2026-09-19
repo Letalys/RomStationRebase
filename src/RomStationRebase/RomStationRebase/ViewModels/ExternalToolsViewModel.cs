@@ -95,7 +95,6 @@ public class ExternalToolsViewModel : ViewModelBase
     public ICommand UseDetectedCommand     { get; }
     public ICommand ClearPathCommand       { get; }
     public ICommand TestCommand            { get; }
-    public ICommand OpenDownloadCommand    { get; }
     public ICommand SaveCommand            { get; }
     public ICommand CancelCommand          { get; }
 
@@ -111,7 +110,6 @@ public class ExternalToolsViewModel : ViewModelBase
         ClearPathCommand       = new RelayCommand(() => { if (_selected is not null) _selected.ExecutablePath = string.Empty; },
                                                   () => !string.IsNullOrEmpty(_selected?.ExecutablePath));
         TestCommand            = new RelayCommand(async () => await TestAsync(), () => _selected is { IsAvailable: true, IsTesting: false });
-        OpenDownloadCommand    = new RelayCommand(OpenDownload, () => _selected?.HasDownloadUrl == true);
         SaveCommand            = new RelayCommand(Save);
         CancelCommand          = new RelayCommand(() => CloseWindow?.Invoke());
         ToggleAdvancedCommand  = new RelayCommand(() => ShowAdvanced = !ShowAdvanced);
@@ -310,13 +308,6 @@ public class ExternalToolsViewModel : ViewModelBase
             draft.IsTesting = false;
             CommandManager.InvalidateRequerySuggested();
         }
-    }
-
-    private void OpenDownload()
-    {
-        if (_selected?.HasDownloadUrl != true) return;
-        try   { Process.Start(new ProcessStartInfo { FileName = _selected.DownloadUrl, UseShellExecute = true }); }
-        catch { /* pas de navigateur : rien à faire de plus */ }
     }
 
     // ── Enregistrer / Fermer ──────────────────────────────────────────────

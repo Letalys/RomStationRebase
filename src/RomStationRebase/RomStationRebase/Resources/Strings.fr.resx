@@ -1019,22 +1019,22 @@ Détails techniques :
     <value>Logiqx (.dat)</value>
   </data>
   <data name="ArchEditor_GamelistHint_None" xml:space="preserve">
-    <value>Aucun fichier de métadonnées n'est écrit.</value>
+    <value>Aucun fichier écrit</value>
   </data>
   <data name="ArchEditor_GamelistHint_EmulationStation" xml:space="preserve">
-    <value>gamelist.xml dans chaque dossier système, fusionné avec l'existant. Pour EmulationStation, RetroPie, ArkOS, dArkOS, Batocera, Knulli et ROCKNIX.</value>
+    <value>Dans chaque dossier système</value>
   </data>
   <data name="ArchEditor_GamelistHint_EsDe" xml:space="preserve">
-    <value>ES-DE/gamelists/&lt;système&gt;/gamelist.xml à la racine de la destination, sans balise image. Dossier des jaquettes à utiliser : ES-DE/downloaded_media/{system}/covers. Pour ES-DE et Cocoon.</value>
+    <value>Dans ES-DE/gamelists, à la racine de la destination</value>
   </data>
   <data name="ArchEditor_GamelistHint_Miyoo" xml:space="preserve">
-    <value>miyoogamelist.xml dans chaque dossier système, avec path, name et image seulement. Jeux en sous-dossier exclus. Jaquettes dans le dossier Imgs, 250 × 360 max.</value>
+    <value>Dans chaque dossier système</value>
   </data>
   <data name="ArchEditor_GamelistHint_Pegasus" xml:space="preserve">
-    <value>metadata.pegasus.txt dans chaque dossier système, fusionné avec l'existant. La commande de lancement reste à définir dans votre collection Pegasus.</value>
+    <value>Dans chaque dossier système</value>
   </data>
   <data name="ArchEditor_GamelistHint_Logiqx" xml:space="preserve">
-    <value>&lt;système&gt;.dat dans chaque dossier système, au format Logiqx de Skraper, sans référence aux jaquettes. Pour Daijisho et les gestionnaires de ROMs.</value>
+    <value>Dans chaque dossier système</value>
   </data>
   <data name="Common_Cancel" xml:space="preserve">
     <value>Annuler</value>
@@ -1343,10 +1343,10 @@ Les enregistrer ?</value>
     <value>Version {0} trop ancienne. Version minimale : {1}.</value>
   </data>
   <data name="Tools_Test_Answers" xml:space="preserve">
-    <value>L'outil répond.</value>
+    <value>Test réussi</value>
   </data>
   <data name="Tools_Test_Version" xml:space="preserve">
-    <value>L'outil répond, version {0}.</value>
+    <value>Version {0}</value>
   </data>
   <data name="Tools_Test_Timeout" xml:space="preserve">
     <value>L'outil n'a pas répondu en 15 s.</value>
@@ -1515,5 +1515,11 @@ Les enregistrer ?</value>
   </data>
   <data name="Rebase_Output_DiscSet_Converted" xml:space="preserve">
     <value>{0} disques en {1} + M3U</value>
+  </data>
+  <data name="ArchEditor_HideGameFiles" xml:space="preserve">
+    <value>Dossier masqué pour les jeux à plusieurs fichiers</value>
+  </data>
+  <data name="ArchEditor_HideGameFiles_Tooltip" xml:space="preserve">
+    <value>Range les fichiers du jeu dans un dossier au nom précédé d'un point, lancé par un M3U. La liste n'affiche alors qu'une entrée par jeu. Systèmes marqués M3U seulement.</value>
   </data>
 </root>

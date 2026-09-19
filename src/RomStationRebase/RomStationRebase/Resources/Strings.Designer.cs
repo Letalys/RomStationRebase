@@ -1903,5 +1903,13 @@ namespace RomStationRebase.Resources {
         public static string Rebase_Output_DiscSet_Converted {
             get { return ResourceManager.GetString("Rebase_Output_DiscSet_Converted", resourceCulture); }
         }
+
+        public static string ArchEditor_HideGameFiles {
+            get { return ResourceManager.GetString("ArchEditor_HideGameFiles", resourceCulture); }
+        }
+
+        public static string ArchEditor_HideGameFiles_Tooltip {
+            get { return ResourceManager.GetString("ArchEditor_HideGameFiles_Tooltip", resourceCulture); }
+        }
     }
 }

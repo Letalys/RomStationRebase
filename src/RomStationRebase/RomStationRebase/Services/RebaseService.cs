@@ -178,14 +178,20 @@ public class RebaseService
                         // Image disque brute livrée sans descripteur : le .cue qui la rend lançable
                         if (cueBinPath is not null)
                             CueSheetService.WriteFor(cueBinPath, launchPath);
+                        // .cue livré par l'archive, mais qui cite un .bin renommé depuis : ligne FILE corrigée
+                        else if (file.Kind == FileTransferKind.Extract && launchPath.EndsWith(".cue", StringComparison.OrdinalIgnoreCase))
+                            CueSheetService.RepairFileReference(launchPath);
                     }
 
                     // Playlist M3U des vrais disques, réécrite à chaque passage (idempotent, quelques octets)
-                    if (plan.M3URelativePath is not null && plan.Files.Count > 0)
+                    if (plan.Files.Count > 0)
                     {
-                        string m3uPath = Path.Combine(destSys, plan.M3URelativePath);
-                        await File.WriteAllTextAsync(m3uPath,
-                            GenerateM3UContent(plan.Title, plan.M3UEntries), ct).ConfigureAwait(false);
+                        foreach (var playlist in plan.Playlists)
+                        {
+                            string m3uPath = Path.Combine(destSys, playlist.RelativePath);
+                            await File.WriteAllTextAsync(m3uPath,
+                                GenerateM3UContent(playlist.Title, playlist.Entries), ct).ConfigureAwait(false);
+                        }
                     }
 
                     // Jaquettes : secondaires, une erreur ne fait pas échouer le jeu
@@ -280,7 +286,7 @@ public class RebaseService
             {
                 string destDir = file.DestRelativeDir.Length == 0
                     ? destSys
-                    : Path.Combine(destSys, file.DestRelativeDir);
+                    : Path.Combine(destSys, file.DestRelativeDir.Replace('/', Path.DirectorySeparatorChar));
                 await ArchiveExtractor.ExtractAsync(file.SourcePath, destDir, file.SingleEntryTargetName,
                     bytesProgress, ct).ConfigureAwait(false);
                 break;
@@ -288,7 +294,7 @@ public class RebaseService
             case FileTransferKind.CopyTree:
             {
                 string sourceDir = file.SourceDirectory ?? Path.GetDirectoryName(file.SourcePath) ?? string.Empty;
-                string destDir   = Path.Combine(destSys, file.DestRelativeDir);
+                string destDir   = Path.Combine(destSys, file.DestRelativeDir.Replace('/', Path.DirectorySeparatorChar));
                 if (!Directory.Exists(sourceDir))
                     throw new DirectoryNotFoundException($"Source introuvable : {sourceDir}");
 
@@ -384,6 +390,9 @@ public class RebaseService
                 input = Path.Combine(extractDir, file.TransformInputEntry.Replace('/', Path.DirectorySeparatorChar));
                 if (!File.Exists(input))
                     throw new ExternalToolException(string.Format(Strings.Tools_Error_InputMissing, file.TransformInputEntry));
+                // chdman refuse un .cue qui cite un .bin absent : même réparation que pour une extraction
+                if (input.EndsWith(".cue", StringComparison.OrdinalIgnoreCase))
+                    CueSheetService.RepairFileReference(input);
             }
             else
             {

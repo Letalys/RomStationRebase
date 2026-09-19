@@ -1,7 +1,7 @@
 {
   "id": "chdman_createdvd_default",
   "label": "chdman : DVD vers CHD (Default)",
-  "description": "Images ISO de DVD (Playstation 2) vers CHD. Demande chdman 0.255 au moins.",
+  "description": "Images ISO de DVD vers CHD",
   "executable": "chdman.exe",
   "downloadUrl": "https://www.mamedev.org/release.html",
   "searchPaths": [

@@ -439,6 +439,14 @@
                                      Foreground="{DynamicResource TextSecondaryBrush}"
                                      ToolTip="{x:Static res:Strings.ArchEditor_Id_Tooltip}"/>
                         </Grid>
+
+                        <!-- Une seule entrée par jeu dans la liste du frontend : fichiers dans un dossier masqué, M3U à la racine -->
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
+                                    ToolTip="{x:Static res:Strings.ArchEditor_HideGameFiles_Tooltip}">
+                            <ToggleButton IsChecked="{Binding Selected.HideGameFiles}"
+                                          Style="{StaticResource ToggleSwitchButton}"/>
+                            <TextBlock Style="{StaticResource ToggleLabel}" Text="{x:Static res:Strings.ArchEditor_HideGameFiles}"/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

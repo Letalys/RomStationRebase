@@ -60,7 +60,7 @@ public enum GameOutputKind
 }
 
 /// <summary>Plan de transfert d'un fichier source.</summary>
-public sealed class RebaseFilePlan
+public sealed record RebaseFilePlan
 {
     /// <summary>Chemin absolu du fichier source.</summary>
     public string SourcePath { get; init; } = string.Empty;
@@ -151,6 +151,9 @@ public sealed class GamelistEntryPlan
     public string? Image { get; init; }
 }
 
+/// <summary>Playlist M3U : son chemin relatif au dossier système, le titre rappelé en commentaire, ses lignes.</summary>
+public sealed record RebasePlaylistPlan(string RelativePath, string Title, IReadOnlyList<string> Entries);
+
 /// <summary>Plan complet d'un jeu.</summary>
 public sealed class RebaseGamePlan
 {
@@ -168,10 +171,17 @@ public sealed class RebaseGamePlan
     public GameOutputKind OutputKind { get; init; }
 
     public IReadOnlyList<RebaseFilePlan>     Files           { get; init; } = [];
-    /// <summary>Chemin du M3U relatif au dossier système, null si aucun.</summary>
-    public string?                           M3URelativePath { get; init; }
-    /// <summary>Lignes du M3U, chemins relatifs au dossier système.</summary>
-    public IReadOnlyList<string>             M3UEntries      { get; init; } = [];
+
+    /// <summary>
+    /// Playlists M3U à écrire. Une seule pour un jeu à plusieurs disques. Avec le rangement en dossier masqué,
+    /// une par fichier lançable : le M3U est alors ce que le frontend affiche, à la place du dossier.
+    /// </summary>
+    public IReadOnlyList<RebasePlaylistPlan> Playlists       { get; init; } = [];
+
+    /// <summary>Chemin du premier M3U relatif au dossier système, null si aucun.</summary>
+    public string?               M3URelativePath => Playlists.Count > 0 ? Playlists[0].RelativePath : null;
+    /// <summary>Lignes du premier M3U, chemins relatifs au dossier système.</summary>
+    public IReadOnlyList<string> M3UEntries      => Playlists.Count > 0 ? Playlists[0].Entries : [];
     public IReadOnlyList<RebaseCoverPlan>    Covers          { get; init; } = [];
     public IReadOnlyList<GamelistEntryPlan>  GamelistEntries { get; init; } = [];
 

@@ -1019,22 +1019,22 @@ Technical details:
     <value>Logiqx (.dat)</value>
   </data>
   <data name="ArchEditor_GamelistHint_None" xml:space="preserve">
-    <value>No metadata file is written.</value>
+    <value>No file written</value>
   </data>
   <data name="ArchEditor_GamelistHint_EmulationStation" xml:space="preserve">
-    <value>gamelist.xml in each system folder, merged with the existing one. For EmulationStation, RetroPie, ArkOS, dArkOS, Batocera, Knulli and ROCKNIX.</value>
+    <value>In each system folder</value>
   </data>
   <data name="ArchEditor_GamelistHint_EsDe" xml:space="preserve">
-    <value>ES-DE/gamelists/&lt;system&gt;/gamelist.xml at the destination root, without image tag. Cover folder to use: ES-DE/downloaded_media/{system}/covers. For ES-DE and Cocoon.</value>
+    <value>In ES-DE/gamelists, at the root of the destination</value>
   </data>
   <data name="ArchEditor_GamelistHint_Miyoo" xml:space="preserve">
-    <value>miyoogamelist.xml in each system folder, with path, name and image only. Games in a subfolder are excluded. Covers in the Imgs folder, 250 × 360 max.</value>
+    <value>In each system folder</value>
   </data>
   <data name="ArchEditor_GamelistHint_Pegasus" xml:space="preserve">
-    <value>metadata.pegasus.txt in each system folder, merged with the existing one. The launch command must be set in your Pegasus collection.</value>
+    <value>In each system folder</value>
   </data>
   <data name="ArchEditor_GamelistHint_Logiqx" xml:space="preserve">
-    <value>&lt;system&gt;.dat in each system folder, in the Logiqx format used by Skraper, with no cover reference. For Daijisho and ROM managers.</value>
+    <value>In each system folder</value>
   </data>
   <data name="Common_Cancel" xml:space="preserve">
     <value>Cancel</value>
@@ -1343,10 +1343,10 @@ Save them?</value>
     <value>Version {0} is too old. Minimum version: {1}.</value>
   </data>
   <data name="Tools_Test_Answers" xml:space="preserve">
-    <value>The tool responds.</value>
+    <value>Test passed</value>
   </data>
   <data name="Tools_Test_Version" xml:space="preserve">
-    <value>The tool responds, version {0}.</value>
+    <value>Version {0}</value>
   </data>
   <data name="Tools_Test_Timeout" xml:space="preserve">
     <value>The tool did not respond within 15 s.</value>
@@ -1515,5 +1515,11 @@ Save them?</value>
   </data>
   <data name="Rebase_Output_DiscSet_Converted" xml:space="preserve">
     <value>{0} discs to {1} + M3U</value>
+  </data>
+  <data name="ArchEditor_HideGameFiles" xml:space="preserve">
+    <value>Hidden folder for multi-file games</value>
+  </data>
+  <data name="ArchEditor_HideGameFiles_Tooltip" xml:space="preserve">
+    <value>Puts the game files in a folder whose name starts with a dot, launched by an M3U. The game list then shows one entry per game. Systems marked M3U only.</value>
   </data>
 </root>

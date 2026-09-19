@@ -1,7 +1,7 @@
 {
   "id": "dolphintool_rvz_default",
   "label": "DolphinTool : GameCube et Wii vers RVZ (Default)",
-  "description": "ISO GameCube ou Wii vers RVZ, le format compact de Dolphin. DolphinTool est livré à côté de Dolphin.exe.",
+  "description": "ISO GameCube ou Wii vers RVZ",
   "executable": "DolphinTool.exe",
   "downloadUrl": "https://dolphin-emu.org/download/",
   "searchPaths": [

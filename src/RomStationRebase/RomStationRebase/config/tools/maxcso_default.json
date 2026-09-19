@@ -1,7 +1,7 @@
 {
   "id": "maxcso_default",
   "label": "maxcso : PSP vers CSO (Default)",
-  "description": "ISO PSP vers CSO, le format compact recommandé par l'auteur de PPSSPP.",
+  "description": "ISO PSP vers CSO",
   "executable": "maxcso.exe",
   "downloadUrl": "https://github.com/unknownbrackets/maxcso/releases",
   "searchPaths": [

@@ -1,7 +1,7 @@
 {
   "id": "chdman_createcd_default",
   "label": "chdman : CD vers CHD (Default)",
-  "description": "Dreamcast (GDI), Playstation, Saturn, Mega-CD, PC Engine CD, Neo-Geo CD (CUE/BIN) vers CHD. chdman est livré avec MAME.",
+  "description": "Images de CD (GDI, CUE et BIN) vers CHD",
   "executable": "chdman.exe",
   "downloadUrl": "https://www.mamedev.org/release.html",
   "searchPaths": [

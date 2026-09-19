@@ -957,7 +957,7 @@ public class RebaseViewModel : ViewModelBase
         int unmapped        = _plan.Games.Count(g => g.IsUnmapped);
         StatusText          = string.Format(Strings.Rebase_PlanReady,
             _plan.Games.Count - unmapped,
-            _plan.Games.Sum(g => g.Files.Count + g.Covers.Count + (g.M3URelativePath is null ? 0 : 1)))
+            _plan.Games.Sum(g => g.Files.Count + g.Covers.Count + g.Playlists.Count))
             + (unmapped > 0 ? string.Format(Strings.Rebase_PlanUnmapped, unmapped) : string.Empty);
     }
 

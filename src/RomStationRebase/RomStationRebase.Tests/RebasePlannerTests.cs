@@ -589,6 +589,107 @@ public class RebasePlannerTests
         Assert.Empty(g.GamelistEntries);
     }
 
+    // ── Dossier masqué : une seule entrée par jeu dans la liste du frontend ──
+    // Constaté sur la RG353V le 2026-09-19 : EmulationStation liste le M3U ET chacun de ses disques, et montre un
+    // dossier à ouvrir pour chaque jeu extrait en CUE et BIN. Essai manuel concluant avec Shenmue et Alundra.
+
+    private static readonly ArchitectureEntry ArkOsHidden = new()
+    {
+        Id = "arkos", CoverFolder = "images", CoverSuffix = "-image", GamelistFormat = "emulationstation", HideGameFiles = true,
+    };
+
+    [Fact]
+    public void Hidden_folder_holds_the_discs_and_only_the_m3u_stays_visible()
+    {
+        var g = new Builder { Mode = ArchiveMode.ExtractAll, Arch = ArkOsHidden }
+            .Add(Game(174, "Chrono Cross", "Playstation", 664), true,
+                 File(174, 180, "Chrono Cross (Disc 1)", @"games\downloads\Chrono Cross - 664\files\1345\664a.zip"),
+                 File(174, 181, "Chrono Cross (Disc 2)", @"games\downloads\Chrono Cross - 664\files\1347\664b.zip"))
+            .Archive(@"games\downloads\Chrono Cross - 664\files\1345\664a.zip", ("Chrono Cross(Disque 1).bin", 700), ("Chrono Cross(Disque 1).cue", 1))
+            .Archive(@"games\downloads\Chrono Cross - 664\files\1347\664b.zip", ("Chrono Cross(Disque 2).bin", 700), ("Chrono Cross(Disque 2).cue", 1))
+            .Plan().Games[0];
+
+        Assert.Equal("Chrono Cross.m3u", g.M3URelativePath);
+        Assert.Equal(".Chrono Cross/Chrono Cross (Disc 1)", g.Files[0].DestRelativeDir);
+        Assert.Equal([".Chrono Cross/Chrono Cross (Disc 1)/Chrono Cross(Disque 1).cue",
+                      ".Chrono Cross/Chrono Cross (Disc 2)/Chrono Cross(Disque 2).cue"], g.M3UEntries);
+        Assert.Equal("./Chrono Cross.m3u", g.GamelistEntries.Single().Path);
+        Assert.Equal("images/Chrono Cross-image.png", g.Covers.Single().DestRelativePath);
+    }
+
+    [Fact]
+    public void Hidden_folder_also_holds_converted_discs()
+    {
+        var b = new Builder { Convert = true, Arch = ArkOsHidden };
+        b.Tools["chd"] = Chd;
+        var g = b.Add(Game(1, "Shenmue", "Dreamcast", 77), true,
+                      File(1, 1, "Shenmue (Disc 1)", @"games\downloads\Shenmue - 77\files\1\a.zip"),
+                      File(1, 2, "Shenmue (Disc 2)", @"games\downloads\Shenmue - 77\files\2\b.zip"))
+                 .Archive(@"games\downloads\Shenmue - 77\files\1\a.zip", ("d1.gdi", 100), ("track03.bin", 900))
+                 .Archive(@"games\downloads\Shenmue - 77\files\2\b.zip", ("d2.gdi", 100), ("track03.bin", 900))
+                 .Plan().Games.Single();
+
+        Assert.Equal([".Shenmue/Shenmue (Disc 1).chd", ".Shenmue/Shenmue (Disc 2).chd"], g.M3UEntries);
+        Assert.All(g.Files, f => Assert.Equal(FileTransferKind.Transform, f.Kind));
+        Assert.Contains("dreamcast/Shenmue.m3u", g.OutputPaths);
+    }
+
+    [Fact]
+    public void Single_disc_game_extracted_as_cue_and_bin_is_launched_by_a_one_line_m3u()
+    {
+        var g = new Builder { Mode = ArchiveMode.ExtractAll, Arch = ArkOsHidden }
+            .Add(Game(1, "Alundra", "Playstation", 12), true, File(1, 1, "Alundra", @"games\downloads\Alundra - 12\files\1\a.zip"))
+            .Archive(@"games\downloads\Alundra - 12\files\1\a.zip", ("Alundra.bin", 700), ("Alundra.cue", 1))
+            .Plan().Games.Single();
+
+        Assert.Equal(".Alundra", g.Files[0].DestRelativeDir);
+        Assert.Equal(".Alundra/Alundra.cue", g.Files[0].LaunchRelativePath);
+        var playlist = Assert.Single(g.Playlists);
+        Assert.Equal("Alundra.m3u", playlist.RelativePath);
+        Assert.Equal([".Alundra/Alundra.cue"], playlist.Entries);
+        Assert.Equal("./Alundra.m3u", g.GamelistEntries.Single().Path);      // le frontend affiche le M3U, pas un dossier
+        Assert.Equal("Alundra", g.GamelistEntries.Single().Name);
+        Assert.Equal("images/Alundra-image.png", g.Covers.Single().DestRelativePath);
+        Assert.Contains("psx/Alundra.m3u", g.OutputPaths);
+    }
+
+    [Fact]
+    public void Versions_of_a_game_each_get_their_own_hidden_folder_and_m3u()
+    {
+        var g = new Builder { Mode = ArchiveMode.ExtractAll, Arch = ArkOsHidden }
+            .Add(Game(146, "Breath of Fire IV", "Playstation", 34634), true,
+                 File(146, 1, "Breath of Fire IV (v1.0a NTSC)", @"games\downloads\Breath of Fire IV - 34634\files\64303\n.zip"),
+                 File(146, 2, "Breath of Fire IV (v1.0a PAL)",  @"games\downloads\Breath of Fire IV - 34634\files\64302\p.zip"))
+            .Archive(@"games\downloads\Breath of Fire IV - 34634\files\64303\n.zip", ("usa.bin", 700), ("usa.cue", 1))
+            .Archive(@"games\downloads\Breath of Fire IV - 34634\files\64302\p.zip", ("pal.bin", 700), ("pal.cue", 1))
+            .Plan().Games.Single();
+
+        Assert.Equal(["Breath of Fire IV (v1.0a NTSC).m3u", "Breath of Fire IV (v1.0a PAL).m3u"], g.Playlists.Select(p => p.RelativePath));
+        Assert.Equal([".Breath of Fire IV (v1.0a NTSC)/usa.cue"], g.Playlists[0].Entries);
+        Assert.Equal(["./Breath of Fire IV (v1.0a NTSC).m3u", "./Breath of Fire IV (v1.0a PAL).m3u"], g.GamelistEntries.Select(e => e.Path));
+    }
+
+    [Fact]
+    public void Hidden_folder_leaves_single_files_systems_without_m3u_and_romsets_alone()
+    {
+        var plan = new Builder { Mode = ArchiveMode.ExtractAll, Arch = ArkOsHidden }
+            // Un seul fichier à plat : rien à masquer
+            .Add(Game(1, "Burnout Legends", "PSP", 5), true, File(1, 1, "Burnout Legends", @"games\downloads\Burnout - 5\files\1\b.zip"))
+            .Archive(@"games\downloads\Burnout - 5\files\1\b.zip", ("BL.iso", 500))
+            // Super Nintendo n'est pas marquée M3U : le sous-dossier reste visible
+            .Add(Game(2, "Jeu SNES", "Super Nintendo", 6), true, File(2, 1, "Jeu SNES", @"games\downloads\Jeu - 6\files\1\s.zip"))
+            .Archive(@"games\downloads\Jeu - 6\files\1\s.zip", ("a.sfc", 10), ("lisezmoi.txt", 1))
+            // Romset : jamais touché
+            .Add(Game(3, "Metal Slug", "Neo-Geo", 31995), true, File(3, 1, "Metal Slug", @"games\downloads\Metal Slug - 31995\files\12889\mslug.zip"))
+            .Plan();
+
+        Assert.Equal("Burnout Legends.iso", plan.Games[0].Files[0].LaunchRelativePath);
+        Assert.Empty(plan.Games[0].Playlists);
+        Assert.Equal("Jeu SNES", plan.Games[1].Files[0].DestRelativeDir);
+        Assert.Empty(plan.Games[1].Playlists);
+        Assert.Equal("mslug.zip", plan.Games[2].Files[0].LaunchRelativePath);
+    }
+
     // ── Conversion par outil externe ──────────────────────────────────────
 
     private static readonly PlanTool Chd    = new("chd", "chdman (CD)", [".gdi", ".cue"], ".chd", 0.6, IsAvailable: true);

@@ -76,18 +76,6 @@ public class ExternalToolDraftViewModel : ViewModelBase
         }
     }
 
-    public string DownloadUrl
-    {
-        get => _tool.DownloadUrl;
-        set { if (_tool.DownloadUrl != value) { _tool.DownloadUrl = value ?? string.Empty; Changed(); OnPropertyChanged(nameof(HasDownloadUrl)); } }
-    }
-
-    /// <summary>Le lien de téléchargement n'a d'objet que tant que l'outil manque et que rien n'a été trouvé sur la machine.</summary>
-    public bool ShowDownloadHint => HasDownloadUrl && !IsAvailable && !ShowDetected;
-
-    public bool HasDownloadUrl => Uri.TryCreate(_tool.DownloadUrl, UriKind.Absolute, out var uri)
-                                  && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
-
     /// <summary>Extensions d'entrée, séparées par des espaces (".gdi .cue").</summary>
     public string InputExtensionsText
     {
@@ -185,7 +173,6 @@ public class ExternalToolDraftViewModel : ViewModelBase
             {
                 OnPropertyChanged(nameof(ShowDetected));
                 OnPropertyChanged(nameof(DetectedText));
-                OnPropertyChanged(nameof(ShowDownloadHint));
             }
         }
     }
@@ -250,7 +237,6 @@ public class ExternalToolDraftViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsAvailable));
         OnPropertyChanged(nameof(AvailabilityText));
         OnPropertyChanged(nameof(ShowDetected));
-        OnPropertyChanged(nameof(ShowDownloadHint));
         DirtyChanged?.Invoke();
     }
 
@@ -284,7 +270,6 @@ public class ExternalToolDraftViewModel : ViewModelBase
         model.Label           = model.Label.Trim();
         model.Executable      = Path.GetFileName(model.Executable.Trim());
         model.OutputExtension = model.OutputExtension.Trim().ToLowerInvariant();
-        model.DownloadUrl     = model.DownloadUrl.Trim();
         return model;
     }
 
