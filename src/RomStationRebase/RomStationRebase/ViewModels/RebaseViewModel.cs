@@ -45,6 +45,10 @@ public class RebaseViewModel : ViewModelBase
     private RebasePlan? _plan;
 
     private CancellationTokenSource? _cts;
+
+    // Journal du rebase en cours, et chemin du dernier journal connu (celui de cette fenêtre, sinon le plus récent du dossier)
+    private RebaseLogWriter? _log;
+    private string?          _logPath = RebaseLogWriter.LatestLog();
     private CancellationTokenSource  _sizeCts            = new();
     private long                     _estimatedSizeBytes = -1;
 
@@ -459,6 +463,9 @@ public class RebaseViewModel : ViewModelBase
     /// <summary>Tous les systèmes RomStation de la base — proposés dans la colonne Système de l'éditeur d'architectures.</summary>
     public IReadOnlyList<string> SystemNames { get; }
 
+    /// <summary>Icône de chaque console, par nom de système — transmise à l'éditeur d'architectures.</summary>
+    public IReadOnlyDictionary<string, string> SystemIcons { get; }
+
     /// <summary>True si aucune architecture cible n'est disponible : le rebase ne peut pas démarrer.</summary>
     public bool HasNoArchitecture => Architectures.Count == 0;
 
@@ -486,7 +493,10 @@ public class RebaseViewModel : ViewModelBase
     public ICommand CancelCommand               { get; }
     public ICommand CancelCalculationCommand    { get; }
     public ICommand OpenFolderCommand           { get; }
-    public ICommand ExportLogCommand            { get; }
+    public ICommand ShowLogCommand              { get; }
+
+    /// <summary>Ouvre la fenêtre du journal sur le fichier donné — injecté par la View, la fenêtre étant indépendante de celle-ci.</summary>
+    public Action<string>? OpenLogViewer { get; set; }
     /// <summary>Enregistre les jeux de la liste, les paramètres et les règles par jeu dans le fichier de sélection courant.</summary>
     public ICommand SavePresetCommand        { get; }
     public ICommand SavePresetAsCommand      { get; }
@@ -520,8 +530,10 @@ public class RebaseViewModel : ViewModelBase
         string dbCopyPath,
         UserPreferences? preferences = null,
         IReadOnlyList<string>? systemNames = null,
-        RebasePresetSessionViewModel? session = null)
+        RebasePresetSessionViewModel? session = null,
+        IReadOnlyDictionary<string, string>? systemIcons = null)
     {
+        SystemIcons     = systemIcons ?? new Dictionary<string, string>();
         _session        = session;
         if (_session != null)
         {
@@ -586,7 +598,8 @@ public class RebaseViewModel : ViewModelBase
         CancelCommand               = new RelayCommand(OnCancel,              () => _isRunning && !_isCancelling);
         CancelCalculationCommand    = new RelayCommand(OnCancelCalculation,   () => _isSizeCalculating);
         OpenFolderCommand           = new RelayCommand(OnOpenFolder,          () => !string.IsNullOrWhiteSpace(_targetPath));
-        ExportLogCommand            = new RelayCommand(OnExportLog,           () => RebaseItems.Count > 0);
+        ShowLogCommand              = new RelayCommand(() => { if (_logPath is not null) OpenLogViewer?.Invoke(_logPath); },
+                                                       () => _logPath is not null);
         DecrementParallelCommand    = new RelayCommand(() => MaxParallelCopies--, () => _maxParallelCopies > 1);
         IncrementParallelCommand    = new RelayCommand(() => MaxParallelCopies++, () => _maxParallelCopies < 16);
         DecrementRetryCommand       = new RelayCommand(() => RetryCount--,        () => _retryCount > 0);
@@ -744,7 +757,7 @@ public class RebaseViewModel : ViewModelBase
         RefreshPresetTexts();
     }
 
-    /// <summary>Suffixe de la barre de titre : « — tests.rsr • ». Vide sans présélection.</summary>
+    /// <summary>Suffixe de la barre de titre : « — tests.rsrgp • ». Vide sans présélection.</summary>
     public string PresetTitleSuffix => _session?.HasFile == true ? "  —  " + _session.DisplayText : string.Empty;
 
     /// <summary>Rappel au-dessus des options : ce qui se règle ici appartient à la présélection chargée. Null sans présélection (ligne masquée).</summary>
@@ -888,6 +901,8 @@ public class RebaseViewModel : ViewModelBase
         finally
         {
             IsSizeCalculating = false;
+            // Fin d'analyse sans geste de l'utilisateur : WPF ne réévaluerait « Démarrer » qu'à son prochain mouvement de souris
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 
@@ -999,14 +1014,14 @@ public class RebaseViewModel : ViewModelBase
         // a. Dossier cible vide
         if (string.IsNullOrWhiteSpace(_targetPath))
         {
-            ShowConfirm(Strings.Rebase_Title, Strings.Rebase_Validation_NoTarget, "OK");
+            ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(Strings.Rebase_Validation_NoTarget, ErrorCodes.NoDestination), "OK");
             return;
         }
 
         // a-bis. Le chemin doit être absolu (rejette les chemins relatifs et les lettres de lecteur invalides)
         if (!Path.IsPathFullyQualified(_targetPath))
         {
-            ShowConfirm(Strings.Rebase_Title, Strings.Rebase_Validation_PathNotAbsolute, "OK");
+            ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(Strings.Rebase_Validation_PathNotAbsolute, ErrorCodes.DestinationNotAbsolute), "OK");
             return;
         }
 
@@ -1017,7 +1032,7 @@ public class RebaseViewModel : ViewModelBase
             string? driveRoot = Path.GetPathRoot(_targetPath);
             if (string.IsNullOrEmpty(driveRoot) || !Directory.Exists(driveRoot))
             {
-                ShowConfirm(Strings.Rebase_Title, Strings.Rebase_Error_InvalidDriveLetter, "OK");
+                ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(Strings.Rebase_Error_InvalidDriveLetter, ErrorCodes.DestinationDriveMissing), "OK");
                 return;
             }
 
@@ -1028,8 +1043,7 @@ public class RebaseViewModel : ViewModelBase
             try   { Directory.CreateDirectory(_targetPath); }
             catch (Exception ex)
             {
-                string userMessage = ErrorMessageClassifier.Classify(ex);
-                ShowConfirm(Strings.Rebase_Title, userMessage, "OK");
+                ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(ex.Message, ErrorCodes.DestinationCreateFailed), "OK");
                 return;
             }
         }
@@ -1043,12 +1057,12 @@ public class RebaseViewModel : ViewModelBase
 
         if (_selectedArchitecture is null)
         {
-            ShowConfirm(Strings.Rebase_Title, Strings.Rebase_Validation_NoArchitecture, "OK");
+            ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(Strings.Rebase_Validation_NoArchitecture, ErrorCodes.NoArchitecture), "OK");
             return;
         }
         if (_selectedGames.Count == 0)
         {
-            ShowConfirm(Strings.Rebase_Title, Strings.Rebase_Validation_NoGames, "OK");
+            ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(Strings.Rebase_Validation_NoGames, ErrorCodes.NoGameSelected), "OK");
             return;
         }
 
@@ -1075,7 +1089,7 @@ public class RebaseViewModel : ViewModelBase
         {
             double gb = plan.TotalBytes / 1_073_741_824.0;
             ShowConfirm(Strings.Rebase_Title,
-                string.Format(Strings.Rebase_Validation_NoSpace, gb.ToString("F1")), "OK");
+                ErrorCodes.Tag(string.Format(Strings.Rebase_Validation_NoSpace, gb.ToString("F1")), ErrorCodes.NotEnoughSpace), "OK");
             return;
         }
 
@@ -1084,7 +1098,7 @@ public class RebaseViewModel : ViewModelBase
         {
             double gb = plan.MaxWorkBytes / 1_073_741_824.0;
             ShowConfirm(Strings.Rebase_Title,
-                string.Format(Strings.Rebase_Validation_NoWorkSpace, gb.ToString("F1"), ExternalToolService.WorkDirectory), "OK");
+                ErrorCodes.Tag(string.Format(Strings.Rebase_Validation_NoWorkSpace, gb.ToString("F1"), ExternalToolService.WorkDirectory), ErrorCodes.NotEnoughWorkSpace), "OK");
             return;
         }
 
@@ -1101,7 +1115,7 @@ public class RebaseViewModel : ViewModelBase
             catch (Exception ex)
             {
                 ShowConfirm(Strings.Rebase_Error_Title,
-                    string.Format(Strings.Rebase_Error_Message, ErrorMessageClassifier.Classify(ex)), "OK");
+                    ErrorCodes.Tag(string.Format(Strings.Rebase_Error_Message, ex.Message), ErrorCodes.MetadataLoadFailed), "OK");
                 return;
             }
         }
@@ -1143,6 +1157,32 @@ public class RebaseViewModel : ViewModelBase
             PauseEvent        = _pauseEvent,
         };
 
+        // Journal détaillé : un fichier horodaté par rebase. S'il ne peut pas être créé, le rebase a lieu sans lui.
+        _log?.Dispose();
+        _log = RebaseLogWriter.Create(DateTime.Now);
+        if (_log is not null)
+        {
+            _logPath    = _log.FilePath;
+            options.Log = _log;
+            RebaseLogReport.WriteHeader(_log, new RebaseLogContext(
+                AppVersion:        System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? string.Empty,
+                RomStationPath:    _romStationPath,
+                DatabasePath:      _dbCopyPath,
+                PresetPath:        _session?.FilePath,
+                ArchiveModeText:   _archiveModeIndex switch
+                {
+                    1 => Strings.Rebase_Archives_Never,
+                    2 => Strings.Rebase_Archives_ExtractAll,
+                    _ => Strings.Rebase_Archives_AsConfigured,
+                },
+                ExtractLayoutText: _extractLayoutIndex == 1 ? Strings.Rebase_ExtractLayout_Subfolder : Strings.Rebase_ExtractLayout_Auto,
+                CopyCovers:        _copyCovers,
+                MetadataFileName:  withGamelist ? MetadataFormats.DisplayFileName(_selectedArchitecture.GamelistFormat) : null,
+                MetadataLanguage:  MetadataLocale,
+                ConvertFiles:      _convertFiles), options);
+            CommandManager.InvalidateRequerySuggested();
+        }
+
         int metadataFolders = 0;
         var metadataNotes   = new List<string>();
         var progress = new Progress<RebaseProgress>(OnProgressChanged(itemMap, (folders, notes) =>
@@ -1163,17 +1203,23 @@ public class RebaseViewModel : ViewModelBase
         {
             // L'utilisateur a cliqué Annuler — pas de popup, il sait ce qu'il a fait
             wasCancelled = true;
+            _log?.Warn(Strings.Log_Cancelled);
         }
         catch (Exception ex)
         {
             // Erreur fatale non attendue — on la stocke pour l'afficher après le finally
             fatalError = ex;
+            _log?.Error(ErrorCodes.Tag(string.Format(Strings.Log_Fatal, ex), ErrorMessageClassifier.CodeOf(ex)));
         }
         finally
         {
             IsRunning    = false;
             IsPaused     = false;
             IsCancelling = false;
+
+            // Le fichier est refermé : la fenêtre du journal, si elle est ouverte, garde ce qu'elle a lu
+            _log?.Dispose();
+            _log = null;
 
             // Reset visuel de la barre : 0 si interrompu, 100 si terminé normalement
             GlobalProgress = (wasCancelled || fatalError != null) ? 0 : 100;
@@ -1366,8 +1412,8 @@ public class RebaseViewModel : ViewModelBase
 
     private void OnPauseResume()
     {
-        if (_isPaused) { _pauseEvent.Set();   IsPaused = false; }
-        else           { _pauseEvent.Reset(); IsPaused = true;  }
+        if (_isPaused) { _pauseEvent.Set();   IsPaused = false; _log?.Info(Strings.Log_Resumed); }
+        else           { _pauseEvent.Reset(); IsPaused = true;  _log?.Info(Strings.Log_Paused);  }
     }
 
     private void OnCancel()
@@ -1389,6 +1435,7 @@ public class RebaseViewModel : ViewModelBase
     /// <summary>Annule le rebase sans confirmation — utilisé depuis OnClosing qui a son propre dialog.</summary>
     internal void StopRebase()
     {
+        _log?.Warn(Strings.Log_CancelRequested);
         _cts?.Cancel();
         _pauseEvent.Set(); // débloquer les tâches en pause pour qu'elles voient l'annulation
     }
@@ -1432,34 +1479,10 @@ public class RebaseViewModel : ViewModelBase
         bool rootExists = !string.IsNullOrWhiteSpace(root) && Directory.Exists(root);
 
         string message = rootExists
-            ? Strings.Rebase_Error_FolderNotExist
-            : Strings.Rebase_Error_InvalidDriveLetter;
+            ? ErrorCodes.Tag(Strings.Rebase_Error_FolderNotExist, ErrorCodes.DestinationFolderMissing)
+            : ErrorCodes.Tag(Strings.Rebase_Error_InvalidDriveLetter, ErrorCodes.DestinationDriveMissing);
 
         ShowConfirm(Strings.Rebase_Title, message, "OK");
-    }
-
-    private void OnExportLog()
-    {
-        if (RebaseItems.Count == 0) return;
-        var dialog = new SaveFileDialog
-        {
-            Title      = Strings.Rebase_ExportLog,
-            Filter     = "CSV (*.csv)|*.csv|Texte (*.txt)|*.txt",
-            DefaultExt = "csv",
-            FileName   = $"rebase-log-{DateTime.Now:yyyyMMdd-HHmm}.csv",
-        };
-        if (dialog.ShowDialog() != true) return;
-        try
-        {
-            using var w = new StreamWriter(dialog.FileName, false, System.Text.Encoding.UTF8);
-            w.WriteLine("Titre;Système;Fichiers;Sortie;Statut;Erreur");
-            foreach (var item in RebaseItems)
-                w.WriteLine($"{item.Title};{item.SystemName};{item.FileCount};{item.OutputText};{item.StatusText};{item.ErrorDetail?.Replace(";", ",")}");
-        }
-        catch (Exception ex)
-        {
-            ShowConfirm(Strings.Rebase_ExportLog, ex.Message, "OK");
-        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

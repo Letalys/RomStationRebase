@@ -38,6 +38,9 @@ public class RebaseService
         if (options.Plan.Games.Any(g => g.Files.Any(f => f.Kind == FileTransferKind.Transform)))
             CleanWorkDirectory(string.IsNullOrWhiteSpace(options.WorkDirectory) ? ExternalToolService.WorkDirectory : options.WorkDirectory);
 
+        var log = options.Log;
+        log.Info(Strings.Log_Run_Start);
+
         long totalBytes  = options.Plan.TotalBytes;
         long copiedBytes = 0;
         int  completed   = 0;
@@ -104,6 +107,7 @@ public class RebaseService
                 if (plan.IsUnmapped)
                 {
                     // Système sans mapping → on saute le jeu
+                    log.Warn(string.Format(Strings.Log_Game_Unmapped, plan.Title, plan.SystemName));
                     item.Status    = RebaseItemStatus.Skipped;
                     item.IsSkipped = true;
                     Interlocked.Increment(ref skipped);
@@ -113,6 +117,9 @@ public class RebaseService
 
                 item.Status = RebaseItemStatus.Copying;
                 Report(item);
+
+                var gameWatch = System.Diagnostics.Stopwatch.StartNew();
+                log.Info(string.Format(Strings.Log_Game_Start, plan.Title, plan.SystemName));
 
                 string destSys = Path.Combine(options.TargetPath, plan.TargetFolder!);
                 Directory.CreateDirectory(destSys);
@@ -128,8 +135,10 @@ public class RebaseService
 
                         if (!File.Exists(file.SourcePath) && file.Kind != FileTransferKind.CopyTree)
                         {
+                            log.Error(string.Format(Strings.Log_Game_Failed, plan.Title,
+                                ErrorCodes.Tag(string.Format(Strings.Log_File_SourceMissing, file.SourcePath), ErrorCodes.SourceMissing)));
                             item.Status      = RebaseItemStatus.Failed;
-                            item.ErrorDetail = $"Source introuvable : {Path.GetFileName(file.SourcePath)}";
+                            item.ErrorDetail = ErrorCodes.Tag(string.Format(Strings.Log_File_SourceMissing, Path.GetFileName(file.SourcePath)), ErrorCodes.SourceMissing);
                             Interlocked.Increment(ref failed);
                             Report(item);
                             return;
@@ -145,6 +154,7 @@ public class RebaseService
                             && options.DuplicatePolicy == DuplicatePolicy.Ignore)
                         {
                             CueSheetService.WriteFor(cueBinPath, launchPath);
+                            log.Info(string.Format(Strings.Log_Cue_Written, file.LaunchRelativePath));
                             Interlocked.Add(ref copiedBytes, file.PlannedBytes);
                             continue;
                         }
@@ -152,6 +162,7 @@ public class RebaseService
                         if (File.Exists(launchPath) && options.DuplicatePolicy == DuplicatePolicy.Ignore)
                         {
                             // Déjà présent : compté comme écrit pour que la barre et l'ETA restent justes
+                            log.Info(string.Format(Strings.Log_File_Exists, file.LaunchRelativePath));
                             ignoredCount++;
                             Interlocked.Add(ref copiedBytes, file.PlannedBytes);
                             continue;
@@ -166,21 +177,32 @@ public class RebaseService
                         Report(item);
 
                         var bytesProgress = BytesProgress(item);
+                        var fileWatch     = System.Diagnostics.Stopwatch.StartNew();
+                        log.Info(string.Format(Strings.Log_File_Start, KindLabel(file.Kind), file.SourcePath,
+                            plan.TargetFolder + "/" + file.LaunchRelativePath, RebaseLogExtensions.Size(file.PlannedBytes)));
+
                         if (file.Kind == FileTransferKind.Transform)
                             await RunWithRetryAsync(
                                 () => TransformAsync(file, destSys, options, bytesProgress, ct),
-                                file.SourcePath, options.RetryCount, options.RetryDelaySeconds, ct).ConfigureAwait(false);
+                                file.SourcePath, options.RetryCount, options.RetryDelaySeconds, ct, log).ConfigureAwait(false);
                         else
                             await RunWithRetryAsync(
                                 () => TransferAsync(file, destSys, bytesProgress, ct),
-                                file.SourcePath, options.RetryCount, options.RetryDelaySeconds, ct).ConfigureAwait(false);
+                                file.SourcePath, options.RetryCount, options.RetryDelaySeconds, ct, log).ConfigureAwait(false);
+
+                        log.Info(string.Format(Strings.Log_File_Done, file.LaunchRelativePath,
+                            RebaseLogExtensions.Duration(fileWatch.Elapsed)));
 
                         // Image disque brute livrée sans descripteur : le .cue qui la rend lançable
                         if (cueBinPath is not null)
+                        {
                             CueSheetService.WriteFor(cueBinPath, launchPath);
+                            log.Info(string.Format(Strings.Log_Cue_Written, file.LaunchRelativePath));
+                        }
                         // .cue livré par l'archive, mais qui cite un .bin renommé depuis : ligne FILE corrigée
-                        else if (file.Kind == FileTransferKind.Extract && launchPath.EndsWith(".cue", StringComparison.OrdinalIgnoreCase))
-                            CueSheetService.RepairFileReference(launchPath);
+                        else if (file.Kind == FileTransferKind.Extract && launchPath.EndsWith(".cue", StringComparison.OrdinalIgnoreCase)
+                                 && CueSheetService.RepairFileReference(launchPath))
+                            log.Info(string.Format(Strings.Log_Cue_Repaired, file.LaunchRelativePath));
                     }
 
                     // Playlist M3U des vrais disques, réécrite à chaque passage (idempotent, quelques octets)
@@ -191,6 +213,7 @@ public class RebaseService
                             string m3uPath = Path.Combine(destSys, playlist.RelativePath);
                             await File.WriteAllTextAsync(m3uPath,
                                 GenerateM3UContent(playlist.Title, playlist.Entries), ct).ConfigureAwait(false);
+                            log.Info(string.Format(Strings.Log_Playlist_Written, playlist.RelativePath, playlist.Entries.Count));
                         }
                     }
 
@@ -203,6 +226,7 @@ public class RebaseService
                         long coverBytes  = GetFileSize(cover.SourcePath);
                         if (File.Exists(coverDest) && options.DuplicatePolicy == DuplicatePolicy.Ignore)
                         {
+                            log.Info(string.Format(Strings.Log_Cover_Exists, cover.DestRelativePath));
                             Interlocked.Add(ref copiedBytes, coverBytes);
                             continue;
                         }
@@ -211,11 +235,13 @@ public class RebaseService
                             CoverService.CopyCover(cover.SourcePath, coverDest,
                                 options.Architecture.CoverMaxWidth, options.Architecture.CoverMaxHeight);
                             Interlocked.Add(ref copiedBytes, coverBytes);
+                            log.Info(string.Format(Strings.Log_Cover_Copied, cover.DestRelativePath));
                         }
                         catch (OperationCanceledException) { throw; }
                         catch (Exception ex)
                         {
-                            warnings.Add($"{Path.GetFileName(coverDest)} : {ErrorMessageClassifier.Classify(ex)}");
+                            warnings.Add(ErrorCodes.Tag($"{Path.GetFileName(coverDest)} : {ex.Message}", ErrorCodes.CoverCopyFailed));
+                            log.Warn(ErrorCodes.Tag(string.Format(Strings.Log_Cover_Failed, cover.DestRelativePath, ex.Message), ErrorCodes.CoverCopyFailed));
                         }
                     }
 
@@ -226,12 +252,14 @@ public class RebaseService
                         item.IsSkipped = true;
                         item.Progress  = 100;
                         Interlocked.Increment(ref skipped);
+                        log.Info(string.Format(Strings.Log_Game_Skipped, plan.Title));
                     }
                     else
                     {
                         item.Status   = RebaseItemStatus.Done;
                         item.Progress = 100;
                         Interlocked.Increment(ref completed);
+                        log.Info(string.Format(Strings.Log_Game_Done, plan.Title, RebaseLogExtensions.Duration(gameWatch.Elapsed)));
                     }
 
                     if (warnings.Count > 0)
@@ -243,6 +271,9 @@ public class RebaseService
                     item.Status      = RebaseItemStatus.Failed;
                     item.ErrorDetail = ErrorMessageClassifier.Classify(ex);
                     Interlocked.Increment(ref failed);
+                    // Le journal garde le message d'origine, plus précis que celui montré dans le tableau
+                    log.Error(string.Format(Strings.Log_Game_Failed, plan.Title,
+                        ErrorCodes.Tag($"{ex.GetType().Name} : {ex.Message}", ErrorMessageClassifier.CodeOf(ex))));
                 }
 
                 Report(item);
@@ -265,8 +296,24 @@ public class RebaseService
             (foldersWritten, notes) = await Task.Run(() => WriteGamelists(options, items), ct).ConfigureAwait(false);
         }
 
+        var total = DateTime.UtcNow - startTime;
+        long written = Interlocked.Read(ref copiedBytes);
+        log.Info(string.Format(Strings.Rebase_Completed, completed, failed, skipped));
+        log.Info(string.Format(Strings.Log_Summary_Duration, RebaseLogExtensions.Duration(total),
+            RebaseLogExtensions.Size(written),
+            RebaseLogExtensions.Size(total.TotalSeconds > 0 ? (long)(written / total.TotalSeconds) : 0)));
+
         Report(phase: RebasePhase.Completed, metadataFolders: foldersWritten, notes: notes); // rapport final agrégé
     }
+
+    /// <summary>Nature d'un transfert, dans les mots de la fenêtre de rebase.</summary>
+    private static string KindLabel(FileTransferKind kind) => kind switch
+    {
+        FileTransferKind.Extract   => Strings.Rebase_Output_Extract,
+        FileTransferKind.Transform => Strings.Rebase_Column_Convert,
+        FileTransferKind.CopyTree  => Strings.Rebase_Output_Folder,
+        _                          => Strings.Rebase_Output_Copy,
+    };
 
     // ── Transferts ────────────────────────────────────────────────────────
 
@@ -352,7 +399,7 @@ public class RebaseService
                                       IProgress<long> bytesProgress, CancellationToken ct)
     {
         if (file.TransformToolId is null || !options.Tools.TryGetValue(file.TransformToolId, out var entry))
-            throw new ExternalToolException(string.Format(Strings.Tools_Error_Unavailable, file.TransformToolId));
+            throw new ExternalToolException(ErrorCodes.ToolUnavailable, string.Format(Strings.Tools_Error_Unavailable, file.TransformToolId));
 
         long planned  = Math.Max(1, file.PlannedBytes);
         long credited = 0;
@@ -369,6 +416,8 @@ public class RebaseService
 
         string workRoot = string.IsNullOrWhiteSpace(options.WorkDirectory) ? ExternalToolService.WorkDirectory : options.WorkDirectory;
         string workDir  = Path.Combine(workRoot, Guid.NewGuid().ToString("N"));
+        var    log      = options.Log;
+        string name     = Path.GetFileName(file.LaunchRelativePath);
 
         await _conversionGate.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -386,13 +435,14 @@ public class RebaseService
                     extracted += b;
                     Credit((long)(planned * ExtractShare * Math.Min(1.0, (double)extracted / total)));
                 });
+                log.Info(string.Format(Strings.Log_Convert_Extract, name, extractDir));
                 await ArchiveExtractor.ExtractAsync(file.SourcePath, extractDir, null, extractProgress, ct).ConfigureAwait(false);
                 input = Path.Combine(extractDir, file.TransformInputEntry.Replace('/', Path.DirectorySeparatorChar));
                 if (!File.Exists(input))
-                    throw new ExternalToolException(string.Format(Strings.Tools_Error_InputMissing, file.TransformInputEntry));
+                    throw new ExternalToolException(ErrorCodes.ToolInputMissing, string.Format(Strings.Tools_Error_InputMissing, file.TransformInputEntry));
                 // chdman refuse un .cue qui cite un .bin absent : même réparation que pour une extraction
-                if (input.EndsWith(".cue", StringComparison.OrdinalIgnoreCase))
-                    CueSheetService.RepairFileReference(input);
+                if (input.EndsWith(".cue", StringComparison.OrdinalIgnoreCase) && CueSheetService.RepairFileReference(input))
+                    log.Info(string.Format(Strings.Log_Cue_Repaired, file.TransformInputEntry));
             }
             else
             {
@@ -405,15 +455,32 @@ public class RebaseService
             Directory.CreateDirectory(outDir);
             string output = Path.Combine(outDir, Path.GetFileName(file.LaunchRelativePath));
 
+            // Un jalon par quart dans le journal : l'outil écrit des centaines de lignes de progression
+            int nextMilestone = 25;
             var percent = new InlineProgress<double>(p =>
-                Credit((long)(planned * (ExtractShare + ConvertShare * p / 100.0))));
-            await ExternalToolRunner.ConvertAsync(entry.Tool, entry.ExecutablePath, input, output, percent, ct).ConfigureAwait(false);
+            {
+                Credit((long)(planned * (ExtractShare + ConvertShare * p / 100.0)));
+                if (p >= nextMilestone && nextMilestone < 100)
+                {
+                    log.Info(string.Format(Strings.Log_Convert_Progress, name, nextMilestone));
+                    nextMilestone += 25;
+                }
+            });
+            bool first = true;
+            await ExternalToolRunner.ConvertAsync(entry.Tool, entry.ExecutablePath, input, output, percent, ct, line =>
+            {
+                // Première ligne reçue : la ligne de commande ; les suivantes : ce que l'outil écrit
+                log.Info(first ? string.Format(Strings.Log_Convert_Command, name, line)
+                               : string.Format(Strings.Log_Convert_Output, entry.Tool.Executable, line));
+                first = false;
+            }).ConfigureAwait(false);
             Credit((long)(planned * (ExtractShare + ConvertShare)));
 
             // 3. Le seul résultat atteint la cible, sous le nom décidé par le plan
             string dest = Path.Combine(destSys, file.LaunchRelativePath.Replace('/', Path.DirectorySeparatorChar));
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
             long size = Math.Max(1, new FileInfo(output).Length), copied = 0;
+            log.Info(string.Format(Strings.Log_Convert_Result, name, RebaseLogExtensions.Size(size)));
             long copyFrom = credited;
             var copyProgress = new InlineProgress<long>(b =>
             {
@@ -429,6 +496,15 @@ public class RebaseService
                 ExternalToolRunner.TryDelete(dest); // jamais de fichier converti tronqué sur la cible
                 throw;
             }
+
+            // 4. Le .sbi d'un jeu Playstation protégé (LibCrypt) : l'outil ne le reprend pas dans le fichier converti,
+            //    et sans lui le jeu se bloque en cours de partie. L'émulateur le cherche à côté de l'image, sous le même nom.
+            if (FindSubchannelFile(input) is { } sbi)
+            {
+                string sbiDest = Path.ChangeExtension(dest, ".sbi");
+                File.Copy(sbi, sbiDest, overwrite: true);
+                log.Info(string.Format(Strings.Log_Convert_Sbi, Path.GetFileName(sbiDest)));
+            }
             Credit(planned);
         }
         finally
@@ -439,10 +515,26 @@ public class RebaseService
         }
     }
 
+    /// <summary>
+    /// Fichier .sbi livré avec l'image donnée à l'outil : celui qui porte son nom, sinon le seul du dossier.
+    /// Null s'il n'y en a pas, ou s'il y en a plusieurs sans qu'aucun ne corresponde (on ne devine pas).
+    /// </summary>
+    internal static string? FindSubchannelFile(string inputPath)
+    {
+        string? dir = Path.GetDirectoryName(inputPath);
+        if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) return null;
+
+        string named = Path.ChangeExtension(inputPath, ".sbi");
+        if (File.Exists(named)) return named;
+
+        var all = Directory.GetFiles(dir, "*.sbi");
+        return all.Length == 1 ? all[0] : null;
+    }
+
     /// <summary>Relance une opération en cas d'échec, avec délai entre deux tentatives.</summary>
     internal static async Task RunWithRetryAsync(
         Func<Task> operation, string sourceForLog,
-        int retryCount, int retryDelaySeconds, CancellationToken ct)
+        int retryCount, int retryDelaySeconds, CancellationToken ct, IRebaseLog? log = null)
     {
         for (int attempt = 0; attempt <= retryCount; attempt++)
         {
@@ -456,8 +548,7 @@ public class RebaseService
                                        && ex is not UnsafeArchiveException and not InvalidDataException
                                                 and not ExternalToolException) // un outil qui échoue échouera pareil au second essai
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Rebase] Retry {attempt + 1}/{retryCount} for {Path.GetFileName(sourceForLog)}");
+                log?.Warn(string.Format(Strings.Log_Retry, Path.GetFileName(sourceForLog), attempt + 1, retryCount, ex.Message));
                 await Task.Delay(retryDelaySeconds * 1000, ct).ConfigureAwait(false);
             }
         }
@@ -549,12 +640,17 @@ public class RebaseService
             {
                 var result = MetadataWriterService.Write(format, metadataPath, group.Key, games, options.BackupGamelist);
                 written++;
+                options.Log.Info(string.Format(Strings.Log_Metadata_Written, relative, games.Count));
                 if (result.BackupPath is not null)
+                {
                     notes.Add(string.Format(Strings.Rebase_Gamelist_Backup, Path.GetFileName(result.BackupPath)));
+                    options.Log.Info(string.Format(Strings.Log_Metadata_Backup, result.BackupPath));
+                }
             }
             catch (Exception ex)
             {
-                notes.Add(string.Format(Strings.Rebase_Error_GamelistWrite, relative, ErrorMessageClassifier.Classify(ex)));
+                notes.Add(ErrorCodes.Tag(string.Format(Strings.Rebase_Error_GamelistWrite, relative, ex.Message), ErrorCodes.MetadataWriteFailed));
+                options.Log.Error(ErrorCodes.Tag(string.Format(Strings.Rebase_Error_GamelistWrite, relative, ex.Message), ErrorCodes.MetadataWriteFailed));
             }
         }
 

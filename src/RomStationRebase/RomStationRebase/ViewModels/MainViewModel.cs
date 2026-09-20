@@ -1,3 +1,4 @@
+using RomStationRebase.Helpers;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Reflection;
@@ -359,7 +360,7 @@ public class MainViewModel : ViewModelBase
     /// <summary>Décoche tous les jeux de la bibliothèque, masqués par les filtres compris — bouton ✕ du badge de sélection.</summary>
     public ICommand ClearSelectionCommand { get; private set; } = null!;
 
-    /// <summary>Ouvre un fichier de sélection (*.rsr) : coche ses jeux et reprend ses paramètres de rebase.</summary>
+    /// <summary>Ouvre un fichier de sélection (*.rsrgp) : coche ses jeux et reprend ses paramètres de rebase.</summary>
     public ICommand OpenPresetCommand { get; private set; } = null!;
 
     /// <summary>Enregistre la sélection dans son fichier, ou demande un nom s'il n'y en a pas encore.</summary>
@@ -417,6 +418,7 @@ public class MainViewModel : ViewModelBase
             _preferences.LastPresetDirectory = dir;
             try { _config.SaveUserPreferences(_preferences); } catch { /* confort seulement */ }
         };
+        Preset.SavedByUser += OfferPresetAssociation;
 
         // Initialisation de l'abécédaire — 26 lettres A-Z + # (tous désactivés par défaut)
         AlphabetItems = new ObservableCollection<AlphaItemViewModel>();
@@ -466,7 +468,7 @@ public class MainViewModel : ViewModelBase
                 // ViewModel passé au constructeur pour que l'injection soit immédiate
                 // Toute la bibliothèque est transmise pour départager les homonymes de façon stable
                 var vm  = new RebaseViewModel(selected, Games.ToList(), _romStationPath, _dbCopyPath, _preferences,
-                                              Systems.Select(s => s.Name).ToList(), Preset);
+                                              Systems.Select(s => s.Name).ToList(), Preset, SystemIconsByName());
                 var win = new RebaseWindow(vm)
                 {
                     Owner = Application.Current.MainWindow,
@@ -712,7 +714,7 @@ public class MainViewModel : ViewModelBase
             IsLoading = false;
             var dialog = new ConfirmDialog(
                 Strings.Sync_ErrorTitle,
-                Strings.Splash_DBLocked,
+                ErrorCodes.Tag(Strings.Splash_DBLocked, ErrorCodes.SyncFailed),
                 "OK",
                 null) { Owner = Application.Current.MainWindow };
             dialog.ShowDialog();
@@ -828,6 +830,10 @@ public class MainViewModel : ViewModelBase
         try { change(); }
         finally { _bulkSelection = false; }
         RefreshSelectedCount();
+
+        // WPF ne réévalue l'état des boutons qu'à la prochaine action de l'utilisateur : une présélection ouverte
+        // par double-clic laisserait « Rebase vers… » grisé jusqu'au premier mouvement de souris
+        CommandManager.InvalidateRequerySuggested();
     }
 
     /// <summary>Paramètres enregistrés tant que la fenêtre de rebase n'a pas été ouverte : les derniers utilisés.</summary>
@@ -881,10 +887,48 @@ public class MainViewModel : ViewModelBase
 
         return dialog.Choice switch
         {
-            ConfirmChoice.Primary   => Preset.SaveInteractive(Application.Current.MainWindow, saveAs: false),
+            ConfirmChoice.Primary   => Preset.SaveInteractive(Application.Current.MainWindow, saveAs: false, announce: false),
             ConfirmChoice.Secondary => true,
             _                       => false,
         };
+    }
+
+    /// <summary>
+    /// Après le premier enregistrement d'une présélection, propose une fois d'associer les .rsrgp à cette copie de RSR.
+    /// L'écriture se fait sous HKCU, sans droits administrateur. La réponse, quelle qu'elle soit, clôt la question :
+    /// le bouton des Paramètres reste le moyen d'y revenir.
+    /// </summary>
+    private void OfferPresetAssociation(Window? owner)
+    {
+        if (Environment.ProcessPath is not { } exe) return;
+
+        PresetAssociationState state;
+        try   { state = FileAssociationService.GetState(exe); }
+        catch { return; }
+        if (!FileAssociationService.ShouldOffer(_preferences.PresetAssociationOffered, state)) return;
+
+        _preferences.PresetAssociationOffered = true;
+        try { _config.MarkPresetAssociationOffered(); } catch { /* la question sera reposée, sans gravité */ }
+
+        var offer = new ConfirmDialog(
+            Strings.Preset_AssociateOffer_Title,
+            Strings.Preset_AssociateOffer_Message,
+            Strings.Preset_AssociateOffer_Accept,
+            Strings.Preset_AssociateOffer_Decline) { Owner = owner ?? Application.Current.MainWindow };
+        offer.ShowDialog();
+        if (offer.Choice != ConfirmChoice.Primary) return;
+
+        try
+        {
+            FileAssociationService.Register(exe, Strings.Preset_FileFilter);
+        }
+        catch (Exception ex)
+        {
+            new ConfirmDialog(
+                Strings.Preset_AssociateError_Title,
+                ErrorCodes.Tag(string.Format(Strings.Settings_Presets_Error, ex.Message), ErrorCodes.PresetAssociationFailed),
+                "OK") { Owner = owner ?? Application.Current.MainWindow }.ShowDialog();
+        }
     }
 
     private void OpenPreset()
@@ -917,9 +961,9 @@ public class MainViewModel : ViewModelBase
         {
             string reason = ex.Error switch
             {
-                RebasePresetError.NotASelection => Strings.Preset_OpenError_NotASelection,
-                RebasePresetError.InvalidJson   => string.Format(Strings.Preset_OpenError_InvalidJson, ex.Message),
-                _                                => string.Format(Strings.Preset_OpenError_Unreadable, ex.Message),
+                RebasePresetError.NotASelection => ErrorCodes.Tag(Strings.Preset_OpenError_NotASelection, ErrorCodes.PresetNotAPreset),
+                RebasePresetError.InvalidJson   => ErrorCodes.Tag(string.Format(Strings.Preset_OpenError_InvalidJson, ex.Message), ErrorCodes.PresetInvalidJson),
+                _                                => ErrorCodes.Tag(string.Format(Strings.Preset_OpenError_Unreadable, ex.Message), ErrorCodes.PresetUnreadable),
             };
             new ConfirmDialog(Strings.Preset_OpenError_Title,
                 $"{System.IO.Path.GetFileName(path)}\n\n{reason}", "OK") { Owner = owner }.ShowDialog();
@@ -932,7 +976,7 @@ public class MainViewModel : ViewModelBase
         if (match.Matched.Count == 0)
         {
             new ConfirmDialog(Strings.Preset_OpenError_Title,
-                string.Format(Strings.Preset_OpenError_NoGame, System.IO.Path.GetFileName(path), file.Games.Count),
+                ErrorCodes.Tag(string.Format(Strings.Preset_OpenError_NoGame, System.IO.Path.GetFileName(path), file.Games.Count), ErrorCodes.PresetNoGameFound),
                 "OK") { Owner = owner }.ShowDialog();
             return;
         }
@@ -1003,7 +1047,7 @@ public class MainViewModel : ViewModelBase
     /// <summary>Démarrage à froid : rien de coché, aucune présélection. L'en-tête de la bibliothèque propose alors d'en ouvrir une.</summary>
     public bool ShowOpenPresetHint => _selectedGameCount == 0 && !Preset.HasFile && !_isLoading;
 
-    /// <summary>Suffixe de la barre de titre : « — tests.rsr • ». Vide sans présélection.</summary>
+    /// <summary>Suffixe de la barre de titre : « — tests.rsrgp • ». Vide sans présélection.</summary>
     public string PresetTitleSuffix => Preset.HasFile ? "  —  " + Preset.DisplayText : string.Empty;
 
     /// <summary>Texte de la zone Présélection de l'en-tête : le nom du fichier chargé (et son « • »), ou « Aucune chargée ».</summary>
@@ -1202,10 +1246,20 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    /// <summary>Icône de chaque console par nom de système, pour la table des systèmes de l'éditeur d'architectures.</summary>
+    private Dictionary<string, string> SystemIconsByName()
+    {
+        var icons = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var system in Systems)
+            if (!string.IsNullOrWhiteSpace(system.ImagePath))
+                icons[system.Name] = system.ImagePath;
+        return icons;
+    }
+
     /// <summary>Ouvre le panneau de paramètres en modal.</summary>
     private void OpenSettings()
     {
-        var vm  = new SettingsViewModel(_preferences, Systems.Select(s => s.Name).ToList());
+        var vm  = new SettingsViewModel(_preferences, Systems.Select(s => s.Name).ToList(), SystemIconsByName());
         var win = new Views.Dialogs.SettingsWindow(vm)
         {
             Owner = Application.Current.MainWindow,

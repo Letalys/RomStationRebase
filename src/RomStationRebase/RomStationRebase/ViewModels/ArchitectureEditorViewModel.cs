@@ -1,7 +1,11 @@
+using RomStationRebase.Helpers;
+using System.Collections;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Input;
 using RomStationRebase.Models;
 using RomStationRebase.Resources;
@@ -31,6 +35,12 @@ public class ArchitectureEditorViewModel : ViewModelBase
 
     /// <summary>Noms de systèmes proposés dans la colonne Système — la saisie reste libre.</summary>
     public IReadOnlyList<string> SystemNames { get; }
+
+    /// <summary>Icônes des consoles par nom de système, affichées sur chaque ligne de la table des systèmes.</summary>
+    public IReadOnlyDictionary<string, string> SystemIcons { get; }
+
+    /// <summary>Tri de la table des systèmes par nom : null = ordre du fichier. N'agit que sur l'affichage, le fichier garde son ordre.</summary>
+    public ListSortDirection? SystemSort { get; private set; }
 
     /// <summary>Choix de la colonne Conversion : « Aucune » puis les outils externes du dossier utilisateur.</summary>
     public ObservableCollection<ToolChoice> ToolChoices { get; } = new();
@@ -87,6 +97,7 @@ public class ArchitectureEditorViewModel : ViewModelBase
         {
             if (!SetProperty(ref _selected, value)) return;
             if (value is not null) EnsureMappingsLoaded(value);
+            ApplySystemSort();
             OnPropertyChanged(nameof(HasSelection));
             RefreshDeleteState();
         }
@@ -127,8 +138,11 @@ public class ArchitectureEditorViewModel : ViewModelBase
     // ── Constructeur ──────────────────────────────────────────────────────
 
     /// <param name="systemNames">Noms de systèmes à proposer dans la colonne Système ; liste vide = saisie libre seule.</param>
-    public ArchitectureEditorViewModel(IReadOnlyList<string> systemNames)
+    /// <param name="systemIcons">Icône de chaque console, par nom de système ; null = table sans icônes.</param>
+    public ArchitectureEditorViewModel(IReadOnlyList<string> systemNames, IReadOnlyDictionary<string, string>? systemIcons = null)
     {
+        SystemIcons = new Dictionary<string, string>(
+            systemIcons ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase);
         SystemNames = systemNames
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -161,7 +175,7 @@ public class ArchitectureEditorViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            ReportError(string.Format(Strings.ArchEditor_Error_Load, ex.Message));
+            ReportError(ErrorCodes.Tag(string.Format(Strings.ArchEditor_Error_Load, ex.Message), ErrorCodes.ArchitectureLoadFailed));
         }
         RefreshRestoreShippedState();
         Selected = Architectures.FirstOrDefault();
@@ -189,6 +203,7 @@ public class ArchitectureEditorViewModel : ViewModelBase
     private void Attach(ArchitectureDraftViewModel draft)
     {
         draft.AllSystems    = SystemNames; // chaque ligne ne proposera que les systèmes encore libres
+        draft.SystemIcons   = SystemIcons;
         draft.DirtyChanged += RefreshDeleteState;
         Architectures.Add(draft);
     }
@@ -213,7 +228,7 @@ public class ArchitectureEditorViewModel : ViewModelBase
         catch (Exception ex)
         {
             draft.LoadMappings(new FolderTreeMapping());
-            ReportError(string.Format(Strings.ArchEditor_Error_LoadMapping, draft.DisplayName, ex.Message));
+            ReportError(ErrorCodes.Tag(string.Format(Strings.ArchEditor_Error_LoadMapping, draft.DisplayName, ex.Message), ErrorCodes.ArchitectureMappingFailed));
         }
     }
 
@@ -341,7 +356,7 @@ public class ArchitectureEditorViewModel : ViewModelBase
         catch (Exception ex)
         {
             ShowConfirm(Strings.ArchEditor_Error_Title,
-                string.Format(Strings.ArchEditor_Error_Write, Strings.ArchEditor_RestoreShipped, ex.Message), "OK");
+                ErrorCodes.Tag(string.Format(Strings.ArchEditor_Error_Write, Strings.ArchEditor_RestoreShipped, ex.Message), ErrorCodes.ArchitectureWriteFailed), "OK");
             return;
         }
         ReloadAll();
@@ -360,7 +375,7 @@ public class ArchitectureEditorViewModel : ViewModelBase
         catch (Exception ex)
         {
             ShowConfirm(Strings.ArchEditor_Error_Title,
-                string.Format(Strings.ArchEditor_Error_Write, draft.DisplayName, ex.Message), "OK");
+                ErrorCodes.Tag(string.Format(Strings.ArchEditor_Error_Write, draft.DisplayName, ex.Message), ErrorCodes.ArchitectureWriteFailed), "OK");
             return false;
         }
     }
@@ -368,6 +383,43 @@ public class ArchitectureEditorViewModel : ViewModelBase
     // ── Table des systèmes ────────────────────────────────────────────────
 
     private void AddMapping() => _selected?.Mappings.Add(new SystemMappingRowViewModel());
+
+    // ── Tri de la table des systèmes ──────────────────────────────────────
+
+    /// <summary>Clic sur l'en-tête « Système RomStation » : croissant, décroissant, puis retour à l'ordre du fichier.</summary>
+    public void CycleSystemSort()
+    {
+        SystemSort = SystemSort switch
+        {
+            null                         => ListSortDirection.Ascending,
+            ListSortDirection.Ascending  => ListSortDirection.Descending,
+            _                            => null,
+        };
+        OnPropertyChanged(nameof(SystemSort));
+        ApplySystemSort();
+    }
+
+    /// <summary>Pose le tri sur la vue de l'architecture affichée. Le choix suit l'utilisateur d'une architecture à l'autre.</summary>
+    private void ApplySystemSort()
+    {
+        if (_selected is null) return;
+        if (CollectionViewSource.GetDefaultView(_selected.Mappings) is ListCollectionView view)
+            view.CustomSort = SystemSort is null ? null : new SystemNameComparer(SystemSort.Value);
+    }
+
+    /// <summary>Compare deux lignes par nom de système. Une ligne sans nom reste en bas : c'est là qu'arrive une ligne ajoutée.</summary>
+    internal sealed class SystemNameComparer(ListSortDirection direction) : IComparer
+    {
+        public int Compare(object? x, object? y)
+        {
+            string a = (x as SystemMappingRowViewModel)?.RomStationSystem.Trim() ?? string.Empty;
+            string b = (y as SystemMappingRowViewModel)?.RomStationSystem.Trim() ?? string.Empty;
+            if (a.Length == 0 || b.Length == 0)
+                return (a.Length == 0 ? 1 : 0) - (b.Length == 0 ? 1 : 0);
+            int result = string.Compare(a, b, StringComparison.CurrentCultureIgnoreCase);
+            return direction == ListSortDirection.Ascending ? result : -result;
+        }
+    }
 
     private void RemoveMapping(SystemMappingRowViewModel row) => _selected?.Mappings.Remove(row);
 
@@ -397,7 +449,7 @@ public class ArchitectureEditorViewModel : ViewModelBase
             catch (Exception ex)
             {
                 ShowConfirm(Strings.ArchEditor_Validation_Title,
-                    string.Format(Strings.ArchEditor_Error_Write, draft.DisplayName, ex.Message), "OK");
+                    ErrorCodes.Tag(string.Format(Strings.ArchEditor_Error_Write, draft.DisplayName, ex.Message), ErrorCodes.ArchitectureWriteFailed), "OK");
                 return; // les brouillons déjà écrits sont marqués propres, les autres restent modifiés
             }
         }

@@ -801,8 +801,11 @@
                     <Button Content="{x:Static res:Strings.Rebase_OpenFolder}"
                             Command="{Binding OpenFolderCommand}"
                             Padding="10,6" Margin="0,0,8,0"/>
-                    <Button Content="{x:Static res:Strings.Rebase_ExportLog}"
-                            Command="{Binding ExportLogCommand}"
+                    <!-- Journal détaillé du rebase, suivi en direct dans sa propre fenêtre -->
+                    <Button Content="{x:Static res:Strings.Rebase_ShowLog}"
+                            Command="{Binding ShowLogCommand}"
+                            ToolTip="{x:Static res:Strings.Rebase_ShowLog_Tooltip}"
+                            ToolTipService.ShowOnDisabled="True"
                             Padding="10,6"/>
                 </StackPanel>
 

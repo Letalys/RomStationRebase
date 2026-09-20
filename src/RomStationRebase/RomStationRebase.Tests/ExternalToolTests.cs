@@ -267,6 +267,76 @@ public class ExternalToolTests : IDisposable
         Assert.False(Directory.Exists(work) && Directory.EnumerateFileSystemEntries(work).Any()); // dossier de travail vidé
     }
 
+    [Fact]
+    public async Task A_converted_Playstation_game_keeps_its_sbi_file_under_the_new_name()
+    {
+        string zip = Path.Combine(_dir, "vagrant.zip");
+        using (var archive = System.IO.Compression.ZipFile.Open(zip, System.IO.Compression.ZipArchiveMode.Create))
+        {
+            foreach (var (name, text) in new[] { ("SLES_123.45.cue", "FILE SLES_123.45.bin BINARY"), ("SLES_123.45.bin", new string('x', 5000)), ("SLES_123.45.sbi", "SBI") })
+            {
+                using var w = new StreamWriter(archive.CreateEntry(name).Open());
+                w.Write(text);
+            }
+        }
+
+        var tool = FakeTool("Set-Content -LiteralPath $out -Value CHD");
+        string target = Path.Combine(_dir, "target"), work = Path.Combine(_dir, "work");
+        var info = new ArchiveInspector().Inspect(zip);
+        var plan = new RebasePlan
+        {
+            Games =
+            [
+                new RebaseGamePlan
+                {
+                    GameId = 1, Title = "Vagrant Story", SystemName = "Playstation", TargetFolder = "psx",
+                    BaseName = "Vagrant Story", OutputKind = GameOutputKind.Converted, PlannedBytes = 3000,
+                    Files =
+                    [
+                        new RebaseFilePlan
+                        {
+                            SourcePath = zip, Label = "Vagrant Story", Kind = FileTransferKind.Transform,
+                            LaunchRelativePath = "Vagrant Story.chd", TransformToolId = "fake", TransformInputEntry = "SLES_123.45.cue",
+                            Archive = info, CopySize = new FileInfo(zip).Length, ExtractedSize = info.UncompressedSize,
+                            TransformedSizeEstimate = 3000,
+                        },
+                    ],
+                },
+            ],
+        };
+        var options = new RebaseOptions
+        {
+            Plan = plan, TargetPath = target, Architecture = new ArchitectureEntry { Id = "t" },
+            RetryCount = 0, RetryDelaySeconds = 0, WorkDirectory = work,
+            Tools = new Dictionary<string, (ExternalTool, string)> { ["fake"] = (tool, PowerShell) },
+        };
+
+        await new RebaseService().RunRebaseAsync(options, new Sink(), CancellationToken.None);
+
+        var produced = Directory.GetFiles(Path.Combine(target, "psx")).Select(p => Path.GetFileName(p)!).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+        Assert.Equal(["Vagrant Story.chd", "Vagrant Story.sbi"], produced); // le .sbi prend le nom du fichier converti
+        Assert.Equal("SBI", File.ReadAllText(Path.Combine(target, "psx", "Vagrant Story.sbi")));
+    }
+
+    [Fact]
+    public void A_sbi_file_is_only_taken_when_there_is_no_doubt()
+    {
+        string dir = Path.Combine(_dir, "sbi");
+        Directory.CreateDirectory(dir);
+        string cue = Path.Combine(dir, "game.cue");
+        File.WriteAllText(cue, "x");
+        Assert.Null(RebaseService.FindSubchannelFile(cue));                  // aucun .sbi
+
+        File.WriteAllText(Path.Combine(dir, "autre.sbi"), "x");
+        Assert.EndsWith("autre.sbi", RebaseService.FindSubchannelFile(cue)); // un seul : c'est le bon
+
+        File.WriteAllText(Path.Combine(dir, "encore.sbi"), "x");
+        Assert.Null(RebaseService.FindSubchannelFile(cue));                  // deux sans nom commun : on ne devine pas
+
+        File.WriteAllText(Path.Combine(dir, "game.sbi"), "x");
+        Assert.EndsWith("game.sbi", RebaseService.FindSubchannelFile(cue));  // celui qui porte le nom de l'image l'emporte
+    }
+
     // ── Service et brouillon ──────────────────────────────────────────────
 
     [Theory]

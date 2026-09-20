@@ -23,11 +23,17 @@ public static class WindowStatePersistence
         // pas d'effet dans OnSourceInitialized (la fenêtre est déjà positionnée Win32).
         if (saved is null || !IsOnScreen(saved.Left, saved.Top, saved.Width, saved.Height))
         {
+            // La taille par défaut ne dépasse jamais la zone de travail : un portable en 1080p à 125 %
+            // n'offre qu'environ 816 px de haut, une fenêtre plus grande y perdrait son pied et ses boutons
+            Rect   area   = SystemParameters.WorkArea;
+            double width  = Math.Min(defaultSize.Width,  area.Width);
+            double height = Math.Min(defaultSize.Height, area.Height);
+
             win.WindowStartupLocation = WindowStartupLocation.Manual;
-            win.Width  = defaultSize.Width;
-            win.Height = defaultSize.Height;
-            win.Left   = (SystemParameters.PrimaryScreenWidth  - defaultSize.Width)  / 2;
-            win.Top    = (SystemParameters.PrimaryScreenHeight - defaultSize.Height) / 2;
+            win.Width  = width;
+            win.Height = height;
+            win.Left   = area.Left + (area.Width  - width)  / 2;
+            win.Top    = area.Top  + (area.Height - height) / 2;
             return;
         }
 

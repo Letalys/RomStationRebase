@@ -307,9 +307,6 @@ namespace RomStationRebase.Resources {
         public static string Rebase_OpenFolder {
             get { return ResourceManager.GetString("Rebase_OpenFolder", resourceCulture); }
         }
-        public static string Rebase_ExportLog {
-            get { return ResourceManager.GetString("Rebase_ExportLog", resourceCulture); }
-        }
         public static string Rebase_Status_Pending {
             get { return ResourceManager.GetString("Rebase_Status_Pending", resourceCulture); }
         }
@@ -1910,6 +1907,258 @@ namespace RomStationRebase.Resources {
 
         public static string ArchEditor_HideGameFiles_Tooltip {
             get { return ResourceManager.GetString("ArchEditor_HideGameFiles_Tooltip", resourceCulture); }
+        }
+
+        public static string ArchEditor_Column_System_Tooltip {
+            get { return ResourceManager.GetString("ArchEditor_Column_System_Tooltip", resourceCulture); }
+        }
+
+        public static string Rebase_ShowLog {
+            get { return ResourceManager.GetString("Rebase_ShowLog", resourceCulture); }
+        }
+
+        public static string Rebase_ShowLog_Tooltip {
+            get { return ResourceManager.GetString("Rebase_ShowLog_Tooltip", resourceCulture); }
+        }
+
+        public static string LogViewer_Title {
+            get { return ResourceManager.GetString("LogViewer_Title", resourceCulture); }
+        }
+
+        public static string LogViewer_Column_Time {
+            get { return ResourceManager.GetString("LogViewer_Column_Time", resourceCulture); }
+        }
+
+        public static string LogViewer_Column_Level {
+            get { return ResourceManager.GetString("LogViewer_Column_Level", resourceCulture); }
+        }
+
+        public static string LogViewer_Column_Message {
+            get { return ResourceManager.GetString("LogViewer_Column_Message", resourceCulture); }
+        }
+
+        public static string LogViewer_Level_Info {
+            get { return ResourceManager.GetString("LogViewer_Level_Info", resourceCulture); }
+        }
+
+        public static string LogViewer_Level_Warning {
+            get { return ResourceManager.GetString("LogViewer_Level_Warning", resourceCulture); }
+        }
+
+        public static string LogViewer_Filter {
+            get { return ResourceManager.GetString("LogViewer_Filter", resourceCulture); }
+        }
+
+        public static string LogViewer_ProblemsOnly {
+            get { return ResourceManager.GetString("LogViewer_ProblemsOnly", resourceCulture); }
+        }
+
+        public static string LogViewer_Follow {
+            get { return ResourceManager.GetString("LogViewer_Follow", resourceCulture); }
+        }
+
+        public static string LogViewer_Follow_Tooltip {
+            get { return ResourceManager.GetString("LogViewer_Follow_Tooltip", resourceCulture); }
+        }
+
+        public static string LogViewer_Open {
+            get { return ResourceManager.GetString("LogViewer_Open", resourceCulture); }
+        }
+
+        public static string LogViewer_Status {
+            get { return ResourceManager.GetString("LogViewer_Status", resourceCulture); }
+        }
+
+        public static string Log_KeyValue {
+            get { return ResourceManager.GetString("Log_KeyValue", resourceCulture); }
+        }
+
+        public static string Log_Value_No {
+            get { return ResourceManager.GetString("Log_Value_No", resourceCulture); }
+        }
+
+        public static string Log_Value_None {
+            get { return ResourceManager.GetString("Log_Value_None", resourceCulture); }
+        }
+
+        public static string Log_Section_Config {
+            get { return ResourceManager.GetString("Log_Section_Config", resourceCulture); }
+        }
+
+        public static string Log_Section_Plan {
+            get { return ResourceManager.GetString("Log_Section_Plan", resourceCulture); }
+        }
+
+        public static string Log_Section_Run {
+            get { return ResourceManager.GetString("Log_Section_Run", resourceCulture); }
+        }
+
+        public static string Log_Label_Database {
+            get { return ResourceManager.GetString("Log_Label_Database", resourceCulture); }
+        }
+
+        public static string Log_Label_Preset {
+            get { return ResourceManager.GetString("Log_Label_Preset", resourceCulture); }
+        }
+
+        public static string Log_Label_Tool {
+            get { return ResourceManager.GetString("Log_Label_Tool", resourceCulture); }
+        }
+
+        public static string Log_Label_WorkDirectory {
+            get { return ResourceManager.GetString("Log_Label_WorkDirectory", resourceCulture); }
+        }
+
+        public static string Log_Label_Cover {
+            get { return ResourceManager.GetString("Log_Label_Cover", resourceCulture); }
+        }
+
+        public static string Log_Plan_Summary {
+            get { return ResourceManager.GetString("Log_Plan_Summary", resourceCulture); }
+        }
+
+        public static string Log_Run_Start {
+            get { return ResourceManager.GetString("Log_Run_Start", resourceCulture); }
+        }
+
+        public static string Log_Game_Start {
+            get { return ResourceManager.GetString("Log_Game_Start", resourceCulture); }
+        }
+
+        public static string Log_Game_Done {
+            get { return ResourceManager.GetString("Log_Game_Done", resourceCulture); }
+        }
+
+        public static string Log_Game_Skipped {
+            get { return ResourceManager.GetString("Log_Game_Skipped", resourceCulture); }
+        }
+
+        public static string Log_Game_Unmapped {
+            get { return ResourceManager.GetString("Log_Game_Unmapped", resourceCulture); }
+        }
+
+        public static string Log_Game_Failed {
+            get { return ResourceManager.GetString("Log_Game_Failed", resourceCulture); }
+        }
+
+        public static string Log_File_Start {
+            get { return ResourceManager.GetString("Log_File_Start", resourceCulture); }
+        }
+
+        public static string Log_File_Done {
+            get { return ResourceManager.GetString("Log_File_Done", resourceCulture); }
+        }
+
+        public static string Log_File_Exists {
+            get { return ResourceManager.GetString("Log_File_Exists", resourceCulture); }
+        }
+
+        public static string Log_File_SourceMissing {
+            get { return ResourceManager.GetString("Log_File_SourceMissing", resourceCulture); }
+        }
+
+        public static string Log_Retry {
+            get { return ResourceManager.GetString("Log_Retry", resourceCulture); }
+        }
+
+        public static string Log_Cue_Written {
+            get { return ResourceManager.GetString("Log_Cue_Written", resourceCulture); }
+        }
+
+        public static string Log_Cue_Repaired {
+            get { return ResourceManager.GetString("Log_Cue_Repaired", resourceCulture); }
+        }
+
+        public static string Log_Playlist_Written {
+            get { return ResourceManager.GetString("Log_Playlist_Written", resourceCulture); }
+        }
+
+        public static string Log_Cover_Copied {
+            get { return ResourceManager.GetString("Log_Cover_Copied", resourceCulture); }
+        }
+
+        public static string Log_Cover_Exists {
+            get { return ResourceManager.GetString("Log_Cover_Exists", resourceCulture); }
+        }
+
+        public static string Log_Cover_Failed {
+            get { return ResourceManager.GetString("Log_Cover_Failed", resourceCulture); }
+        }
+
+        public static string Log_Convert_Extract {
+            get { return ResourceManager.GetString("Log_Convert_Extract", resourceCulture); }
+        }
+
+        public static string Log_Convert_Command {
+            get { return ResourceManager.GetString("Log_Convert_Command", resourceCulture); }
+        }
+
+        public static string Log_Convert_Output {
+            get { return ResourceManager.GetString("Log_Convert_Output", resourceCulture); }
+        }
+
+        public static string Log_Convert_Progress {
+            get { return ResourceManager.GetString("Log_Convert_Progress", resourceCulture); }
+        }
+
+        public static string Log_Convert_Result {
+            get { return ResourceManager.GetString("Log_Convert_Result", resourceCulture); }
+        }
+
+        public static string Log_Metadata_Written {
+            get { return ResourceManager.GetString("Log_Metadata_Written", resourceCulture); }
+        }
+
+        public static string Log_Metadata_Backup {
+            get { return ResourceManager.GetString("Log_Metadata_Backup", resourceCulture); }
+        }
+
+        public static string Log_Summary_Duration {
+            get { return ResourceManager.GetString("Log_Summary_Duration", resourceCulture); }
+        }
+
+        public static string Log_Paused {
+            get { return ResourceManager.GetString("Log_Paused", resourceCulture); }
+        }
+
+        public static string Log_Resumed {
+            get { return ResourceManager.GetString("Log_Resumed", resourceCulture); }
+        }
+
+        public static string Log_CancelRequested {
+            get { return ResourceManager.GetString("Log_CancelRequested", resourceCulture); }
+        }
+
+        public static string Log_Cancelled {
+            get { return ResourceManager.GetString("Log_Cancelled", resourceCulture); }
+        }
+
+        public static string Log_Fatal {
+            get { return ResourceManager.GetString("Log_Fatal", resourceCulture); }
+        }
+
+        public static string Log_Convert_Sbi {
+            get { return ResourceManager.GetString("Log_Convert_Sbi", resourceCulture); }
+        }
+
+        public static string Preset_AssociateOffer_Title {
+            get { return ResourceManager.GetString("Preset_AssociateOffer_Title", resourceCulture); }
+        }
+
+        public static string Preset_AssociateOffer_Message {
+            get { return ResourceManager.GetString("Preset_AssociateOffer_Message", resourceCulture); }
+        }
+
+        public static string Preset_AssociateOffer_Accept {
+            get { return ResourceManager.GetString("Preset_AssociateOffer_Accept", resourceCulture); }
+        }
+
+        public static string Preset_AssociateOffer_Decline {
+            get { return ResourceManager.GetString("Preset_AssociateOffer_Decline", resourceCulture); }
+        }
+
+        public static string Preset_AssociateError_Title {
+            get { return ResourceManager.GetString("Preset_AssociateError_Title", resourceCulture); }
         }
     }
 }

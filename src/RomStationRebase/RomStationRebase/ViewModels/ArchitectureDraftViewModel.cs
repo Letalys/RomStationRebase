@@ -35,6 +35,15 @@ public class ArchitectureDraftViewModel : ViewModelBase
         set { _allSystems = value; RefreshAvailableSystems(); }
     }
 
+    private IReadOnlyDictionary<string, string>? _systemIcons;
+
+    /// <summary>Icônes des consoles par nom de système, posées par l'éditeur et transmises à chaque ligne.</summary>
+    public IReadOnlyDictionary<string, string>? SystemIcons
+    {
+        get => _systemIcons;
+        set { _systemIcons = value; RefreshAvailableSystems(); }
+    }
+
     /// <summary>
     /// Recalcule la liste déroulante de chaque ligne : les systèmes non encore paramétrés sur une autre ligne.
     /// Un système déjà pris ne peut donc être choisi qu'une fois, ce qui évite les doublons avant même la validation.
@@ -48,6 +57,7 @@ public class ArchitectureDraftViewModel : ViewModelBase
 
         foreach (var row in Mappings)
         {
+            row.Icons  = _systemIcons;
             string own = row.RomStationSystem.Trim();
             row.AvailableSystems = _allSystems
                 .Where(s => string.Equals(s, own, StringComparison.OrdinalIgnoreCase)
@@ -367,8 +377,8 @@ public class ArchitectureDraftViewModel : ViewModelBase
 
     private void OnRowChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // AvailableSystems est posé par ce brouillon lui-même : ni sale, ni recalcul
-        if (e.PropertyName == nameof(SystemMappingRowViewModel.AvailableSystems)) return;
+        // AvailableSystems est posé par ce brouillon lui-même, IconPath n'est qu'un affichage : ni sale, ni recalcul
+        if (e.PropertyName is nameof(SystemMappingRowViewModel.AvailableSystems) or nameof(SystemMappingRowViewModel.IconPath)) return;
         if (e.PropertyName == nameof(SystemMappingRowViewModel.RomStationSystem))
             RefreshAvailableSystems();
         MarkDirty();

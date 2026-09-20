@@ -1,4 +1,5 @@
 using System.Threading;
+using RomStationRebase.Services;
 
 namespace RomStationRebase.Models;
 
@@ -32,6 +33,9 @@ public class RebaseOptions
 
     /// <summary>Dossier de travail des conversions, sur le disque local.</summary>
     public string WorkDirectory { get; set; } = string.Empty;
+
+    /// <summary>Journal détaillé du rebase. Muet par défaut.</summary>
+    public IRebaseLog Log { get; set; } = NullRebaseLog.Instance;
 
     /// <summary>Événement de pause — Reset() pour mettre en pause, Set() pour reprendre.</summary>
     public ManualResetEventSlim   PauseEvent        { get; set; } = new ManualResetEventSlim(true);

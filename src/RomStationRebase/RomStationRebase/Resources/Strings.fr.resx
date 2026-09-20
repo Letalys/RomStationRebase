@@ -214,9 +214,6 @@ Détail : {0}</value>
   <data name="Rebase_OpenFolder" xml:space="preserve">
     <value>Ouvrir le dossier</value>
   </data>
-  <data name="Rebase_ExportLog" xml:space="preserve">
-    <value>Exporter le journal</value>
-  </data>
   <data name="Rebase_Status_Pending" xml:space="preserve">
     <value>En attente</value>
   </data>
@@ -1180,7 +1177,7 @@ Les enregistrer ?</value>
     <value>Tous les fichiers</value>
   </data>
   <data name="Preset_Open_Tooltip" xml:space="preserve">
-    <value>Ouvre une présélection .rsr pour cocher ses jeux et appliquer ses paramètres de rebase (Ctrl+O)</value>
+    <value>Ouvre une présélection .rsrgp pour cocher ses jeux et appliquer ses paramètres de rebase (Ctrl+O)</value>
   </data>
   <data name="Preset_Save_Tooltip" xml:space="preserve">
     <value>Enregistre les jeux cochés et les paramètres du rebase dans la présélection (Ctrl+S)</value>
@@ -1216,19 +1213,19 @@ Les enregistrer ?</value>
     <value>PRÉSÉLECTIONS</value>
   </data>
   <data name="Settings_Presets_Description" xml:space="preserve">
-    <value>Une présélection (fichier .rsr) contient les jeux cochés et les paramètres du rebase. L'association permet de l'ouvrir par double-clic dans l'Explorateur, pour votre compte Windows uniquement.</value>
+    <value>Une présélection (fichier .rsrgp) contient les jeux cochés et les paramètres du rebase. L'association permet de l'ouvrir par double-clic dans l'Explorateur, pour votre compte Windows uniquement.</value>
   </data>
   <data name="Settings_Presets_Associate" xml:space="preserve">
-    <value>Associer les fichiers .rsr à RomStation Rebase</value>
+    <value>Associer les fichiers .rsrgp à RomStation Rebase</value>
   </data>
   <data name="Settings_Presets_Dissociate" xml:space="preserve">
-    <value>Retirer l'association des fichiers .rsr</value>
+    <value>Retirer l'association des fichiers .rsrgp</value>
   </data>
   <data name="Settings_Presets_State_This" xml:space="preserve">
-    <value>Les fichiers .rsr s'ouvrent avec cette copie de RomStation Rebase.</value>
+    <value>Les fichiers .rsrgp s'ouvrent avec cette copie de RomStation Rebase.</value>
   </data>
   <data name="Settings_Presets_State_Other" xml:space="preserve">
-    <value>Les fichiers .rsr s'ouvrent avec une autre copie de RomStation Rebase : {0}</value>
+    <value>Les fichiers .rsrgp s'ouvrent avec une autre copie de RomStation Rebase : {0}</value>
   </data>
   <data name="Settings_Presets_Error" xml:space="preserve">
     <value>Impossible de modifier l'association : {0}</value>
@@ -1240,13 +1237,13 @@ Les enregistrer ?</value>
     <value>Aucune chargée</value>
   </data>
   <data name="Preset_Zone_None_Tooltip" xml:space="preserve">
-    <value>Une présélection est un fichier .rsr qui contient les jeux cochés et les paramètres du rebase.</value>
+    <value>Une présélection est un fichier .rsrgp qui contient les jeux cochés et les paramètres du rebase.</value>
   </data>
   <data name="Rebase_SavePreset_Tooltip_File" xml:space="preserve">
     <value>Enregistre les jeux cochés et les paramètres du rebase dans la présélection {0} (Ctrl+S)</value>
   </data>
   <data name="Rebase_SavePreset_Tooltip_New" xml:space="preserve">
-    <value>Enregistre les jeux cochés et les paramètres du rebase dans une nouvelle présélection .rsr (Ctrl+S)</value>
+    <value>Enregistre les jeux cochés et les paramètres du rebase dans une nouvelle présélection .rsrgp (Ctrl+S)</value>
   </data>
   <data name="Rebase_Convert" xml:space="preserve">
     <value>Convertir avec les outils externes</value>
@@ -1521,5 +1518,196 @@ Les enregistrer ?</value>
   </data>
   <data name="ArchEditor_HideGameFiles_Tooltip" xml:space="preserve">
     <value>Range les fichiers du jeu dans un dossier au nom précédé d'un point, lancé par un M3U. La liste n'affiche alors qu'une entrée par jeu. Systèmes marqués M3U seulement.</value>
+  </data>
+  <data name="ArchEditor_Column_System_Tooltip" xml:space="preserve">
+    <value>Trier par nom de système</value>
+  </data>
+  <data name="Rebase_ShowLog" xml:space="preserve">
+    <value>Afficher le journal</value>
+  </data>
+  <data name="Rebase_ShowLog_Tooltip" xml:space="preserve">
+    <value>Ouvre le journal détaillé du rebase</value>
+  </data>
+  <data name="LogViewer_Title" xml:space="preserve">
+    <value>Journal du rebase</value>
+  </data>
+  <data name="LogViewer_Column_Time" xml:space="preserve">
+    <value>Heure</value>
+  </data>
+  <data name="LogViewer_Column_Level" xml:space="preserve">
+    <value>Niveau</value>
+  </data>
+  <data name="LogViewer_Column_Message" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="LogViewer_Level_Info" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="LogViewer_Level_Warning" xml:space="preserve">
+    <value>Avertissement</value>
+  </data>
+  <data name="LogViewer_Filter" xml:space="preserve">
+    <value>Filtrer</value>
+  </data>
+  <data name="LogViewer_ProblemsOnly" xml:space="preserve">
+    <value>Avertissements et erreurs uniquement</value>
+  </data>
+  <data name="LogViewer_Follow" xml:space="preserve">
+    <value>Suivre</value>
+  </data>
+  <data name="LogViewer_Follow_Tooltip" xml:space="preserve">
+    <value>Défile jusqu'à la dernière ligne à chaque ajout</value>
+  </data>
+  <data name="LogViewer_Open" xml:space="preserve">
+    <value>Ouvrir…</value>
+  </data>
+  <data name="LogViewer_Status" xml:space="preserve">
+    <value>Lignes : {0} · Avertissements : {1} · Erreurs : {2}</value>
+  </data>
+  <data name="Log_KeyValue" xml:space="preserve">
+    <value>{0} : {1}</value>
+  </data>
+  <data name="Log_Value_No" xml:space="preserve">
+    <value>Non</value>
+  </data>
+  <data name="Log_Value_None" xml:space="preserve">
+    <value>Aucune</value>
+  </data>
+  <data name="Log_Section_Config" xml:space="preserve">
+    <value>Configuration</value>
+  </data>
+  <data name="Log_Section_Plan" xml:space="preserve">
+    <value>Plan</value>
+  </data>
+  <data name="Log_Section_Run" xml:space="preserve">
+    <value>Exécution</value>
+  </data>
+  <data name="Log_Label_Database" xml:space="preserve">
+    <value>Copie de la base</value>
+  </data>
+  <data name="Log_Label_Preset" xml:space="preserve">
+    <value>Présélection</value>
+  </data>
+  <data name="Log_Label_Tool" xml:space="preserve">
+    <value>Outil {0}</value>
+  </data>
+  <data name="Log_Label_WorkDirectory" xml:space="preserve">
+    <value>Dossier de travail</value>
+  </data>
+  <data name="Log_Label_Cover" xml:space="preserve">
+    <value>Jaquette</value>
+  </data>
+  <data name="Log_Plan_Summary" xml:space="preserve">
+    <value>Jeux : {0} · Fichiers : {1} · Taille : {2}</value>
+  </data>
+  <data name="Log_Run_Start" xml:space="preserve">
+    <value>Rebase démarré</value>
+  </data>
+  <data name="Log_Game_Start" xml:space="preserve">
+    <value>{0} ({1}) : début</value>
+  </data>
+  <data name="Log_Game_Done" xml:space="preserve">
+    <value>{0} : terminé en {1}</value>
+  </data>
+  <data name="Log_Game_Skipped" xml:space="preserve">
+    <value>{0} : déjà présent, ignoré</value>
+  </data>
+  <data name="Log_Game_Unmapped" xml:space="preserve">
+    <value>{0} : ignoré, aucun dossier pour le système {1}</value>
+  </data>
+  <data name="Log_Game_Failed" xml:space="preserve">
+    <value>{0} : échec. {1}</value>
+  </data>
+  <data name="Log_File_Start" xml:space="preserve">
+    <value>{0} : {1} → {2} ({3})</value>
+  </data>
+  <data name="Log_File_Done" xml:space="preserve">
+    <value>{0} : écrit en {1}</value>
+  </data>
+  <data name="Log_File_Exists" xml:space="preserve">
+    <value>{0} : déjà présent, ignoré</value>
+  </data>
+  <data name="Log_File_SourceMissing" xml:space="preserve">
+    <value>Fichier source introuvable : {0}</value>
+  </data>
+  <data name="Log_Retry" xml:space="preserve">
+    <value>{0} : tentative {1} sur {2}. {3}</value>
+  </data>
+  <data name="Log_Cue_Written" xml:space="preserve">
+    <value>{0} : CUE écrit</value>
+  </data>
+  <data name="Log_Cue_Repaired" xml:space="preserve">
+    <value>{0} : ligne FILE corrigée, BIN cité introuvable</value>
+  </data>
+  <data name="Log_Playlist_Written" xml:space="preserve">
+    <value>{0} : M3U écrit ({1})</value>
+  </data>
+  <data name="Log_Cover_Copied" xml:space="preserve">
+    <value>{0} : jaquette copiée</value>
+  </data>
+  <data name="Log_Cover_Exists" xml:space="preserve">
+    <value>{0} : jaquette déjà présente, ignorée</value>
+  </data>
+  <data name="Log_Cover_Failed" xml:space="preserve">
+    <value>{0} : jaquette non copiée. {1}</value>
+  </data>
+  <data name="Log_Convert_Extract" xml:space="preserve">
+    <value>{0} : extraction dans {1}</value>
+  </data>
+  <data name="Log_Convert_Command" xml:space="preserve">
+    <value>{0} : commande {1}</value>
+  </data>
+  <data name="Log_Convert_Output" xml:space="preserve">
+    <value>{0} &gt; {1}</value>
+  </data>
+  <data name="Log_Convert_Progress" xml:space="preserve">
+    <value>{0} : conversion à {1} %</value>
+  </data>
+  <data name="Log_Convert_Result" xml:space="preserve">
+    <value>{0} : converti, {1}</value>
+  </data>
+  <data name="Log_Metadata_Written" xml:space="preserve">
+    <value>{0} : écrit ({1})</value>
+  </data>
+  <data name="Log_Metadata_Backup" xml:space="preserve">
+    <value>Fichier existant sauvegardé sous {0}</value>
+  </data>
+  <data name="Log_Summary_Duration" xml:space="preserve">
+    <value>Durée {0}, {1} traités, {2}/s en moyenne</value>
+  </data>
+  <data name="Log_Paused" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Log_Resumed" xml:space="preserve">
+    <value>Reprise</value>
+  </data>
+  <data name="Log_CancelRequested" xml:space="preserve">
+    <value>Annulation demandée</value>
+  </data>
+  <data name="Log_Cancelled" xml:space="preserve">
+    <value>Rebase annulé</value>
+  </data>
+  <data name="Log_Fatal" xml:space="preserve">
+    <value>Rebase interrompu par une erreur : {0}</value>
+  </data>
+  <data name="Log_Convert_Sbi" xml:space="preserve">
+    <value>{0} : SBI copié</value>
+  </data>
+  <data name="Preset_AssociateOffer_Title" xml:space="preserve">
+    <value>Ouverture par double-clic</value>
+  </data>
+  <data name="Preset_AssociateOffer_Message" xml:space="preserve">
+    <value>Associer les fichiers .rsrgp à RomStation Rebase ?
+
+Une présélection s'ouvrira par double-clic dans l'Explorateur. L'association vaut pour votre compte Windows et se modifie dans les Paramètres.</value>
+  </data>
+  <data name="Preset_AssociateOffer_Accept" xml:space="preserve">
+    <value>Associer</value>
+  </data>
+  <data name="Preset_AssociateOffer_Decline" xml:space="preserve">
+    <value>Ne pas associer</value>
+  </data>
+  <data name="Preset_AssociateError_Title" xml:space="preserve">
+    <value>Association impossible</value>
   </data>
 </root>

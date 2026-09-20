@@ -87,8 +87,41 @@ public class ConfigService
     /// <summary>Sérialise UserPreferences en JSON indenté et écrit le fichier.</summary>
     public void SaveUserPreferences(UserPreferences prefs)
     {
+        // La fenêtre du journal vit à côté des autres et se ferme quand elle veut : sa géométrie, une fois connue,
+        // est reportée dans toute copie des préférences qu'une autre fenêtre viendrait écrire ensuite
+        if (_rebaseLogWindowBounds is not null)
+            prefs.RebaseLogWindowBounds = _rebaseLogWindowBounds;
+
+        // Même précaution pour la proposition d'association : une fenêtre qui tient une copie plus ancienne
+        // des préférences ne doit pas faire reposer la question
+        if (_presetAssociationOffered)
+            prefs.PresetAssociationOffered = true;
+
         Directory.CreateDirectory(ConfigDir);
         File.WriteAllText(UserPreferencesFile, JsonSerializer.Serialize(prefs, WriteOptions));
+    }
+
+    private static WindowBounds? _rebaseLogWindowBounds;
+    private static bool          _presetAssociationOffered;
+
+    /// <summary>Retient que l'association des .rsrgp a été proposée, sans toucher au reste des préférences sur disque.</summary>
+    public void MarkPresetAssociationOffered()
+    {
+        _presetAssociationOffered = true;
+        UserPreferences prefs;
+        try   { prefs = LoadUserPreferences(); }
+        catch { prefs = new UserPreferences(); }
+        SaveUserPreferences(prefs);
+    }
+
+    /// <summary>Mémorise la géométrie de la fenêtre du journal, sans toucher au reste des préférences sur disque.</summary>
+    public void SaveRebaseLogWindowBounds(WindowBounds bounds)
+    {
+        _rebaseLogWindowBounds = bounds;
+        UserPreferences prefs;
+        try   { prefs = LoadUserPreferences(); }
+        catch { prefs = new UserPreferences(); }
+        SaveUserPreferences(prefs);
     }
 
     /// <summary>Supprime user-preferences.json s'il existe.</summary>

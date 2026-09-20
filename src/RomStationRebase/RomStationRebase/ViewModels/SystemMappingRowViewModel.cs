@@ -15,6 +15,18 @@ public class SystemMappingRowViewModel : ViewModelBase
     private bool   _extract;
     private string _transform;
     private IReadOnlyList<string> _availableSystems = [];
+    private IReadOnlyDictionary<string, string>? _icons;
+
+    /// <summary>Icônes des consoles par nom de système RomStation, posées par le brouillon parent.</summary>
+    internal IReadOnlyDictionary<string, string>? Icons
+    {
+        get => _icons;
+        set { if (!ReferenceEquals(_icons, value)) { _icons = value; OnPropertyChanged(nameof(IconPath)); } }
+    }
+
+    /// <summary>Icône de la console de la ligne, comme dans la barre latérale de la bibliothèque. Null pour un système inconnu de la base.</summary>
+    public string? IconPath
+        => _icons is not null && _icons.TryGetValue(_romStationSystem.Trim(), out var path) ? path : null;
 
     /// <summary>
     /// Systèmes RomStation proposés dans la liste déroulante de cette ligne : tous ceux de la base,
@@ -43,7 +55,7 @@ public class SystemMappingRowViewModel : ViewModelBase
     public string RomStationSystem
     {
         get => _romStationSystem;
-        set => SetProperty(ref _romStationSystem, value ?? string.Empty);
+        set { if (SetProperty(ref _romStationSystem, value ?? string.Empty)) OnPropertyChanged(nameof(IconPath)); }
     }
 
     /// <summary>Nom du dossier cible (ex : "psx").</summary>

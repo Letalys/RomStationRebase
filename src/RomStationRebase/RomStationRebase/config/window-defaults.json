@@ -12,8 +12,8 @@
     "height": 820
   },
   "settingsWindow": {
-    "width": 620,
-    "height": 780
+    "width": 680,
+    "height": 860
   },
   "architectureEditorWindow": {
     "width": 1000,
@@ -22,5 +22,9 @@
   "externalToolsWindow": {
     "width": 960,
     "height": 700
+  },
+  "rebaseLogWindow": {
+    "width": 980,
+    "height": 620
   }
 }

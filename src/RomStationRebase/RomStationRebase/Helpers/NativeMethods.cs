@@ -13,6 +13,11 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     internal static extern bool IsIconic(IntPtr hWnd);
 
+    /// <summary>Active ou désactive les entrées clavier et souris d'une fenêtre.</summary>
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool EnableWindow(IntPtr hWnd, [MarshalAs(UnmanagedType.Bool)] bool bEnable);
+
     /// <summary>Affiche, masque ou modifie l'état d'affichage d'une fenêtre.</summary>
     [DllImport("user32.dll")]
     internal static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);

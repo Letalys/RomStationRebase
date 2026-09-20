@@ -22,6 +22,7 @@
         <BooleanToVisibilityConverter            x:Key="BoolToVisibilityConverter"/>
         <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
         <helpers:InverseBoolConverter             x:Key="InverseBoolConverter"/>
+        <helpers:StringToImageSourceConverter     x:Key="StringToImageSourceConverter"/>
 
         <!-- Titlebar : même chrome que RebaseWindow -->
         <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -561,6 +562,7 @@
                         <TextBlock Grid.Row="0" Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.ArchEditor_Group_Systems}"/>
 
                         <DataGrid Grid.Row="1"
+                                  Sorting="SystemsGrid_Sorting"
                                   ItemsSource="{Binding Selected.Mappings}"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"
@@ -568,7 +570,7 @@
                                   GridLinesVisibility="Horizontal"
                                   CanUserAddRows="False"
                                   CanUserDeleteRows="False"
-                                  CanUserSortColumns="False"
+                                  CanUserSortColumns="True"
                                   CanUserReorderColumns="False"
                                   CanUserResizeRows="False"
                                   KeyboardNavigation.TabNavigation="Continue">
@@ -578,16 +580,55 @@
                             <DataGrid.Columns>
 
                                 <!-- Système RomStation : liste éditable si des suggestions existent, sinon champ texte -->
-                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_System}" Width="*" MinWidth="130">
+                                <DataGridTemplateColumn x:Name="SystemColumn" Header="{x:Static res:Strings.ArchEditor_Column_System}" Width="*" MinWidth="160"
+                                                        CanUserSort="True" SortMemberPath="RomStationSystem">
+                                    <!-- Seule colonne triable : l'en-tête montre une flèche, discrète tant qu'aucun tri n'est posé -->
+                                    <DataGridTemplateColumn.HeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                            <Setter Property="Cursor"  Value="Hand"/>
+                                            <Setter Property="ToolTip" Value="{x:Static res:Strings.ArchEditor_Column_System_Tooltip}"/>
+                                            <Setter Property="ContentTemplate">
+                                                <Setter.Value>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                                            <TextBlock x:Name="SortGlyph" Text="&#xE8CB;" Margin="6,1,0,0" FontSize="10" Opacity="0.45"
+                                                                       FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <DataTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding SortDirection, RelativeSource={RelativeSource AncestorType=DataGridColumnHeader}}" Value="Ascending">
+                                                                <Setter TargetName="SortGlyph" Property="Text"       Value="&#xE70E;"/>
+                                                                <Setter TargetName="SortGlyph" Property="Opacity"    Value="1"/>
+                                                                <Setter TargetName="SortGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SortDirection, RelativeSource={RelativeSource AncestorType=DataGridColumnHeader}}" Value="Descending">
+                                                                <Setter TargetName="SortGlyph" Property="Text"       Value="&#xE70D;"/>
+                                                                <Setter TargetName="SortGlyph" Property="Opacity"    Value="1"/>
+                                                                <Setter TargetName="SortGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                            </DataTrigger>
+                                                        </DataTemplate.Triggers>
+                                                    </DataTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </DataGridTemplateColumn.HeaderStyle>
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="26"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <!-- Icône de la console, comme dans la barre latérale ; la place reste réservée pour un système inconnu -->
+                                                <Image Grid.Column="0" Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                       RenderOptions.BitmapScalingMode="HighQuality"
+                                                       Source="{Binding IconPath, Converter={StaticResource StringToImageSourceConverter}, ConverterParameter=36}"/>
                                                 <!-- Liste propre à la ligne : les systèmes déjà paramétrés ailleurs n'y figurent plus -->
-                                                <ComboBox Style="{StaticResource EditableComboBox}"
+                                                <ComboBox Grid.Column="1" Style="{StaticResource EditableComboBox}"
                                                           ItemsSource="{Binding AvailableSystems}"
                                                           Text="{Binding RomStationSystem, UpdateSourceTrigger=PropertyChanged}"
                                                           Visibility="{Binding DataContext.HasSystemNames, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                                <TextBox Style="{StaticResource CellTextBox}"
+                                                <TextBox Grid.Column="1" Style="{StaticResource CellTextBox}"
                                                          Text="{Binding RomStationSystem, UpdateSourceTrigger=PropertyChanged}"
                                                          Visibility="{Binding DataContext.HasSystemNames, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
                                             </Grid>

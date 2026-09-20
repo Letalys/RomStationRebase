@@ -47,9 +47,12 @@ public partial class RebaseWindow : Window
         // La colonne Système propose tous les systèmes de la base RomStation, moins ceux déjà paramétrés.
         vm.OpenArchitectureEditor = () =>
         {
-            var editor = new ArchitectureEditorWindow(vm.SystemNames) { Owner = this };
+            var editor = new ArchitectureEditorWindow(vm.SystemNames, vm.SystemIcons) { Owner = this };
             editor.ShowDialog();
         };
+
+        // Journal du rebase — fenêtre indépendante, non modale : elle survit à celle-ci
+        vm.OpenLogViewer = RebaseLogWindow.ShowFor;
 
         // Outils externes de conversion — modal, le VM relit les outils et replanifie au retour
         vm.OpenExternalTools = () =>

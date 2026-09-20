@@ -33,8 +33,11 @@ public class UserPreferences
     /// <summary>Dernier dossier de destination utilisé dans RebaseWindow. Vide au premier lancement.</summary>
     public string LastRebaseTargetPath { get; set; } = string.Empty;
 
-    /// <summary>Dernier dossier d'où un fichier de sélection (*.rsr) a été ouvert ou enregistré.</summary>
+    /// <summary>Dernier dossier d'où un fichier de sélection (*.rsrgp) a été ouvert ou enregistré.</summary>
     public string LastPresetDirectory { get; set; } = string.Empty;
+
+    /// <summary>L'association des fichiers .rsrgp a déjà été proposée : la question n'est posée qu'une fois, quelle que soit la réponse.</summary>
+    public bool PresetAssociationOffered { get; set; }
 
     /// <summary>Identifiant de la dernière architecture sélectionnée (ex : "retroarch", "lakka", "arkos"). Vide au premier lancement.</summary>
     public string LastRebaseArchitectureId { get; set; } = string.Empty;
@@ -59,6 +62,9 @@ public class UserPreferences
 
     /// <summary>Bounds de la fenêtre des outils externes.</summary>
     public WindowBounds? ExternalToolsWindowBounds { get; set; }
+
+    /// <summary>Bounds de la fenêtre du journal de rebase.</summary>
+    public WindowBounds? RebaseLogWindowBounds { get; set; }
 
     /// <summary>Langue des métadonnées écrites : "auto" (langue de l'interface), "fr" ou "en".</summary>
     public string LastRebaseMetadataLanguage { get; set; } = "auto";

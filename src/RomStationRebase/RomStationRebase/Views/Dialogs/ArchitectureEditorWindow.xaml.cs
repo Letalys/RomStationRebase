@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using RomStationRebase.ViewModels;
 
@@ -12,12 +13,14 @@ namespace RomStationRebase.Views.Dialogs;
 public partial class ArchitectureEditorWindow : Window
 {
     /// <param name="systemNames">Noms de systèmes proposés dans la colonne Système ; vide = saisie libre seule.</param>
-    public ArchitectureEditorWindow(IReadOnlyList<string> systemNames)
+    /// <param name="systemIcons">Icône de chaque console, par nom de système.</param>
+    public ArchitectureEditorWindow(IReadOnlyList<string> systemNames, IReadOnlyDictionary<string, string>? systemIcons = null)
     {
         InitializeComponent();
         SourceInitialized += OnSourceInitialized;
 
-        var vm = new ArchitectureEditorViewModel(systemNames);
+        var vm = new ArchitectureEditorViewModel(systemNames, systemIcons);
+        vm.PropertyChanged += OnViewModelPropertyChanged;
         DataContext    = vm;
         vm.OwnerWindow = this;
         vm.CloseWindow = Close; // OnClosing demande confirmation si des brouillons sont modifiés
@@ -70,6 +73,27 @@ public partial class ArchitectureEditorWindow : Window
             // La mémorisation des bounds ne doit jamais empêcher la fermeture
         }
         base.OnClosing(e);
+    }
+
+    /// <summary>
+    /// Tri de la table des systèmes : le ViewModel décide (trois états), la grille ne fait qu'afficher la flèche.
+    /// Le tri natif de la DataGrid n'a que deux états et se perd à chaque changement d'architecture.
+    /// </summary>
+    private void SystemsGrid_Sorting(object sender, DataGridSortingEventArgs e)
+    {
+        e.Handled = true;
+        (DataContext as ArchitectureEditorViewModel)?.CycleSystemSort();
+    }
+
+    /// <summary>SortDirection d'une colonne ne se lie pas en XAML (la colonne est hors de l'arbre visuel) : posé ici.</summary>
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not ArchitectureEditorViewModel vm) return;
+        if (e.PropertyName is not (nameof(ArchitectureEditorViewModel.SystemSort) or nameof(ArchitectureEditorViewModel.Selected))) return;
+
+        // Après le changement de source : la grille efface la flèche quand sa liste change
+        Dispatcher.BeginInvoke(() => SystemColumn.SortDirection = vm.SystemSort,
+            System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
     private void Titlebar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

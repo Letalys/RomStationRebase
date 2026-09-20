@@ -64,6 +64,9 @@
 
   <!-- Fichiers de configuration des architectures — copiés dans le répertoire de sortie -->
   <ItemGroup>
+    <Content Include="Resources\Images\rsr-preset.ico" Link="rsr-preset.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="config\architectures\*.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

@@ -20,7 +20,7 @@ public partial class SettingsWindow : Window
         // Éditeur d'architectures — modal ; la colonne Système propose tous les systèmes de la base
         vm.OpenArchitectureEditor = () =>
         {
-            var editor = new ArchitectureEditorWindow(vm.SystemNames) { Owner = this };
+            var editor = new ArchitectureEditorWindow(vm.SystemNames, vm.SystemIcons) { Owner = this };
             editor.ShowDialog();
         };
 

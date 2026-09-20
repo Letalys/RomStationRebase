@@ -41,7 +41,7 @@ public sealed class RebasePresetTests : IDisposable
     [Fact]
     public void Saved_file_loads_back_with_settings_games_and_per_game_rules()
     {
-        string path = PathOf("tests.rsr");
+        string path = PathOf("tests.rsrgp");
         RebasePresetService.Save(path, Sample());
 
         var loaded = RebasePresetService.Load(path);
@@ -74,7 +74,7 @@ public sealed class RebasePresetTests : IDisposable
     {
         string foreign = PathOf("autre.json");
         File.WriteAllText(foreign, "{ \"architectures\": [] }");
-        string broken = PathOf("casse.rsr");
+        string broken = PathOf("casse.rsrgp");
         File.WriteAllText(broken, "{ \"format\": ");
 
         Assert.Equal(RebasePresetError.NotASelection,
@@ -82,13 +82,13 @@ public sealed class RebasePresetTests : IDisposable
         Assert.Equal(RebasePresetError.InvalidJson,
             Assert.Throws<RebasePresetException>(() => RebasePresetService.Load(broken)).Error);
         Assert.Equal(RebasePresetError.Unreadable,
-            Assert.Throws<RebasePresetException>(() => RebasePresetService.Load(PathOf("absent.rsr"))).Error);
+            Assert.Throws<RebasePresetException>(() => RebasePresetService.Load(PathOf("absent.rsrgp"))).Error);
     }
 
     [Fact]
     public void Hand_edited_file_with_missing_blocks_still_loads()
     {
-        string path = PathOf("minimal.rsr");
+        string path = PathOf("minimal.rsrgp");
         File.WriteAllText(path, "{ \"format\": \"romstation-rebase-selection\", \"version\": 7, // écrit à la main\n \"games\": [ { \"rid\": 5 }, ] }");
 
         var loaded = RebasePresetService.Load(path);
@@ -99,10 +99,11 @@ public sealed class RebasePresetTests : IDisposable
     }
 
     [Theory]
-    [InlineData(@"C:\x\tests", @"C:\x\tests.rsr")]
-    [InlineData(@"C:\x\tests.json", @"C:\x\tests.rsr")]
-    [InlineData(@"C:\x\tests.RSR", @"C:\x\tests.RSR")]
-    [InlineData(@"C:\x\ancien.rsr.json", @"C:\x\ancien.rsr")]
+    [InlineData(@"C:\x\tests", @"C:\x\tests.rsrgp")]
+    [InlineData(@"C:\x\tests.json", @"C:\x\tests.rsrgp")]
+    [InlineData(@"C:\x\tests.RSRGP", @"C:\x\tests.RSRGP")]
+    [InlineData(@"C:\x\ancien.rsr", @"C:\x\ancien.rsrgp")]            // extension du temps du développement
+    [InlineData(@"C:\x\ancien.rsr.json", @"C:\x\ancien.rsrgp")]
     public void Extension_is_completed_without_doubling(string typed, string expected)
         => Assert.Equal(expected, RebasePresetService.EnsureExtension(typed));
 
@@ -153,7 +154,7 @@ public sealed class RebasePresetTests : IDisposable
     {
         var games = new List<GameItemViewModel> { Game(1, 4242, "Ronin Blade", true), Game(2, 77, "Wipeout", false) };
         var session = new RebasePresetSessionViewModel(() => games.Where(g => g.IsSelected).ToList(), () => new RebasePresetSettings());
-        string path = PathOf("session.rsr");
+        string path = PathOf("session.rsrgp");
 
         Assert.False(session.HasFile);
         session.RefreshDirty();
@@ -162,12 +163,12 @@ public sealed class RebasePresetTests : IDisposable
         session.SaveTo(path);
         Assert.True(session.HasFile);
         Assert.False(session.IsDirty);
-        Assert.Equal("session.rsr", session.DisplayText);
+        Assert.Equal("session.rsrgp", session.DisplayText);
 
         games[1].IsSelected = true;
         session.RefreshDirty();
         Assert.True(session.IsDirty);
-        Assert.Equal("session.rsr •", session.DisplayText);
+        Assert.Equal("session.rsrgp •", session.DisplayText);
 
         games[1].IsSelected = false;
         session.RefreshDirty();
@@ -191,7 +192,7 @@ public sealed class RebasePresetTests : IDisposable
         var session = new RebasePresetSessionViewModel(() => games.Where(g => g.IsSelected).ToList(), () => new RebasePresetSettings());
 
         // Le fichier listait deux jeux, un seul a pu être coché : l'état appliqué devient la référence
-        session.Adopt(PathOf("ouvert.rsr"), Sample().Settings,
+        session.Adopt(PathOf("ouvert.rsrgp"), Sample().Settings,
             new Dictionary<int, GameRuleOverrides> { [4242] = new(null, null, true), [31995] = default });
 
         Assert.False(session.IsDirty);

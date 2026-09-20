@@ -3,7 +3,7 @@ using Microsoft.Win32;
 
 namespace RomStationRebase.Services;
 
-/// <summary>État de l'association des présélections (.rsr) pour l'utilisateur courant.</summary>
+/// <summary>État de l'association des présélections (.rsrgp) pour l'utilisateur courant.</summary>
 public enum PresetAssociationState
 {
     /// <summary>Aucune association vers RSR.</summary>
@@ -15,7 +15,7 @@ public enum PresetAssociationState
 }
 
 /// <summary>
-/// Associe l'extension .rsr à RomStation Rebase, pour l'utilisateur courant seulement (HKCU\Software\Classes) :
+/// Associe l'extension .rsrgp à RomStation Rebase, pour l'utilisateur courant seulement (HKCU\Software\Classes) :
 /// aucun droit administrateur, aucune écriture hors de son profil. Geste explicite depuis les Paramètres,
 /// jamais silencieux : une application qui peut aussi se distribuer en ZIP n'écrit pas dans le registre sans qu'on le lui demande.
 /// </summary>
@@ -29,7 +29,28 @@ public static class FileAssociationService
 
     private static string Extension => RebasePresetService.Extension;
 
+    /// <summary>Extension associée pendant le développement de la 1.3.0 : son association vers RSR est retirée au passage.</summary>
+    private const string LegacyExtension = ".rsr";
+
+    /// <summary>Icône des présélections dans l'Explorateur, copiée à côté de l'exécutable.</summary>
+    public const string IconFileName = "rsr-preset.ico";
+
     private static string CommandFor(string exePath) => $"\"{exePath}\" \"%1\"";
+
+    /// <summary>L'icône de document à côté de l'exécutable, sinon celle de l'application.</summary>
+    internal static string IconFor(string exePath)
+    {
+        string? dir  = System.IO.Path.GetDirectoryName(exePath);
+        string  icon = dir is null ? string.Empty : System.IO.Path.Combine(dir, IconFileName);
+        return System.IO.File.Exists(icon) ? $"\"{icon}\"" : $"\"{exePath}\",0";
+    }
+
+    /// <summary>
+    /// La proposition d'association n'est faite qu'une fois, et seulement si rien n'est associé pour ce compte :
+    /// une autre copie de RSR déjà associée garde la main.
+    /// </summary>
+    public static bool ShouldOffer(bool alreadyOffered, PresetAssociationState state)
+        => !alreadyOffered && state == PresetAssociationState.None;
 
     public static PresetAssociationState GetState(string exePath)
     {
@@ -67,7 +88,7 @@ public static class FileAssociationService
         {
             progId.SetValue(string.Empty, friendlyTypeName);
             using (var icon = progId.CreateSubKey("DefaultIcon"))
-                icon.SetValue(string.Empty, $"\"{exePath}\",0");
+                icon.SetValue(string.Empty, IconFor(exePath));
             using var command = progId.CreateSubKey(@"shell\open\command");
             command.SetValue(string.Empty, CommandFor(exePath));
         }
@@ -118,12 +139,22 @@ public static class FileAssociationService
     private static void RemoveLegacy()
     {
         Registry.CurrentUser.DeleteSubKeyTree(Classes + LegacyProgId, throwOnMissingSubKey: false);
-        using var ext = Registry.CurrentUser.OpenSubKey(Classes + Extension, writable: true);
+        Detach(Extension, LegacyProgId);
+
+        // L'ancienne extension .rsr ne pointe plus vers RSR : un seul type de fichier, une seule association
+        Detach(LegacyExtension, LegacyProgId);
+        Detach(LegacyExtension, ProgId);
+    }
+
+    /// <summary>Retire un identifiant d'une extension, sans toucher à ce qu'un autre programme y aurait posé.</summary>
+    private static void Detach(string extension, string progId)
+    {
+        using var ext = Registry.CurrentUser.OpenSubKey(Classes + extension, writable: true);
         if (ext is null) return;
-        if (ext.GetValue(string.Empty) as string == LegacyProgId)
+        if (ext.GetValue(string.Empty) as string == progId)
             ext.DeleteValue(string.Empty, throwOnMissingValue: false);
         using var openWith = ext.OpenSubKey("OpenWithProgids", writable: true);
-        openWith?.DeleteValue(LegacyProgId, throwOnMissingValue: false);
+        openWith?.DeleteValue(progId, throwOnMissingValue: false);
     }
 
     /// <summary>Exécutable désigné par l'association de l'utilisateur, ou null. La commande a la forme "exe" "%1".</summary>

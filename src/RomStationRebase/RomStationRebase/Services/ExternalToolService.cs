@@ -1,3 +1,4 @@
+using RomStationRebase.Helpers;
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -285,7 +286,7 @@ public class ExternalToolService
     public static async Task<ExternalToolTestResult> TestAsync(ExternalTool tool, string executablePath, CancellationToken ct = default)
     {
         if (!File.Exists(executablePath))
-            return new ExternalToolTestResult(false, null, string.Format(Strings.Tools_Test_NotFound, executablePath));
+            return new ExternalToolTestResult(false, null, ErrorCodes.Tag(string.Format(Strings.Tools_Test_NotFound, executablePath), ErrorCodes.ToolExecutableMissing));
 
         try
         {
@@ -306,14 +307,14 @@ public class ExternalToolService
             }
 
             if (!string.IsNullOrWhiteSpace(tool.MinVersion) && version is not null && CompareVersions(version, tool.MinVersion) < 0)
-                return new ExternalToolTestResult(false, version, string.Format(Strings.Tools_Test_TooOld, version, tool.MinVersion));
+                return new ExternalToolTestResult(false, version, ErrorCodes.Tag(string.Format(Strings.Tools_Test_TooOld, version, tool.MinVersion), ErrorCodes.ToolTooOld));
 
             return new ExternalToolTestResult(true, version,
                 version is null ? Strings.Tools_Test_Answers : string.Format(Strings.Tools_Test_Version, version));
         }
         catch (OperationCanceledException)
         {
-            return new ExternalToolTestResult(false, null, Strings.Tools_Test_Timeout);
+            return new ExternalToolTestResult(false, null, ErrorCodes.Tag(Strings.Tools_Test_Timeout, ErrorCodes.ToolTestTimeout));
         }
         catch (ExternalToolException ex)
         {

@@ -24,16 +24,22 @@ public sealed class RebasePresetException(RebasePresetError error, string detail
 }
 
 /// <summary>
-/// Lit, écrit et rapproche les fichiers de sélection (*.rsr, contenu JSON). Sans dépendance à l'interface :
+/// Lit, écrit et rapproche les fichiers de sélection (*.rsrgp, contenu JSON). Sans dépendance à l'interface :
 /// le rapprochement travaille sur des <see cref="LibraryGameRef"/>, pour rester testable.
 /// </summary>
 public static class RebasePresetService
 {
-    /// <summary>Extension propre à RSR, pour pouvoir l'associer à l'application. Le contenu reste du JSON lisible.</summary>
-    public const string Extension = ".rsr";
+    /// <summary>
+    /// Extension propre à RSR (RomStation Rebase Game Preset), pour pouvoir l'associer à l'application.
+    /// Le contenu reste du JSON lisible.
+    /// </summary>
+    public const string Extension = ".rsrgp";
 
-    /// <summary>Extension des premiers fichiers de sélection, toujours acceptée à l'ouverture.</summary>
-    public const string LegacyExtension = ".rsr.json";
+    /// <summary>Extensions des fichiers écrits pendant le développement de la 1.3.0, toujours acceptées à l'ouverture.</summary>
+    public static readonly IReadOnlyList<string> LegacyExtensions = [".rsr.json", ".rsr"];
+
+    /// <summary>Motif d'un sélecteur de fichiers : « *.rsrgp;*.rsr.json;*.rsr ».</summary>
+    public static string FilterPattern => string.Join(";", new[] { Extension }.Concat(LegacyExtensions).Select(e => "*" + e));
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -98,21 +104,20 @@ public static class RebasePresetService
         return JsonSerializer.Serialize(file, JsonOpts);
     }
 
-    /// <summary>Pose l'extension .rsr si le nom saisi ne la porte pas déjà. Un ".json" ou un ancien ".rsr.json" est remplacé, jamais doublé.</summary>
+    /// <summary>Pose l'extension .rsrgp si le nom saisi ne la porte pas déjà. Un ".json" ou une ancienne extension est remplacé, jamais doublé.</summary>
     public static string EnsureExtension(string path)
     {
         if (path.EndsWith(Extension, StringComparison.OrdinalIgnoreCase)) return path;
-        if (path.EndsWith(LegacyExtension, StringComparison.OrdinalIgnoreCase))
-            return path[..^LegacyExtension.Length] + Extension;
-        if (path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-            return path[..^".json".Length] + Extension;
+        foreach (string old in LegacyExtensions.Append(".json"))
+            if (path.EndsWith(old, StringComparison.OrdinalIgnoreCase))
+                return path[..^old.Length] + Extension;
         return path + Extension;
     }
 
-    /// <summary>True si le fichier porte l'extension des sélections, actuelle ou ancienne.</summary>
+    /// <summary>True si le fichier porte l'extension des présélections, actuelle ou ancienne.</summary>
     public static bool HasPresetExtension(string path)
         => path.EndsWith(Extension, StringComparison.OrdinalIgnoreCase)
-        || path.EndsWith(LegacyExtension, StringComparison.OrdinalIgnoreCase);
+        || LegacyExtensions.Any(old => path.EndsWith(old, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Rapproche les jeux du fichier de ceux de la bibliothèque : par identifiant RomStation d'abord,

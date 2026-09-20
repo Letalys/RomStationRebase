@@ -1,3 +1,4 @@
+using System.IO;
 using RomStationRebase.Models;
 using RomStationRebase.ViewModels;
 using Xunit;
@@ -58,5 +59,27 @@ public class ArchitectureDraftTests
         var draft = NewDraft();
         draft.AllSystems = ["Playstation", "PSP"];
         Assert.False(draft.IsDirty);
+    }
+
+    [Fact]
+    public void Default_architectures_never_pair_a_playlist_with_zipped_discs()
+    {
+        string dir = Path.Combine(AppContext.BaseDirectory, "config", "architectures");
+        var broken = new List<string>();
+        foreach (string file in Directory.GetFiles(dir, "*_default.json"))
+        {
+            var mapping = System.Text.Json.JsonSerializer.Deserialize<FolderTreeMapping>(File.ReadAllText(file),
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            foreach (var m in mapping.FolderTreeMappings)
+            {
+                // Un M3U qui liste des .zip ne se charge sur aucun émulateur : M3U implique extraction
+                if (m.M3U && !m.Extract && !m.KeepFileName)
+                    broken.Add($"{Path.GetFileName(file)} : {m.RomStationSystem}");
+                // Un CUE et son BIN dans un zip ne se chargent pas : la Playstation est toujours extraite
+                if (m.RomStationSystem == "Playstation" && !m.Extract)
+                    broken.Add($"{Path.GetFileName(file)} : Playstation non extraite");
+            }
+        }
+        Assert.True(broken.Count == 0, string.Join("\n", broken));
     }
 }

@@ -255,44 +255,8 @@
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,0,0,12"/>
 
-                        <!-- Version + statut MAJ sur la même ligne -->
-                        <Grid Grid.Row="17" Grid.ColumnSpan="2" Margin="0,0,0,4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="{Binding AppVersionText}"
-                                       FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                       VerticalAlignment="Center"/>
-                            <!-- Statut cliquable : mise à jour disponible -->
-                            <Button Grid.Column="1"
-                                    Style="{StaticResource LinkButton}"
-                                    Visibility="{Binding IsUpdateStatusClickable, Converter={StaticResource BoolToVisibility}}"
-                                    Command="{Binding OpenUpdateLinkCommand}"
-                                    Content="{Binding UpdateStatusText}"
-                                    FontSize="11" FontStyle="Italic"
-                                    Margin="8,0,0,0"
-                                    HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                            <!-- Statut non cliquable : erreur ou à jour après check manuel -->
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding UpdateStatusText}"
-                                       Visibility="{Binding IsUpdateStatusNonClickableVisible, Converter={StaticResource BoolToVisibility}}"
-                                       FontSize="11" Margin="8,0,0,0"
-                                       VerticalAlignment="Center">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsUpdateStatusError}" Value="True">
-                                                <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </Grid>
+                        <!-- La version et l'état des mises à jour sont dans le pied de la fenêtre, toujours visible :
+                             ici, en bas d'un contenu qui défile, on oubliait de les regarder -->
 
                         <!-- Dernière vérification — visible uniquement si un check a déjà eu lieu -->
                         <TextBlock Grid.Row="18" Grid.ColumnSpan="2"
@@ -359,6 +323,38 @@
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,1,0,0"
                         Padding="16,10">
+                    <Grid>
+                    <!-- Version + état des mises à jour, visibles quelle que soit la taille de la fenêtre -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding AppVersionText}"
+                                   FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"/>
+                        <!-- Statut cliquable : mise à jour disponible -->
+                        <Button Style="{StaticResource LinkButton}"
+                                Visibility="{Binding IsUpdateStatusClickable, Converter={StaticResource BoolToVisibility}}"
+                                Command="{Binding OpenUpdateLinkCommand}"
+                                Content="{Binding UpdateStatusText}"
+                                FontSize="12"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"/>
+                        <!-- Statut non cliquable : erreur ou à jour après check manuel -->
+                        <TextBlock Text="{Binding UpdateStatusText}"
+                                   Visibility="{Binding IsUpdateStatusNonClickableVisible, Converter={StaticResource BoolToVisibility}}"
+                                   FontSize="12" Margin="10,0,0,0"
+                                   VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsUpdateStatusError}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Right">
                         <Button Content="{x:Static res:Strings.Settings_Cancel}"
@@ -371,6 +367,7 @@
                                 Command="{Binding SaveCommand}"
                                 CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
                     </StackPanel>
+                    </Grid>
                 </Border>
     </Grid>
 </Window>

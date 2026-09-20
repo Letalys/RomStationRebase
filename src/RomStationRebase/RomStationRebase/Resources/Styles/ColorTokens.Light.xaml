@@ -22,6 +22,9 @@
     <SolidColorBrush x:Key="SuccessBrush"   Color="#2EB67D"/>
     <SolidColorBrush x:Key="WarningBrush"   Color="#F5A623"/>
     <SolidColorBrush x:Key="ErrorBrush"     Color="#E24B4A"/>
+    <!-- Fond des lignes du journal de rebase -->
+    <SolidColorBrush x:Key="LogWarningRowBrush" Color="#FFF4CE"/>
+    <SolidColorBrush x:Key="LogErrorRowBrush"   Color="#FDE7E9"/>
     <SolidColorBrush x:Key="ErrorTextBrush" Color="#CC3333"/>
 
     <!-- ══════════════════════════════════════════════════════════════════

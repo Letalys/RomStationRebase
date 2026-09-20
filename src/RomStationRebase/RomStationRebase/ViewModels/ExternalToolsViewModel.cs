@@ -1,3 +1,4 @@
+using RomStationRebase.Helpers;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -229,7 +230,7 @@ public class ExternalToolsViewModel : ViewModelBase
             try { _service.Delete(draft.Id); Saved = true; }
             catch (Exception ex)
             {
-                ShowConfirm(Strings.ArchEditor_Error_Title, string.Format(Strings.ArchEditor_Error_Write, draft.DisplayName, ex.Message), "OK");
+                ShowConfirm(Strings.ArchEditor_Error_Title, ErrorCodes.Tag(string.Format(Strings.ArchEditor_Error_Write, draft.DisplayName, ex.Message), ErrorCodes.ToolWriteFailed), "OK");
                 return;
             }
         }
@@ -250,7 +251,7 @@ public class ExternalToolsViewModel : ViewModelBase
         try { _service.RestoreDefaults(); Saved = true; }
         catch (Exception ex)
         {
-            ShowConfirm(Strings.ArchEditor_Error_Title, string.Format(Strings.ArchEditor_Error_Write, Strings.Tools_Restore, ex.Message), "OK");
+            ShowConfirm(Strings.ArchEditor_Error_Title, ErrorCodes.Tag(string.Format(Strings.ArchEditor_Error_Write, Strings.Tools_Restore, ex.Message), ErrorCodes.ToolWriteFailed), "OK");
             return;
         }
         Load(_selected?.Id);
@@ -335,7 +336,7 @@ public class ExternalToolsViewModel : ViewModelBase
             catch (Exception ex)
             {
                 ShowConfirm(Strings.ArchEditor_Validation_Title,
-                    string.Format(Strings.ArchEditor_Error_Write, draft.DisplayName, ex.Message), "OK");
+                    ErrorCodes.Tag(string.Format(Strings.ArchEditor_Error_Write, draft.DisplayName, ex.Message), ErrorCodes.ToolWriteFailed), "OK");
                 return;
             }
         }

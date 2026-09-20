@@ -475,7 +475,7 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"
                                Margin="6,0,0,0"/>
-                    <!-- Présélection chargée : « — tests.rsr • » -->
+                    <!-- Présélection chargée : « — tests.rsrgp • » -->
                     <TextBlock Text="{Binding PresetTitleSuffix}"
                                FontSize="12"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -535,7 +535,7 @@
                 </StackPanel>
 
                 <!-- ═══ Zone Présélection : ce qui est chargé, et tout ce qu'on peut en faire, au même endroit ═══
-                     Un fichier de présélection (.rsr) retient les jeux cochés et les paramètres du rebase.
+                     Un fichier de présélection (.rsrgp) retient les jeux cochés et les paramètres du rebase.
                      L'étiquette nomme le concept, le nom dit l'état, les boutons sont collés à ce qu'ils concernent. -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <StackPanel VerticalAlignment="Center" Margin="0,0,14,0" MinWidth="110" MaxWidth="300"

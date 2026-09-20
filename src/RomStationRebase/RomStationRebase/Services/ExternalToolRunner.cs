@@ -8,7 +8,12 @@ using RomStationRebase.Resources;
 namespace RomStationRebase.Services;
 
 /// <summary>Échec d'un outil externe : code de sortie inattendu, blocage, exécutable introuvable. Porte les dernières lignes de sa sortie.</summary>
-public sealed class ExternalToolException(string message, Exception? inner = null) : Exception(message, inner);
+public sealed class ExternalToolException(string code, string message, Exception? inner = null)
+    : Exception(Helpers.ErrorCodes.Tag(message, code), inner)
+{
+    /// <summary>Code d'erreur de la famille 4xxx, voir <see cref="Helpers.ErrorCodes"/>.</summary>
+    public string Code { get; } = code;
+}
 
 /// <summary>
 /// Lance un outil externe et le pilote de bout en bout : progression lue dans sa sortie, annulation par arrêt de
@@ -34,22 +39,24 @@ public static class ExternalToolRunner
     /// Lève <see cref="ExternalToolException"/> en cas d'échec, <see cref="OperationCanceledException"/> en cas d'annulation ;
     /// dans les deux cas le fichier de sortie partiel est supprimé.
     /// </summary>
+    /// <param name="onOutput">Reçoit la ligne de commande, puis chaque ligne écrite par l'outil hors progression. Sert au journal du rebase.</param>
     public static async Task ConvertAsync(ExternalTool tool, string executablePath, string input, string output,
-        IProgress<double>? percent, CancellationToken ct)
+        IProgress<double>? percent, CancellationToken ct, Action<string>? onOutput = null)
     {
         int threads = Math.Max(1, Environment.ProcessorCount);
         var args = tool.Arguments.Select(a => Expand(a, input, output, threads)).ToList();
+        onOutput?.Invoke("\"" + executablePath + "\" " + string.Join(" ", args.Select(a => a.Contains(' ') ? "\"" + a + "\"" : a)));
 
         try
         {
             var result = await RunAsync(executablePath, args, Path.GetDirectoryName(input),
-                tool.ProgressStream, tool.ProgressRegex, percent, tool.StallTimeoutSeconds, ct).ConfigureAwait(false);
+                tool.ProgressStream, tool.ProgressRegex, percent, tool.StallTimeoutSeconds, ct, onOutput).ConfigureAwait(false);
 
             if (!tool.SuccessExitCodes.Contains(result.ExitCode))
-                throw new ExternalToolException(string.Format(Strings.Tools_Error_ExitCode, tool.Executable, result.ExitCode, result.Tail).Trim());
+                throw new ExternalToolException(Helpers.ErrorCodes.ToolExitCode, string.Format(Strings.Tools_Error_ExitCode, tool.Executable, result.ExitCode, result.Tail).Trim());
 
             if (!File.Exists(output) || new FileInfo(output).Length == 0)
-                throw new ExternalToolException(string.Format(Strings.Tools_Error_NoOutput, tool.Executable, result.Tail).Trim());
+                throw new ExternalToolException(Helpers.ErrorCodes.ToolNoOutput, string.Format(Strings.Tools_Error_NoOutput, tool.Executable, result.Tail).Trim());
         }
         catch
         {
@@ -64,10 +71,11 @@ public static class ExternalToolRunner
 
     /// <summary>Exécute un programme et rend son code de sortie et sa sortie complète. Sert aussi au bouton Tester.</summary>
     public static async Task<RunResult> RunAsync(string executablePath, IReadOnlyList<string> arguments, string? workingDirectory,
-        string progressStream, string? progressRegex, IProgress<double>? percent, int stallTimeoutSeconds, CancellationToken ct)
+        string progressStream, string? progressRegex, IProgress<double>? percent, int stallTimeoutSeconds, CancellationToken ct,
+        Action<string>? onOutput = null)
     {
         if (!File.Exists(executablePath))
-            throw new ExternalToolException(string.Format(Strings.Tools_Test_NotFound, executablePath));
+            throw new ExternalToolException(Helpers.ErrorCodes.ToolExecutableMissing, string.Format(Strings.Tools_Test_NotFound, executablePath));
 
         var psi = new ProcessStartInfo
         {
@@ -97,7 +105,7 @@ public static class ExternalToolRunner
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
-            throw new ExternalToolException(string.Format(Strings.Tools_Error_Launch, Path.GetFileName(executablePath), ex.Message), ex);
+            throw new ExternalToolException(Helpers.ErrorCodes.ToolLaunchFailed, string.Format(Strings.Tools_Error_Launch, Path.GetFileName(executablePath), ex.Message), ex);
         }
 
         var all       = new StringBuilder();
@@ -115,16 +123,22 @@ public static class ExternalToolRunner
                 tail.Enqueue(line);
                 while (tail.Count > TailLines) tail.Dequeue();
             }
-            if (!watched || regex is null || percent is null) return;
-            try
+            bool isProgress = false;
+            if (watched && regex is not null)
             {
-                var m = regex.Match(line);
-                if (m.Success && m.Groups.Count > 1
-                    && double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Float,
-                                       System.Globalization.CultureInfo.InvariantCulture, out double p))
-                    percent.Report(Math.Clamp(p, 0, 100));
+                try
+                {
+                    var m = regex.Match(line);
+                    isProgress = m.Success;
+                    if (m.Success && percent is not null && m.Groups.Count > 1
+                        && double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Float,
+                                           System.Globalization.CultureInfo.InvariantCulture, out double p))
+                        percent.Report(Math.Clamp(p, 0, 100));
+                }
+                catch (RegexMatchTimeoutException) { /* ligne pathologique : ignorée */ }
             }
-            catch (RegexMatchTimeoutException) { /* ligne pathologique : ignorée */ }
+            // Les lignes de progression se comptent par centaines : le journal ne reçoit que le reste
+            if (!isProgress) onOutput?.Invoke(line);
         }
 
         bool watchOut = progressStream is "stdout" or "both";
@@ -167,7 +181,7 @@ public static class ExternalToolRunner
         }
 
         if (stalled)
-            throw new ExternalToolException(
+            throw new ExternalToolException(Helpers.ErrorCodes.ToolStalled,
                 string.Format(Strings.Tools_Error_Stalled, Path.GetFileName(executablePath), stallTimeoutSeconds, tailText).Trim());
 
         return new RunResult(process.ExitCode, outputText, tailText);

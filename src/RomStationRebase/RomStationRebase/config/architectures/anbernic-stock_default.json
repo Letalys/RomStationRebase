@@ -1,6 +1,6 @@
 {
   "folderTreeMappings": [
-    { "romStationSystem": "Playstation",     "targetFolder": "PS"     },
+    { "romStationSystem": "Playstation",     "targetFolder": "PS",     "extract": true },
     { "romStationSystem": "Nintendo DS",     "targetFolder": "NDS"    },
     { "romStationSystem": "GameBoy Advance", "targetFolder": "GBA"    },
     { "romStationSystem": "Megadrive",       "targetFolder": "MD"     },

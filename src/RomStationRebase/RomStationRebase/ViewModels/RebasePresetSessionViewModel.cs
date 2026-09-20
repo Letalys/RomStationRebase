@@ -148,6 +148,12 @@ public sealed class RebasePresetSessionViewModel : ViewModelBase
     /// <summary>Déclenché après un enregistrement ou une ouverture réussis, avec le dossier à mémoriser.</summary>
     public event Action<string>? DirectoryUsed;
 
+    /// <summary>
+    /// Une présélection vient d'être enregistrée à la demande de l'utilisateur, depuis la fenêtre donnée.
+    /// Pas levé quand l'enregistrement accompagne une sortie (fermeture, ouverture d'un autre fichier).
+    /// </summary>
+    public event Action<System.Windows.Window?>? SavedByUser;
+
     internal void NotifyDirectoryUsed(string filePath)
     {
         string? dir = Path.GetDirectoryName(filePath);
@@ -160,7 +166,7 @@ public sealed class RebasePresetSessionViewModel : ViewModelBase
     /// Enregistre dans le fichier courant, ou demande un nom s'il n'y en a pas ou si « Enregistrer sous » est demandé.
     /// Commun aux deux fenêtres. Retourne false si l'utilisateur renonce ou si l'écriture échoue (il en est alors averti).
     /// </summary>
-    public bool SaveInteractive(System.Windows.Window? owner, bool saveAs)
+    public bool SaveInteractive(System.Windows.Window? owner, bool saveAs, bool announce = true)
     {
         string? path = !saveAs && HasFile ? FilePath : AskSavePath(owner);
         if (path is null) return false;
@@ -169,13 +175,14 @@ public sealed class RebasePresetSessionViewModel : ViewModelBase
         {
             SaveTo(path);
             NotifyDirectoryUsed(path);
+            if (announce) SavedByUser?.Invoke(owner);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {
             new Views.Dialogs.ConfirmDialog(
                 Resources.Strings.Preset_SaveError_Title,
-                string.Format(Resources.Strings.Preset_SaveError_Message, path, ex.Message),
+                Helpers.ErrorCodes.Tag(string.Format(Resources.Strings.Preset_SaveError_Message, path, ex.Message), Helpers.ErrorCodes.PresetSaveFailed),
                 "OK") { Owner = owner }.ShowDialog();
             return false;
         }
@@ -215,7 +222,7 @@ public sealed class RebasePresetSessionViewModel : ViewModelBase
 
     /// <summary>Filtre commun aux boîtes Ouvrir et Enregistrer.</summary>
     public static string FileDialogFilter
-        => $"{Resources.Strings.Preset_FileFilter} (*{RebasePresetService.Extension})|*{RebasePresetService.Extension};*{RebasePresetService.LegacyExtension}|{Resources.Strings.Preset_FileFilter_All} (*.*)|*.*";
+        => $"{Resources.Strings.Preset_FileFilter} (*{RebasePresetService.Extension})|{RebasePresetService.FilterPattern}|{Resources.Strings.Preset_FileFilter_All} (*.*)|*.*";
 
     private void MarkSaved()
     {

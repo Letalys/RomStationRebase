@@ -187,6 +187,9 @@ public partial class MainWindow : Window
         {
             // Ne pas bloquer la fermeture si la sauvegarde échoue
         }
+
+        // Fenêtre indépendante : elle garderait l'application ouverte après la fermeture de celle-ci
+        Dialogs.RebaseLogWindow.CloseIfOpen();
         base.OnClosing(e);
     }
 

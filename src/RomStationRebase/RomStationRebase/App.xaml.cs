@@ -1,3 +1,4 @@
+using RomStationRebase.Helpers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
@@ -59,7 +60,7 @@ public partial class App : Application
         _channel = new SingleInstanceChannel();
         _channel.Start(OnRemoteRequest);
 
-        // L'utilisateur a associé les .rsr à RSR, puis déplacé son dossier : le double-clic doit continuer de marcher
+        // L'utilisateur a associé les .rsrgp à RSR, puis déplacé son dossier : le double-clic doit continuer de marcher
         if (Environment.ProcessPath is { } exe)
             FileAssociationService.RepairIfMoved(exe, Strings.Preset_FileFilter);
 
@@ -173,11 +174,39 @@ public partial class App : Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         e.Handled = true;
+
+        // Une erreur de mise en page se reproduit à chaque passe : le dialogue d'erreur pompe les messages,
+        // l'erreur revient, un autre dialogue s'ouvre par-dessus, et la pile finit par déborder. Un seul dialogue ;
+        // si l'erreur tourne en boucle au point de figer l'interface, l'application s'arrête d'elle-même.
+        if (_fatalErrorCount++ > 0)
+        {
+            if (_fatalErrorCount > 200) Environment.Exit(1);
+            return;
+        }
+
         string msg = FormatException(e.Exception);
         Debug.WriteLine($"[App] DispatcherUnhandledException:\n{msg}");
+        WriteCrashReport(ErrorCodes.UnhandledUi + Environment.NewLine + msg);
 
-        ShowErrorDialog("Unhandled Error", msg);
+        ShowErrorDialog("Unhandled Error [" + ErrorCodes.UnhandledUi + "]", msg);
         Shutdown(1);
+    }
+
+    private int _fatalErrorCount;
+
+    /// <summary>Garde le détail de l'erreur à côté des journaux de rebase : le dialogue peut ne jamais pouvoir s'afficher.</summary>
+    private static void WriteCrashReport(string message)
+    {
+        try
+        {
+            string dir = RebaseLogWriter.LogDirectory;
+            System.IO.Directory.CreateDirectory(dir);
+            System.IO.File.WriteAllText(System.IO.Path.Combine(dir, $"RSR_crash_{DateTime.Now:yyyyMMdd_HHmmss}.txt"), message);
+        }
+        catch
+        {
+            // Rien de plus à faire dans un gestionnaire d'erreur fatale
+        }
     }
 
     /// <summary>
@@ -190,7 +219,7 @@ public partial class App : Application
         string msg = FormatException(e.Exception);
         Debug.WriteLine($"[App] UnobservedTaskException:\n{msg}");
 
-        Dispatcher.Invoke(() => ShowErrorDialog("Unhandled Task Error", msg));
+        Dispatcher.Invoke(() => ShowErrorDialog("Unhandled Task Error [" + ErrorCodes.UnhandledTask + "]", msg));
     }
 
     /// <summary>
@@ -205,7 +234,8 @@ public partial class App : Application
 
         try
         {
-            Dispatcher.Invoke(() => ShowErrorDialog("Fatal Error", msg));
+            WriteCrashReport(ErrorCodes.UnhandledFatal + Environment.NewLine + msg);
+            Dispatcher.Invoke(() => ShowErrorDialog("Fatal Error [" + ErrorCodes.UnhandledFatal + "]", msg));
         }
         catch
         {
@@ -296,7 +326,7 @@ public partial class App : Application
             {
                 var dlg = new ConfirmDialog(
                     Strings.Splash_UnexpectedError_Title,
-                    string.Format(Strings.Splash_UnexpectedError_Message, detail),
+                    ErrorCodes.Tag(string.Format(Strings.Splash_UnexpectedError_Message, detail), ErrorCodes.StartupFailed),
                     Strings.Splash_UnexpectedError_Quit)
                 { Owner = splash };
                 dlg.ShowDialog();
@@ -317,7 +347,7 @@ public partial class App : Application
                 {
                     var dlg = new ConfirmDialog(
                         Strings.Splash_DBCorrupted_Title,
-                        Strings.Splash_DBCorrupted,
+                        ErrorCodes.Tag(Strings.Splash_DBCorrupted, ErrorCodes.DatabaseIncomplete),
                         Strings.Splash_RSNotFound_Quit)
                     { Owner = splash };
                     dlg.ShowDialog();
@@ -331,7 +361,7 @@ public partial class App : Application
                 {
                     var dlg = new ConfirmDialog(
                         Strings.Splash_DBNotInitialized_Title,
-                        Strings.Splash_DBNotInitialized_Message,
+                        ErrorCodes.Tag(Strings.Splash_DBNotInitialized_Message, ErrorCodes.DatabaseNotInitialized),
                         Strings.Splash_DBNotInitialized_Quit)
                     { Owner = splash };
                     dlg.ShowDialog();
@@ -345,7 +375,7 @@ public partial class App : Application
                 {
                     var dlg = new ConfirmDialog(
                         Strings.Splash_UnexpectedError_Title,
-                        string.Format(Strings.Splash_UnexpectedError_Message, string.Empty),
+                        ErrorCodes.Tag(string.Format(Strings.Splash_UnexpectedError_Message, string.Empty), ErrorCodes.StartupFailed),
                         Strings.Splash_UnexpectedError_Quit)
                     { Owner = splash };
                     dlg.ShowDialog();
@@ -395,7 +425,7 @@ public partial class App : Application
             {
                 var dlg = new ConfirmDialog(
                     Strings.Splash_UnexpectedError_Title,
-                    string.Format(Strings.Splash_UnexpectedError_Message, detail),
+                    ErrorCodes.Tag(string.Format(Strings.Splash_UnexpectedError_Message, detail), ErrorCodes.LibraryLoadFailed),
                     Strings.Splash_UnexpectedError_Quit);
                 dlg.ShowDialog();
                 Shutdown(1);

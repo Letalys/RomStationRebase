@@ -1,6 +1,6 @@
 {
   "folderTreeMappings": [
-    { "romStationSystem": "Playstation",     "targetFolder": "psx",          "m3u": true },
+    { "romStationSystem": "Playstation",     "targetFolder": "psx",          "m3u": true,  "extract": true },
     { "romStationSystem": "Playstation 2",   "targetFolder": "ps2",          "m3u": true,  "extract": true },
     { "romStationSystem": "Playstation 3",   "targetFolder": "ps3",          "extract": true },
     { "romStationSystem": "PSP",             "targetFolder": "psp",          "extract": true },

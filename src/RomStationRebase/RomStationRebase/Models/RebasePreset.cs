@@ -1,7 +1,7 @@
 namespace RomStationRebase.Models;
 
 /// <summary>
-/// Fichier de sélection (*.rsr, contenu JSON) : les jeux cochés et les paramètres du rebase, pour retrouver
+/// Fichier de sélection (*.rsrgp, contenu JSON) : les jeux cochés et les paramètres du rebase, pour retrouver
 /// une configuration de travail sans tout recocher. Lisible et modifiable à la main.
 /// </summary>
 public sealed class RebasePreset

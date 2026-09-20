@@ -42,8 +42,13 @@ public class SettingsViewModel : ViewModelBase
     /// <summary>Tous les systèmes RomStation de la base — proposés dans la colonne Système de l'éditeur d'architectures.</summary>
     public IReadOnlyList<string> SystemNames { get; }
 
-    public SettingsViewModel(UserPreferences preferences, IReadOnlyList<string>? systemNames = null)
+    /// <summary>Icône de chaque console, par nom de système — transmise à l'éditeur d'architectures.</summary>
+    public IReadOnlyDictionary<string, string> SystemIcons { get; }
+
+    public SettingsViewModel(UserPreferences preferences, IReadOnlyList<string>? systemNames = null,
+                             IReadOnlyDictionary<string, string>? systemIcons = null)
     {
+        SystemIcons    = systemIcons ?? new Dictionary<string, string>();
         _originalPrefs = preferences;
         SystemNames    = systemNames ?? [];
 
@@ -214,10 +219,10 @@ public class SettingsViewModel : ViewModelBase
 
     public ICommand EditToolsCommand            { get; }
 
-    // ── Association des présélections (.rsr) ── ──────────────────────────
+    // ── Association des présélections (.rsrgp) ── ──────────────────────────
     // Effet immédiat, comme les boutons « Ouvrir le dossier » : ce n'est pas une préférence soumise à Enregistrer / Annuler.
 
-    /// <summary>Associe les .rsr à cette copie de RSR, ou retire l'association si elle la désigne déjà.</summary>
+    /// <summary>Associe les .rsrgp à cette copie de RSR, ou retire l'association si elle la désigne déjà.</summary>
     public ICommand TogglePresetAssociationCommand { get; }
 
     private PresetAssociationState AssociationState
@@ -252,7 +257,7 @@ public class SettingsViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            _associationError = string.Format(Strings.Settings_Presets_Error, ex.Message);
+            _associationError = Helpers.ErrorCodes.Tag(string.Format(Strings.Settings_Presets_Error, ex.Message), Helpers.ErrorCodes.PresetAssociationFailed);
         }
         OnPropertyChanged(nameof(PresetAssociationButtonText));
         OnPropertyChanged(nameof(PresetAssociationStatus));
