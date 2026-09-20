@@ -1,0 +1,29 @@
+{
+  "folderTreeMappings": [
+    { "romStationSystem": "Playstation",     "targetFolder": "psx",          "m3u": true,  "extract": true },
+    { "romStationSystem": "PSP",             "targetFolder": "psp",          "extract": true },
+    { "romStationSystem": "Nintendo DS",     "targetFolder": "nds"          },
+    { "romStationSystem": "Nintendo 64",     "targetFolder": "n64"          },
+    { "romStationSystem": "GameBoy",         "targetFolder": "gb"           },
+    { "romStationSystem": "GameBoy Color",   "targetFolder": "gbc"          },
+    { "romStationSystem": "GameBoy Advance", "targetFolder": "gba"          },
+    { "romStationSystem": "GameCube",        "targetFolder": "gc",           "m3u": true,  "extract": true },
+    { "romStationSystem": "NES",             "targetFolder": "nes"          },
+    { "romStationSystem": "Super Nintendo",  "targetFolder": "snes"         },
+    { "romStationSystem": "Megadrive",       "targetFolder": "megadrive"    },
+    { "romStationSystem": "Mega-CD",         "targetFolder": "segacd",       "m3u": true,  "extract": true },
+    { "romStationSystem": "Saturn",          "targetFolder": "saturn",       "m3u": true,  "extract": true },
+    { "romStationSystem": "32X",             "targetFolder": "sega32x"      },
+    { "romStationSystem": "Game Gear",       "targetFolder": "gamegear"     },
+    { "romStationSystem": "Master System",   "targetFolder": "mastersystem" },
+    { "romStationSystem": "Neo-Geo",         "targetFolder": "neogeo",       "keepFileName": true },
+    { "romStationSystem": "Neo-Geo CD",      "targetFolder": "neogeocd",     "m3u": true,  "extract": true },
+    { "romStationSystem": "Arcade",          "targetFolder": "arcade",       "keepFileName": true },
+    { "romStationSystem": "Dreamcast",       "targetFolder": "dreamcast",    "m3u": true,  "extract": true },
+    { "romStationSystem": "PC Engine",       "targetFolder": "pcengine"     },
+    { "romStationSystem": "PC Engine CD",    "targetFolder": "pcenginecd",   "m3u": true,  "extract": true },
+    { "romStationSystem": "DOS",             "targetFolder": "dos"          },
+    { "romStationSystem": "Naomi",           "targetFolder": "naomi",        "keepFileName": true },
+    { "romStationSystem": "Atomiswave",      "targetFolder": "atomiswave",   "keepFileName": true }
+  ]
+}

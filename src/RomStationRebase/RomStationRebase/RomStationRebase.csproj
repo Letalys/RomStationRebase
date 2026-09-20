@@ -39,6 +39,11 @@
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
+  <!-- Le projet de tests accède aux helpers internes (planificateur, rédacteurs) -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="RomStationRebase.Tests" />
+  </ItemGroup>
+
   <!-- IKVM : pont Java→.NET pour accéder à la base Derby de RomStation -->
   <ItemGroup>
     <PackageReference Include="IKVM" Version="8.15.0" />
@@ -59,7 +64,14 @@
 
   <!-- Fichiers de configuration des architectures — copiés dans le répertoire de sortie -->
   <ItemGroup>
+    <Content Include="Resources\Images\rsr-preset.ico" Link="rsr-preset.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="config\architectures\*.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <!-- Outils externes de conversion par défaut — copiés dans le dossier utilisateur au premier lancement -->
+    <Content Include="config\tools\*.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="config\window-defaults.json">

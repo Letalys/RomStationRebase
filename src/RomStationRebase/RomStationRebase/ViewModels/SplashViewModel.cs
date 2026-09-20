@@ -138,7 +138,7 @@ public class SplashViewModel : ViewModelBase
         {
             var dlg = new ConfirmDialog(
                 "Corrupted configuration",
-                string.Format(Strings.Splash_ConfigCorrupted_State, ex.Detail),
+                ErrorCodes.Tag(string.Format(Strings.Splash_ConfigCorrupted_State, ex.Detail), ErrorCodes.AppStateCorrupted),
                 "Continue", "Quit");
             dlg.ShowDialog();
             if (!dlg.Result)
@@ -159,7 +159,7 @@ public class SplashViewModel : ViewModelBase
         {
             var dlg = new ConfirmDialog(
                 "Corrupted preferences",
-                string.Format(Strings.Splash_ConfigCorrupted_Prefs, ex.Detail),
+                ErrorCodes.Tag(string.Format(Strings.Splash_ConfigCorrupted_Prefs, ex.Detail), ErrorCodes.PreferencesCorrupted),
                 "Reset", "Quit");
             dlg.ShowDialog();
             if (!dlg.Result)
@@ -248,7 +248,7 @@ public class SplashViewModel : ViewModelBase
 
         if (!copyOk)
         {
-            Fail(4, Strings.Splash_DBLocked);
+            Fail(4, ErrorCodes.Tag(Strings.Splash_DBLocked, ErrorCodes.DatabaseLocked));
             return StartupResult.Failed;
         }
 
@@ -325,7 +325,7 @@ public class SplashViewModel : ViewModelBase
 
         // ── Phase 3 : boucle interactive ─────────────────────────────────────
         string dialogTitle   = Strings.Splash_RSNotFound_Title;
-        string dialogMessage = Strings.Splash_RSNotFound_Message;
+        string dialogMessage = ErrorCodes.Tag(Strings.Splash_RSNotFound_Message, ErrorCodes.RomStationNotFound);
 
         while (true)
         {

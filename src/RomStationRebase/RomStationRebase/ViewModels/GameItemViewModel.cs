@@ -14,6 +14,9 @@ public class GameItemViewModel : ViewModelBase
     /// <summary>Identifiant Derby du jeu.</summary>
     public int Id { get; }
 
+    /// <summary>Identifiant RomStation du jeu (colonne RID), suffixe du dossier du jeu.</summary>
+    public int Rid { get; }
+
     /// <summary>Titre du jeu.</summary>
     public string Title { get; }
 
@@ -73,6 +76,7 @@ public class GameItemViewModel : ViewModelBase
     // ── Constructeur ──────────────────────────────────────────────────────
 
     /// <param name="id">Identifiant Derby.</param>
+    /// <param name="rid">Identifiant RomStation (colonne RID).</param>
     /// <param name="title">Titre du jeu.</param>
     /// <param name="systemName">Nom du système.</param>
     /// <param name="systemImagePath">Chemin de l'image système.</param>
@@ -85,12 +89,13 @@ public class GameItemViewModel : ViewModelBase
     /// <param name="isExported">Déjà exporté.</param>
     /// <param name="onSelectionChanged">Callback appelé quand IsSelected change.</param>
     public GameItemViewModel(
-        int id, string title, string systemName, string? systemImagePath,
+        int id, int rid, string title, string systemName, string? systemImagePath,
         string? coverPath, bool coverExists, bool fileExists,
         int fileCount, string gameDirectory, bool isSelected, bool isExported,
         Action onSelectionChanged)
     {
         Id              = id;
+        Rid             = rid;
         Title           = title;
         SystemName      = systemName;
         SystemImagePath = systemImagePath;

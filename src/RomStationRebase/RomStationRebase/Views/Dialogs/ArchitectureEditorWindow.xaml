@@ -1,0 +1,789 @@
+<Window x:Class="RomStationRebase.Views.Dialogs.ArchitectureEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:res="clr-namespace:RomStationRebase.Resources"
+        xmlns:vm="clr-namespace:RomStationRebase.ViewModels"
+        xmlns:helpers="clr-namespace:RomStationRebase.Helpers"
+        xmlns:models="clr-namespace:RomStationRebase.Models"
+        mc:Ignorable="d"
+        Title="{x:Static res:Strings.ArchEditor_Title}"
+        Icon="/Resources/Images/rsr-logo.ico"
+        Height="720" Width="1000"
+        MinHeight="600" MinWidth="900"
+        WindowStyle="None" AllowsTransparency="False"
+        ResizeMode="CanResizeWithGrip"
+        Background="{DynamicResource BackgroundBrush}"
+        ShowInTaskbar="False"
+        d:DataContext="{d:DesignInstance Type=vm:ArchitectureEditorViewModel, IsDesignTimeCreatable=False}">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter            x:Key="BoolToVisibilityConverter"/>
+        <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <helpers:InverseBoolConverter             x:Key="InverseBoolConverter"/>
+        <helpers:StringToImageSourceConverter     x:Key="StringToImageSourceConverter"/>
+
+        <!-- Titlebar : même chrome que RebaseWindow -->
+        <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width"           Value="46"/>
+            <Setter Property="Height"          Value="36"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="Foreground"      Value="White"/>
+            <Setter Property="FontSize"        Value="12"/>
+        </Style>
+        <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource CloseButtonHoverBrush}"/>
+                    <Setter Property="Opacity"    Value="1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Libellés et cartes : mêmes styles que RebaseWindow -->
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Margin"     Value="0,0,0,4"/>
+        </Style>
+        <Style x:Key="OptionLabel" TargetType="TextBlock" BasedOn="{StaticResource SectionLabel}">
+            <Setter Property="Margin"            Value="0,0,10,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="ToggleLabel" TargetType="TextBlock">
+            <Setter Property="FontSize"          Value="12"/>
+            <Setter Property="Foreground"        Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Margin"            Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="GroupTitle" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Margin"     Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="OptionCard" TargetType="Border">
+            <Setter Property="Background"      Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius"    Value="6"/>
+            <Setter Property="Padding"         Value="12,10"/>
+        </Style>
+
+        <!-- Champ texte de fiche : MinHeight et non Height, sinon le padding 6,4 du style global rogne le texte -->
+        <Style x:Key="FieldTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="MinHeight"                Value="30"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize"                 Value="12"/>
+        </Style>
+
+        <!-- Champ texte dans une cellule de la grille : sans bordure au repos, bordure accent au focus -->
+        <Style x:Key="CellTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="MinHeight"                Value="26"/>
+            <Setter Property="Padding"                  Value="6,2"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize"                 Value="12"/>
+            <Setter Property="Background"               Value="Transparent"/>
+            <Setter Property="BorderBrush"              Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Interrupteur réduit pour les cellules de la grille (ToggleSwitchButton à 75 %) -->
+        <Style x:Key="CellToggle" TargetType="ToggleButton" BasedOn="{StaticResource ToggleSwitchButton}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="LayoutTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="0.75" ScaleY="0.75"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Liste déroulante à saisie libre pour la colonne Système.
+             Le style ComboBox global n'a pas de PART_EditableTextBox : IsEditable y est sans effet,
+             d'où ce template dédié (mêmes tokens, même popup). -->
+        <Style x:Key="EditableComboBox" TargetType="ComboBox">
+            <Setter Property="IsEditable"           Value="True"/>
+            <Setter Property="IsTextSearchEnabled"  Value="False"/>
+            <Setter Property="BorderBrush"          Value="Transparent"/>
+            <Setter Property="BorderThickness"      Value="1"/>
+            <Setter Property="Background"           Value="Transparent"/>
+            <Setter Property="Foreground"           Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Padding"              Value="6,2"/>
+            <Setter Property="MinHeight"            Value="26"/>
+            <Setter Property="FontSize"             Value="12"/>
+            <Setter Property="MaxDropDownHeight"    Value="240"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="MainBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="24"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="PART_EditableTextBox" Grid.Column="0"
+                                             Background="Transparent" BorderThickness="0"
+                                             Padding="{TemplateBinding Padding}"
+                                             Foreground="{TemplateBinding Foreground}"
+                                             FontSize="{TemplateBinding FontSize}"
+                                             VerticalContentAlignment="Center"
+                                             IsReadOnly="{TemplateBinding IsReadOnly}"/>
+                                    <ToggleButton Grid.Column="1" Focusable="False" ClickMode="Press"
+                                                  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Grid Background="Transparent" Cursor="Hand">
+                                                    <Path Data="M 0 0 L 8 0 L 4 5 Z"
+                                                          Fill="{DynamicResource TextSecondaryBrush}"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                    </ToggleButton>
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="Popup" Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                <Grid SnapsToDevicePixels="True"
+                                      MinWidth="{TemplateBinding ActualWidth}"
+                                      MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border Background="{DynamicResource SurfaceBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1" CornerRadius="4">
+                                        <ScrollViewer Margin="2" SnapsToDevicePixels="True">
+                                            <ScrollViewer.Resources>
+                                                <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+                                            </ScrollViewer.Resources>
+                                            <StackPanel IsItemsHost="True"
+                                                        KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Liste des architectures : items façon sidebar, filet accent à gauche de la sélection -->
+        <Style x:Key="ArchitectureListItem" TargetType="ListBoxItem">
+            <Setter Property="Cursor"                     Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent"
+                                BorderBrush="Transparent" BorderThickness="3,0,0,0"
+                                Padding="11,8,14,8">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ListViewRowHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background"  Value="{DynamicResource ListViewRowSelectedBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- DataGrid épuré : mêmes styles que RebaseWindow -->
+        <Style TargetType="DataGrid">
+            <Setter Property="Background"               Value="{DynamicResource DataGridBackgroundBrush}"/>
+            <Setter Property="Foreground"               Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush"              Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness"          Value="1"/>
+            <Setter Property="RowBackground"            Value="{DynamicResource DataGridBackgroundBrush}"/>
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource DataGridAlternatingRowBrush}"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource DataGridGridLinesBrush}"/>
+            <Setter Property="VerticalGridLinesBrush"   Value="Transparent"/>
+            <Setter Property="FontSize"                 Value="12"/>
+            <Setter Property="SelectionMode"            Value="Single"/>
+            <Setter Property="SelectionUnit"            Value="FullRow"/>
+            <Setter Property="RowHeight"                Value="36"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background"      Value="{DynamicResource DataGridColumnHeaderBrush}"/>
+            <Setter Property="Foreground"      Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize"        Value="11"/>
+            <Setter Property="FontWeight"      Value="SemiBold"/>
+            <Setter Property="Padding"         Value="8,5"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+        <Style x:Key="CenteredHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding"         Value="4,2"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource DataGridCellSelectedBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36"/>   <!-- Titlebar -->
+            <RowDefinition Height="*"/>    <!-- Liste + fiche -->
+            <RowDefinition Height="48"/>   <!-- Footer -->
+        </Grid.RowDefinitions>
+
+        <!-- ── Titlebar ── -->
+        <Border Grid.Row="0" Background="{DynamicResource AccentBrush}"
+                MouseLeftButtonDown="Titlebar_MouseLeftButtonDown">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{x:Static res:Strings.ArchEditor_Title}"
+                           Foreground="White" FontWeight="SemiBold" FontSize="13"
+                           VerticalAlignment="Center" Margin="14,0"/>
+                <Button Grid.Column="1" x:Name="MaximizeButton"
+                        Style="{StaticResource ChromeButton}"
+                        Content="□" Click="MaximizeButton_Click"/>
+                <Button Grid.Column="2"
+                        Style="{StaticResource CloseButton}"
+                        Content="✕" Click="CloseButton_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- ── Corps ── -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Colonne gauche : liste des architectures -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <Border.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+                </Border.Resources>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ListBox Grid.Row="0"
+                             ItemsSource="{Binding Architectures}"
+                             SelectedItem="{Binding Selected}"
+                             ItemContainerStyle="{StaticResource ArchitectureListItem}"
+                             Background="Transparent" BorderThickness="0" Padding="0,6"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding Label}" FontSize="12"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <!-- Identifiant technique, celui du fichier de mapping -->
+                                        <TextBlock Text="{Binding Id}" FontSize="10" Margin="0,1,0,0"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <!-- Badge de provenance : seulement « Modifiée » ou « Personnalisée » — une architecture par défaut
+                                             intacte n'a rien à signaler, elle se modifie comme les autres et reste restaurable -->
+                                        <Border CornerRadius="3" Padding="5,1" Margin="0,3,0,0"
+                                                HorizontalAlignment="Left">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Origin}" Value="{x:Static models:ArchitectureOrigin.Distributed}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding OriginText}" FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <!-- Point accent : modifications non enregistrées -->
+                                    <TextBlock Grid.Column="1" Text="●" FontSize="10"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               VerticalAlignment="Center" Margin="6,0,0,0"
+                                               ToolTip="{x:Static res:Strings.ArchEditor_Modified_Tooltip}"
+                                               Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Actions bas de liste : Ajouter / Dupliquer, Supprimer / Restaurer la version livrée -->
+                    <Border Grid.Row="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="0,1,0,0" Padding="14,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Button Grid.Row="0" Grid.Column="0" Content="{x:Static res:Strings.ArchEditor_Add}"
+                                    Command="{Binding AddCommand}" Padding="8,6"/>
+                            <Button Grid.Row="0" Grid.Column="2" Content="{x:Static res:Strings.ArchEditor_Duplicate}"
+                                    Command="{Binding DuplicateCommand}" Padding="8,6"/>
+                            <!-- Pas de restauration unitaire : « Restaurer les architectures par défaut » en pied recopie tous les fichiers d'origine -->
+                            <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Content="{x:Static res:Strings.ArchEditor_Delete}"
+                                    Command="{Binding DeleteCommand}" Padding="8,6">
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Colonne droite : fiche de l'architecture sélectionnée -->
+            <Grid Grid.Column="1" Margin="16,12,16,12" IsEnabled="{Binding HasSelection}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- Général -->
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="Auto"/> <!-- Jaquettes + Métadonnées -->
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>    <!-- Systèmes -->
+                </Grid.RowDefinitions>
+
+                <!-- Carte Général -->
+                <Border Grid.Row="0" Style="{StaticResource OptionCard}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.ArchEditor_Group_General}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="6"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="6"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource OptionLabel}"
+                                       Text="{x:Static res:Strings.ArchEditor_Label}"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                     Text="{Binding Selected.Label, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource OptionLabel}"
+                                       Text="{x:Static res:Strings.ArchEditor_Description}"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                     Text="{Binding Selected.Description, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource OptionLabel}"
+                                       Text="{x:Static res:Strings.ArchEditor_Id}"
+                                       ToolTip="{x:Static res:Strings.ArchEditor_Id_Tooltip}"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                     Text="{Binding Selected.Id, Mode=OneWay}" IsReadOnly="True"
+                                     Foreground="{DynamicResource TextSecondaryBrush}"
+                                     ToolTip="{x:Static res:Strings.ArchEditor_Id_Tooltip}"/>
+                        </Grid>
+
+                        <!-- Une seule entrée par jeu dans la liste du frontend : fichiers dans un dossier masqué, M3U à la racine -->
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
+                                    ToolTip="{x:Static res:Strings.ArchEditor_HideGameFiles_Tooltip}">
+                            <ToggleButton IsChecked="{Binding Selected.HideGameFiles}"
+                                          Style="{StaticResource ToggleSwitchButton}"/>
+                            <TextBlock Style="{StaticResource ToggleLabel}" Text="{x:Static res:Strings.ArchEditor_HideGameFiles}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Cartes Jaquettes et Métadonnées côte à côte -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="2*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource OptionCard}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.ArchEditor_Group_Covers}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="6"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,3,0,0">
+                                    <ToggleButton IsChecked="{Binding Selected.CoversByDefault}"
+                                                  Style="{StaticResource ToggleSwitchButton}"/>
+                                    <TextBlock Style="{StaticResource ToggleLabel}" Text="{x:Static res:Strings.ArchEditor_CoversByDefault}"/>
+                                </StackPanel>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource OptionLabel}"
+                                           Text="{x:Static res:Strings.ArchEditor_CoverFolder}"
+                                           ToolTip="{x:Static res:Strings.ArchEditor_CoverFolder_Tooltip}"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                         Text="{Binding Selected.CoverFolder, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{x:Static res:Strings.ArchEditor_CoverFolder_Tooltip}"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="3" Style="{StaticResource OptionLabel}"
+                                           Text="{x:Static res:Strings.ArchEditor_CoverSuffix}"
+                                           ToolTip="{x:Static res:Strings.ArchEditor_CoverSuffix_Tooltip}"/>
+                                <TextBox Grid.Row="2" Grid.Column="4" Style="{StaticResource FieldTextBox}"
+                                         Text="{Binding Selected.CoverSuffix, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{x:Static res:Strings.ArchEditor_CoverSuffix_Tooltip}"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource OptionLabel}"
+                                           Text="{x:Static res:Strings.ArchEditor_CoverMaxWidth}"
+                                           ToolTip="{x:Static res:Strings.ArchEditor_CoverSize_Tooltip}"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource FieldTextBox}"
+                                         Text="{Binding Selected.CoverMaxWidthText, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{x:Static res:Strings.ArchEditor_CoverSize_Tooltip}"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="3" Style="{StaticResource OptionLabel}"
+                                           Text="{x:Static res:Strings.ArchEditor_CoverMaxHeight}"
+                                           ToolTip="{x:Static res:Strings.ArchEditor_CoverSize_Tooltip}"/>
+                                <TextBox Grid.Row="4" Grid.Column="4" Style="{StaticResource FieldTextBox}"
+                                         Text="{Binding Selected.CoverMaxHeightText, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{x:Static res:Strings.ArchEditor_CoverSize_Tooltip}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource OptionCard}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.ArchEditor_Group_Metadata}"/>
+                            <Grid Margin="0,3,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource OptionLabel}"
+                                           Text="{x:Static res:Strings.ArchEditor_GamelistFormat}"/>
+                                <ComboBox Grid.Column="1" SelectedIndex="{Binding Selected.GamelistFormatIndex}"
+                                          Padding="6,4" Height="28" FontSize="12">
+                                    <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_None}"/>
+                                    <!-- Même ordre que MetadataFormats.All : l'index du sélecteur en dépend -->
+                                    <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_EmulationStation}"/>
+                                    <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_EsDe}"/>
+                                    <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_Miyoo}"/>
+                                    <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_Pegasus}"/>
+                                    <ComboBoxItem Content="{x:Static res:Strings.ArchEditor_GamelistFormat_Logiqx}"/>
+                                </ComboBox>
+                            </Grid>
+                            <!-- Quel fichier, où, pour qui : le nom du format seul ne dit rien à l'utilisateur -->
+                            <TextBlock Margin="0,8,0,0" FontSize="11" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="{Binding Selected.GamelistFormatHint}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0"
+                                        IsEnabled="{Binding Selected.SupportsGamelist}">
+                                <ToggleButton IsChecked="{Binding Selected.GamelistByDefault}"
+                                              Style="{StaticResource ToggleSwitchButton}"/>
+                                <TextBlock Style="{StaticResource ToggleLabel}" Text="{x:Static res:Strings.ArchEditor_GamelistByDefault}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Carte Systèmes : grille toujours éditable, sans mode édition (IsReadOnly + contrôles dans les cellules) -->
+                <Border Grid.Row="4" Style="{StaticResource OptionCard}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Style="{StaticResource GroupTitle}" Text="{x:Static res:Strings.ArchEditor_Group_Systems}"/>
+
+                        <DataGrid Grid.Row="1"
+                                  Sorting="SystemsGrid_Sorting"
+                                  ItemsSource="{Binding Selected.Mappings}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  GridLinesVisibility="Horizontal"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  CanUserSortColumns="True"
+                                  CanUserReorderColumns="False"
+                                  CanUserResizeRows="False"
+                                  KeyboardNavigation.TabNavigation="Continue">
+                            <DataGrid.Resources>
+                                <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+                            </DataGrid.Resources>
+                            <DataGrid.Columns>
+
+                                <!-- Système RomStation : liste éditable si des suggestions existent, sinon champ texte -->
+                                <DataGridTemplateColumn x:Name="SystemColumn" Header="{x:Static res:Strings.ArchEditor_Column_System}" Width="*" MinWidth="160"
+                                                        CanUserSort="True" SortMemberPath="RomStationSystem">
+                                    <!-- Seule colonne triable : l'en-tête montre une flèche, discrète tant qu'aucun tri n'est posé -->
+                                    <DataGridTemplateColumn.HeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                            <Setter Property="Cursor"  Value="Hand"/>
+                                            <Setter Property="ToolTip" Value="{x:Static res:Strings.ArchEditor_Column_System_Tooltip}"/>
+                                            <Setter Property="ContentTemplate">
+                                                <Setter.Value>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                                            <TextBlock x:Name="SortGlyph" Text="&#xE8CB;" Margin="6,1,0,0" FontSize="10" Opacity="0.45"
+                                                                       FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <DataTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding SortDirection, RelativeSource={RelativeSource AncestorType=DataGridColumnHeader}}" Value="Ascending">
+                                                                <Setter TargetName="SortGlyph" Property="Text"       Value="&#xE70E;"/>
+                                                                <Setter TargetName="SortGlyph" Property="Opacity"    Value="1"/>
+                                                                <Setter TargetName="SortGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SortDirection, RelativeSource={RelativeSource AncestorType=DataGridColumnHeader}}" Value="Descending">
+                                                                <Setter TargetName="SortGlyph" Property="Text"       Value="&#xE70D;"/>
+                                                                <Setter TargetName="SortGlyph" Property="Opacity"    Value="1"/>
+                                                                <Setter TargetName="SortGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                            </DataTrigger>
+                                                        </DataTemplate.Triggers>
+                                                    </DataTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </DataGridTemplateColumn.HeaderStyle>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="26"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <!-- Icône de la console, comme dans la barre latérale ; la place reste réservée pour un système inconnu -->
+                                                <Image Grid.Column="0" Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                       RenderOptions.BitmapScalingMode="HighQuality"
+                                                       Source="{Binding IconPath, Converter={StaticResource StringToImageSourceConverter}, ConverterParameter=36}"/>
+                                                <!-- Liste propre à la ligne : les systèmes déjà paramétrés ailleurs n'y figurent plus -->
+                                                <ComboBox Grid.Column="1" Style="{StaticResource EditableComboBox}"
+                                                          ItemsSource="{Binding AvailableSystems}"
+                                                          Text="{Binding RomStationSystem, UpdateSourceTrigger=PropertyChanged}"
+                                                          Visibility="{Binding DataContext.HasSystemNames, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                <TextBox Grid.Column="1" Style="{StaticResource CellTextBox}"
+                                                         Text="{Binding RomStationSystem, UpdateSourceTrigger=PropertyChanged}"
+                                                         Visibility="{Binding DataContext.HasSystemNames, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Dossier cible -->
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_TargetFolder}" Width="150" MinWidth="100">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBox Style="{StaticResource CellTextBox}"
+                                                     Text="{Binding TargetFolder, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Nom d'origine (romset) -->
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_KeepFileName}" Width="104" MinWidth="104" CanUserResize="False">
+                                    <DataGridTemplateColumn.HeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource CenteredHeader}">
+                                            <Setter Property="ToolTip" Value="{x:Static res:Strings.ArchEditor_Column_KeepFileName_Tooltip}"/>
+                                        </Style>
+                                    </DataGridTemplateColumn.HeaderStyle>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ToggleButton Style="{StaticResource CellToggle}" IsChecked="{Binding KeepFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          ToolTip="{x:Static res:Strings.ArchEditor_Column_KeepFileName_Tooltip}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- M3U -->
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_M3U}" Width="56" MinWidth="56" CanUserResize="False">
+                                    <DataGridTemplateColumn.HeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource CenteredHeader}">
+                                            <Setter Property="ToolTip" Value="{x:Static res:Strings.ArchEditor_Column_M3U_Tooltip}"/>
+                                        </Style>
+                                    </DataGridTemplateColumn.HeaderStyle>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ToggleButton Style="{StaticResource CellToggle}" IsChecked="{Binding M3U, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          ToolTip="{x:Static res:Strings.ArchEditor_Column_M3U_Tooltip}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Extraction -->
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_Extract}" Width="82" MinWidth="82" CanUserResize="False">
+                                    <DataGridTemplateColumn.HeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource CenteredHeader}">
+                                            <Setter Property="ToolTip" Value="{x:Static res:Strings.ArchEditor_Column_Extract_Tooltip}"/>
+                                        </Style>
+                                    </DataGridTemplateColumn.HeaderStyle>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ToggleButton Style="{StaticResource CellToggle}" IsChecked="{Binding Extract, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          ToolTip="{x:Static res:Strings.ArchEditor_Column_Extract_Tooltip}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Conversion : outil externe lancé par RSR pour les fichiers de ce système (GDI → CHD…) -->
+                                <DataGridTemplateColumn Header="{x:Static res:Strings.ArchEditor_Column_Convert}" Width="160" MinWidth="130">
+                                    <DataGridTemplateColumn.HeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                            <Setter Property="ToolTip" Value="{x:Static res:Strings.ArchEditor_Column_Convert_Tooltip}"/>
+                                        </Style>
+                                    </DataGridTemplateColumn.HeaderStyle>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox ItemsSource="{Binding DataContext.ToolChoices, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      SelectedValuePath="Id" DisplayMemberPath="Label"
+                                                      SelectedValue="{Binding Transform, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      IsEnabled="{Binding KeepFileName, Converter={StaticResource InverseBoolConverter}}"
+                                                      Padding="6,2" Height="26" FontSize="12"
+                                                      ToolTip="{x:Static res:Strings.ArchEditor_Column_Convert_Tooltip}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Retirer la ligne : bouton révélé au survol (pattern affordance au survol) -->
+                                <DataGridTemplateColumn Width="40" CanUserResize="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Width="26" Height="26" Padding="0" BorderThickness="0"
+                                                    Background="Transparent"
+                                                    Command="{Binding DataContext.RemoveMappingCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip="{x:Static res:Strings.ArchEditor_RemoveSystem_Tooltip}">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                        <Setter Property="Opacity" Value="0"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                                                                <Setter Property="Opacity" Value="1"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <Grid Grid.Row="2" Margin="0,8,0,0">
+                            <Button Content="{x:Static res:Strings.ArchEditor_AddSystem}"
+                                    Command="{Binding AddMappingCommand}"
+                                    HorizontalAlignment="Left" Padding="10,6"/>
+                            <!-- Les outils de la colonne Conversion se règlent dans leur propre fenêtre -->
+                            <Button Style="{StaticResource LinkButton}" FontSize="11" Padding="0"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Content="{x:Static res:Strings.Rebase_ManageTools}"
+                                    Command="{Binding EditToolsCommand}"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- ── Footer ── -->
+        <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+            <Grid Margin="12,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="{x:Static res:Strings.ArchEditor_OpenFolder}"
+                            Command="{Binding OpenFolderCommand}"
+                            Padding="10,6" Margin="0,0,8,0"/>
+                    <Button Content="{x:Static res:Strings.ArchEditor_RestoreShipped}"
+                            Command="{Binding RestoreShippedCommand}"
+                            Padding="10,6"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="{x:Static res:Strings.ArchEditor_Cancel}"
+                            Command="{Binding CancelCommand}"
+                            Padding="10,6" Margin="0,0,8,0"/>
+                    <Button Content="{x:Static res:Strings.ArchEditor_Save}"
+                            Command="{Binding SaveCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            Padding="14,6"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

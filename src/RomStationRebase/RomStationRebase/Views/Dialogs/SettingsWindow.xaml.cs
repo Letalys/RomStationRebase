@@ -16,6 +16,16 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         SourceInitialized += OnSourceInitialized;
         DataContext = vm;
+
+        // Éditeur d'architectures — modal ; la colonne Système propose tous les systèmes de la base
+        vm.OpenArchitectureEditor = () =>
+        {
+            var editor = new ArchitectureEditorWindow(vm.SystemNames, vm.SystemIcons) { Owner = this };
+            editor.ShowDialog();
+        };
+
+        // Outils externes de conversion — modal
+        vm.OpenExternalTools = () => new ExternalToolsWindow { Owner = this }.ShowDialog();
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)

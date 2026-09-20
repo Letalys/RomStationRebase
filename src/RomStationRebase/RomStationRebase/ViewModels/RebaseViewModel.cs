@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
@@ -12,23 +13,55 @@ using RomStationRebase.Views.Dialogs;
 
 namespace RomStationRebase.ViewModels;
 
-/// <summary>ViewModel de RebaseWindow — gère la configuration, l'exécution et la progression du rebase.</summary>
+/// <summary>ViewModel de RebaseWindow — gère la configuration, le plan, l'exécution et la progression du rebase.</summary>
 public class RebaseViewModel : ViewModelBase
 {
     private readonly ArchitectureService     _archService   = new();
     private readonly RebaseService           _rebaseService = new();
+    private readonly RebasePlanner           _planner       = new();
+    private readonly ArchiveInspector        _inspector     = new();
+    private readonly DerbyService            _derby         = new();
     private readonly List<GameItemViewModel> _selectedGames;
+    private readonly List<GameItemViewModel> _allGames;
     private readonly string                  _romStationPath;
+    private readonly string                  _dbCopyPath;
     private readonly UserPreferences?        _preferences;
     private readonly ConfigService           _configService = new();
+    private readonly ExternalToolService     _toolService   = new();
+
+    // Outils externes de conversion, et l'exécutable choisi par l'utilisateur pour chacun (null : non indiqué)
+    private List<ExternalTool> _tools = [];
+    private Dictionary<string, string> _toolExecutables = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Sélection de travail partagée avec la fenêtre principale : paramètres et règles par jeu y sont lus à l'ouverture, rendus à la fermeture.</summary>
+    private readonly RebasePresetSessionViewModel? _session;
+
+    // Caches de l'analyse : fichiers Derby, tailles, arborescences — remplis une fois, réutilisés à chaque replanification
+    private readonly Dictionary<string, FolderTreeMapping> _mappings = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, long>              _fileSizes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, IReadOnlyList<(string RelativePath, long Size)>> _dirFiles = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyDictionary<int, IReadOnlyList<GameFileInfo>> _filesByGame = new Dictionary<int, IReadOnlyList<GameFileInfo>>();
+    private bool        _analysisDone;
+    private RebasePlan? _plan;
 
     private CancellationTokenSource? _cts;
+
+    // Journal du rebase en cours, et chemin du dernier journal connu (celui de cette fenêtre, sinon le plus récent du dossier)
+    private RebaseLogWriter? _log;
+    private string?          _logPath = RebaseLogWriter.LatestLog();
     private CancellationTokenSource  _sizeCts            = new();
     private long                     _estimatedSizeBytes = -1;
 
     private string               _targetPath           = string.Empty;
     private ArchitectureEntry?   _selectedArchitecture;
-    private bool                 _generateM3U;
+    private int                  _archiveModeIndex;
+    private int                  _extractLayoutIndex;
+    private bool                 _copyCovers           = true;
+    private bool                 _generateGamelist     = true;
+    private bool                 _backupGamelist;
+    private bool                 _convertFiles         = true;
+    private int                  _metadataLanguageIndex;
+    private bool                 _metadataLanguageTouched;
     private int                  _duplicatePolicyIndex;
     private int                  _maxParallelCopies    = 4;
     private int                  _retryCount           = 2;
@@ -44,6 +77,7 @@ public class RebaseViewModel : ViewModelBase
     private bool                 _isSizeCalculated;
     private string               _estimatedSizeText    = string.Empty;
     private ManualResetEventSlim _pauseEvent           = new(true);
+    private bool                 _suspendReplan;
 
     // ── Collections ───────────────────────────────────────────────────────
 
@@ -66,7 +100,7 @@ public class RebaseViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Architecture cible sélectionnée. Null si aucune sélection.</summary>
+    /// <summary>Architecture cible sélectionnée. Null si aucune sélection. Réapplique les défauts de sortie de l'architecture.</summary>
     public ArchitectureEntry? SelectedArchitecture
     {
         get => _selectedArchitecture;
@@ -75,18 +109,184 @@ public class RebaseViewModel : ViewModelBase
             if (SetProperty(ref _selectedArchitecture, value))
             {
                 if (value != null)
-                    GenerateM3U = value.GenerateM3UByDefault;
+                    ApplyArchitectureDefaults(value);
                 OnPropertyChanged(nameof(CanStart));
+                OnPropertyChanged(nameof(SupportsGamelist));
+                OnPropertyChanged(nameof(ShowMetadataLanguage));
+                OnPropertyChanged(nameof(GenerateGamelistLabel));
+                OnPropertyChanged(nameof(MetadataLocationHint));
+                RebuildPlan();
             }
         }
     }
 
-    /// <summary>Génère des fichiers M3U pour les jeux multi-disques.</summary>
-    public bool GenerateM3U
+    /// <summary>Libellé de l'interrupteur : le nom du fichier que lit la cible ("Générer miyoogamelist.xml").</summary>
+    public string GenerateGamelistLabel
+        => string.Format(Strings.Rebase_GenerateMetadataFile,
+            MetadataFormats.DisplayFileName(_selectedArchitecture?.GamelistFormat));
+
+    /// <summary>
+    /// Rappel affiché quand les métadonnées sortent de l'arborescence des ROMs (ES-DE, Cocoon) :
+    /// l'utilisateur doit savoir qu'un dossier ES-DE apparaît à la racine de la destination, et quoi en faire.
+    /// </summary>
+    public string? MetadataLocationHint
+        => MetadataFormats.Normalize(_selectedArchitecture?.GamelistFormat) == MetadataFormats.EsDe
+            ? Strings.Rebase_MetadataHint_EsDe
+            : null;
+
+    /// <summary>Traitement des archives : 0 = extraire selon l'architecture, 1 = ne jamais extraire, 2 = tout extraire.</summary>
+    public int ArchiveModeIndex
     {
-        get => _generateM3U;
-        set => SetProperty(ref _generateM3U, value);
+        get => _archiveModeIndex;
+        set
+        {
+            if (SetProperty(ref _archiveModeIndex, value))
+            {
+                OnPropertyChanged(nameof(IsExtractionEnabled));
+                OnPropertyChanged(nameof(IsExtractionAsConfigured));
+                RebuildPlan();
+            }
+        }
     }
+
+    /// <summary>True si une extraction est possible — active le choix du rangement.</summary>
+    public bool IsExtractionEnabled => _archiveModeIndex != 1;
+
+    /// <summary>True en mode « selon l'architecture » — seul mode où la colonne Extraction du tableau a prise.</summary>
+    public bool IsExtractionAsConfigured => _archiveModeIndex == 0;
+
+    /// <summary>Rangement des fichiers extraits : 0 = automatique, 1 = sous-dossier par jeu.</summary>
+    public int ExtractLayoutIndex
+    {
+        get => _extractLayoutIndex;
+        set { if (SetProperty(ref _extractLayoutIndex, value)) RebuildPlan(); }
+    }
+
+    /// <summary>Copie les jaquettes dans le dossier images de chaque système.</summary>
+    public bool CopyCovers
+    {
+        get => _copyCovers;
+        set { if (SetProperty(ref _copyCovers, value)) RebuildPlan(); }
+    }
+
+    /// <summary>Écrit un gamelist.xml par dossier système.</summary>
+    public bool GenerateGamelist
+    {
+        get => _generateGamelist;
+        set
+        {
+            if (SetProperty(ref _generateGamelist, value))
+            {
+                OnPropertyChanged(nameof(ShowMetadataLanguage));
+                RebuildPlan();
+            }
+        }
+    }
+
+    /// <summary>Copie un gamelist.xml existant en gamelist.xml.yyyyMMdd avant de le fusionner.</summary>
+    public bool BackupGamelist
+    {
+        get => _backupGamelist;
+        set => SetProperty(ref _backupGamelist, value);
+    }
+
+    // ── Conversion par outil externe ──────────────────────────────────────
+
+    /// <summary>Convertir les fichiers avec les outils que désigne l'architecture (GDI → CHD…), pour ce passage.</summary>
+    public bool ConvertFiles
+    {
+        get => _convertFiles;
+        set { if (SetProperty(ref _convertFiles, value)) RebuildPlan(); }
+    }
+
+    // L'interrupteur et la colonne Conversion sont toujours visibles (demande du dev) : sans outil réglé, chaque liste
+    // ne propose que « Aucune », et son infobulle renvoie vers « Gérer les outils externes… ».
+
+    /// <summary>Outils utilisables pour un jeu : ceux dont l'exécutable est indiqué et qui acceptent ce que contient le jeu. « Aucune » en tête.</summary>
+    private IReadOnlyList<ToolOption> ToolOptionsFor(RebaseGamePlan? plan)
+    {
+        var options = new List<ToolOption> { ToolOption.None };
+        if (plan is null || plan.ToolInputExtensions.Count == 0) return options;
+        options.AddRange(_tools
+            .Where(t => _toolExecutables.ContainsKey(t.Id) && plan.ToolInputExtensions.Any(t.Accepts))
+            .Select(t => new ToolOption(t.Id, t.Label)));
+        return options;
+    }
+
+    /// <summary>Outils que l'architecture demande mais dont l'exécutable n'a pas été indiqué. Null : rien à signaler (ligne masquée).</summary>
+    public string? MissingToolsHint
+        => _convertFiles && _plan is { UnavailableTools.Count: > 0 }
+            ? string.Format(Strings.Rebase_MissingTools, string.Join(", ", _plan.UnavailableTools))
+            : null;
+
+    /// <summary>Ouvre la fenêtre des outils externes (modal) — injecté depuis la View.</summary>
+    public Action? OpenExternalTools { get; set; }
+
+    public ICommand EditToolsCommand { get; private set; } = null!;
+
+    private void OnEditTools()
+    {
+        if (OpenExternalTools is null) return;
+        OpenExternalTools();
+        if (_preferences is not null) _configService.AdoptChildWindowBounds(_preferences);
+        LoadTools();               // un exécutable vient peut-être d'être indiqué
+        RebuildPlan();
+    }
+
+    private void LoadTools()
+    {
+        try   { _tools = _toolService.LoadTools(); }
+        catch { _tools = []; }
+
+        // Exécutables résolus une fois : le plan est recalculé à chaque option, sans accès disque
+        _toolExecutables.Clear();
+        try
+        {
+            var paths = _toolService.LoadExecutablePaths();
+            foreach (var tool in _tools)
+                if (ExternalToolService.ResolveExecutable(tool, paths) is { } exe)
+                    _toolExecutables[tool.Id] = exe;
+        }
+        catch { /* index illisible : aucun outil disponible, les conversions sont simplement écartées */ }
+    }
+
+    private PlanTool? LookupTool(string id)
+    {
+        var tool = _tools.FirstOrDefault(t => string.Equals(t.Id, id, StringComparison.OrdinalIgnoreCase));
+        return tool is null
+            ? null
+            : new PlanTool(tool.Id, tool.Label, tool.InputExtensions, tool.OutputExtension, tool.SizeRatioHint,
+                           _toolExecutables.ContainsKey(tool.Id));
+    }
+
+    /// <summary>True si l'architecture sélectionnée lit un fichier de métadonnées.</summary>
+    public bool SupportsGamelist => _selectedArchitecture?.SupportsGamelist == true;
+
+    /// <summary>True si le choix de la langue des métadonnées a un sens (gamelist activé et pris en charge).</summary>
+    public bool ShowMetadataLanguage => SupportsGamelist && _generateGamelist;
+
+    /// <summary>Langue des métadonnées : 0 = français, 1 = anglais.</summary>
+    public int MetadataLanguageIndex
+    {
+        get => _metadataLanguageIndex;
+        set
+        {
+            if (SetProperty(ref _metadataLanguageIndex, value))
+                _metadataLanguageTouched = true;
+        }
+    }
+
+    private string MetadataLocale => _metadataLanguageIndex == 0 ? "fr" : "en";
+
+    private ArchiveMode ArchiveMode => _archiveModeIndex switch
+    {
+        1 => ArchiveMode.Copy,
+        2 => ArchiveMode.ExtractAll,
+        _ => ArchiveMode.ExtractRequired,
+    };
+
+    private ExtractLayout ExtractLayout
+        => _extractLayoutIndex == 1 ? ExtractLayout.Subfolder : ExtractLayout.Auto;
 
     /// <summary>Index de la politique de doublons : 0 = Ignore, 1 = Overwrite.</summary>
     public int DuplicatePolicyIndex
@@ -131,10 +331,7 @@ public class RebaseViewModel : ViewModelBase
         private set
         {
             if (SetProperty(ref _globalProgress, value))
-            {
-                Debug.WriteLine($"[Rebase] GlobalProgress: {value:F1}%");
                 ProgressChanged?.Invoke(value);
-            }
         }
     }
 
@@ -214,9 +411,10 @@ public class RebaseViewModel : ViewModelBase
         => !_isRunning
         && !_isSizeCalculating
         && !string.IsNullOrWhiteSpace(_targetPath)
-        && _selectedArchitecture != null;
+        && _selectedArchitecture != null
+        && RebaseItems.Count > 0;
 
-    /// <summary>True pendant le calcul de la taille estimée.</summary>
+    /// <summary>True pendant l'analyse des fichiers et le calcul de la taille estimée.</summary>
     public bool IsSizeCalculating
     {
         get => _isSizeCalculating;
@@ -256,7 +454,38 @@ public class RebaseViewModel : ViewModelBase
     /// </summary>
     public Func<bool>? ConfirmCancel { get; set; }
 
+    /// <summary>
+    /// Ouvre l'éditeur d'architectures (modal) — injecté depuis RebaseWindow.xaml.cs.
+    /// Au retour, les architectures sont rechargées et la sélection conservée.
+    /// </summary>
+    public Action? OpenArchitectureEditor { get; set; }
+
+    /// <summary>Tous les systèmes RomStation de la base — proposés dans la colonne Système de l'éditeur d'architectures.</summary>
+    public IReadOnlyList<string> SystemNames { get; }
+
+    /// <summary>Icône de chaque console, par nom de système — transmise à l'éditeur d'architectures.</summary>
+    public IReadOnlyDictionary<string, string> SystemIcons { get; }
+
+    /// <summary>True si aucune architecture cible n'est disponible : le rebase ne peut pas démarrer.</summary>
+    public bool HasNoArchitecture => Architectures.Count == 0;
+
+    /// <summary>
+    /// Avertissements d'ouverture, appelés par la View une fois la fenêtre affichée (un dialog a besoin d'un Owner visible) :
+    /// aucune architecture cible disponible.
+    /// </summary>
+    public void ShowOpeningWarnings()
+    {
+        if (HasNoArchitecture)
+            ShowConfirm(Strings.Rebase_NoArchitecture_Title, Strings.Rebase_NoArchitecture_Message, "OK");
+    }
+
     // ── Commandes ─────────────────────────────────────────────────────────
+
+    /// <summary>Retire un jeu de ce rebase et le décoche dans la bibliothèque. Paramètre : RebaseGameItemViewModel.</summary>
+    public ICommand RemoveItemCommand           { get; }
+
+    /// <summary>Ouvre l'éditeur d'architectures puis recharge la liste.</summary>
+    public ICommand EditArchitecturesCommand    { get; }
 
     public ICommand BrowseCommand               { get; }
     public ICommand StartRebaseCommand          { get; }
@@ -264,7 +493,13 @@ public class RebaseViewModel : ViewModelBase
     public ICommand CancelCommand               { get; }
     public ICommand CancelCalculationCommand    { get; }
     public ICommand OpenFolderCommand           { get; }
-    public ICommand ExportLogCommand            { get; }
+    public ICommand ShowLogCommand              { get; }
+
+    /// <summary>Ouvre la fenêtre du journal sur le fichier donné — injecté par la View, la fenêtre étant indépendante de celle-ci.</summary>
+    public Action<string>? OpenLogViewer { get; set; }
+    /// <summary>Enregistre les jeux de la liste, les paramètres et les règles par jeu dans le fichier de sélection courant.</summary>
+    public ICommand SavePresetCommand        { get; }
+    public ICommand SavePresetAsCommand      { get; }
 
     /// <summary>Décrémente MaxParallelCopies (minimum 1).</summary>
     public ICommand DecrementParallelCommand    { get; }
@@ -280,34 +515,91 @@ public class RebaseViewModel : ViewModelBase
     // ── Constructeur ─────────────────────────────────────────────────────
 
     /// <summary>
-    /// Initialise le ViewModel, charge les architectures et pré-remplit RebaseItems
-    /// avec les jeux sélectionnés en statut "Prêt" pour affichage immédiat.
+    /// Initialise le ViewModel, charge les architectures, pré-remplit RebaseItems
+    /// et lance l'analyse des fichiers en arrière-plan.
     /// </summary>
-    public RebaseViewModel(List<GameItemViewModel> selectedGames, string romStationPath, UserPreferences? preferences = null)
+    /// <param name="selectedGames">Jeux cochés.</param>
+    /// <param name="allGames">Toute la bibliothèque — sert à départager les homonymes de façon stable.</param>
+    /// <param name="romStationPath">Dossier d'installation de RomStation.</param>
+    /// <param name="dbCopyPath">Copie locale de la base Derby.</param>
+    /// <param name="preferences">Préférences utilisateur, ou null pour les valeurs par défaut.</param>
+    public RebaseViewModel(
+        List<GameItemViewModel> selectedGames,
+        List<GameItemViewModel> allGames,
+        string romStationPath,
+        string dbCopyPath,
+        UserPreferences? preferences = null,
+        IReadOnlyList<string>? systemNames = null,
+        RebasePresetSessionViewModel? session = null,
+        IReadOnlyDictionary<string, string>? systemIcons = null)
     {
+        SystemIcons     = systemIcons ?? new Dictionary<string, string>();
+        _session        = session;
+        if (_session != null)
+        {
+            _session.PropertyChanged += OnSessionChanged;
+            PropertyChanged          += OnOwnSettingChanged;
+        }
         _selectedGames  = selectedGames;
+        _allGames       = allGames;
         _romStationPath = romStationPath;
+        _dbCopyPath     = dbCopyPath;
+        SystemNames     = systemNames ?? [];
+
+        // Langue des métadonnées : celle de l'interface par défaut
+        _metadataLanguageIndex = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr" ? 0 : 1;
 
         // Initialisation depuis les préférences utilisateur (ou valeurs par défaut si null)
         _preferences = preferences;
         if (preferences != null)
         {
             _targetPath           = preferences.LastRebaseTargetPath;
-            _generateM3U          = preferences.LastRebaseGenerateM3U;
             _duplicatePolicyIndex = preferences.DuplicatePolicy == "Overwrite" ? 1 : 0;
             _maxParallelCopies    = Math.Clamp(preferences.MaxParallelCopies, 1, 16);
             _retryCount           = Math.Clamp(preferences.RetryCount, 0, 5);
             _retryDelay           = Math.Clamp(preferences.RetryDelaySeconds, 1, 30);
-            // _selectedArchitecture sera restaurée après LoadArchitectures() ci-dessous
+            if (preferences.LastRebaseMetadataLanguage is "fr" or "en")
+            {
+                _metadataLanguageIndex   = preferences.LastRebaseMetadataLanguage == "fr" ? 0 : 1;
+                _metadataLanguageTouched = true;
+            }
+            // Les options de sortie sont restaurées après LoadArchitectures() ci-dessous
         }
 
+        // Une sélection ouverte depuis un fichier, ou déjà passée par cette fenêtre, l'emporte sur les préférences
+        var saved = session?.Settings;
+        if (saved != null)
+        {
+            if (!string.IsNullOrWhiteSpace(saved.TargetPath))
+                _targetPath = saved.TargetPath;
+            _duplicatePolicyIndex = saved.DuplicatePolicy == "Overwrite" ? 1 : 0;
+            _maxParallelCopies    = Math.Clamp(saved.MaxParallelCopies, 1, 16);
+            _retryCount           = Math.Clamp(saved.RetryCount, 0, 5);
+            _retryDelay           = Math.Clamp(saved.RetryDelaySeconds, 1, 30);
+            if (saved.MetadataLanguage is "fr" or "en")
+            {
+                _metadataLanguageIndex   = saved.MetadataLanguage == "fr" ? 0 : 1;
+                _metadataLanguageTouched = true;
+            }
+        }
+
+        SavePresetCommand   = new RelayCommand(() => OnSavePreset(saveAs: false), () => _session != null && !_isRunning && RebaseItems.Count > 0);
+        SavePresetAsCommand = new RelayCommand(() => OnSavePreset(saveAs: true),  () => _session != null && !_isRunning && RebaseItems.Count > 0);
+
+        RemoveItemCommand           = new RelayCommand(param => { if (param is RebaseGameItemViewModel item) RemoveItem(item); }, _ => !_isRunning);
+        EditArchitecturesCommand    = new RelayCommand(OnEditArchitectures, () => !_isRunning);
+        EditToolsCommand            = new RelayCommand(OnEditTools,         () => !_isRunning);
+        LoadTools();
+        if (preferences != null) _convertFiles = preferences.LastRebaseConvert;
+        if (session?.Settings is { } presetSettings) _convertFiles = presetSettings.Convert;
         BrowseCommand               = new RelayCommand(OnBrowse);
         StartRebaseCommand          = new RelayCommand(async () => await OnStartRebaseAsync(), () => CanStart);
         PauseResumeCommand          = new RelayCommand(OnPauseResume,         () => _isRunning);
         CancelCommand               = new RelayCommand(OnCancel,              () => _isRunning && !_isCancelling);
         CancelCalculationCommand    = new RelayCommand(OnCancelCalculation,   () => _isSizeCalculating);
         OpenFolderCommand           = new RelayCommand(OnOpenFolder,          () => !string.IsNullOrWhiteSpace(_targetPath));
-        ExportLogCommand            = new RelayCommand(OnExportLog,           () => RebaseItems.Count > 0);
+        ShowLogCommand              = new RelayCommand(() => { if (_logPath is not null) OpenLogViewer?.Invoke(_logPath); },
+                                                       () => _logPath is not null);
         DecrementParallelCommand    = new RelayCommand(() => MaxParallelCopies--, () => _maxParallelCopies > 1);
         IncrementParallelCommand    = new RelayCommand(() => MaxParallelCopies++, () => _maxParallelCopies < 16);
         DecrementRetryCommand       = new RelayCommand(() => RetryCount--,        () => _retryCount > 0);
@@ -315,26 +607,48 @@ public class RebaseViewModel : ViewModelBase
         DecrementRetryDelayCommand  = new RelayCommand(() => RetryDelay--,        () => _retryDelay > 1);
         IncrementRetryDelayCommand  = new RelayCommand(() => RetryDelay++,        () => _retryDelay < 30);
 
+        _suspendReplan = true;
         LoadArchitectures();
 
-        // Restaurer la dernière architecture sélectionnée, sinon garder celle marquée IsDefault (logique existante dans LoadArchitectures)
+        // Restaurer la dernière architecture et ses options de sortie, sinon garder les défauts de l'architecture
         if (preferences != null && !string.IsNullOrWhiteSpace(preferences.LastRebaseArchitectureId))
         {
             var match = Architectures.FirstOrDefault(a => a.Id == preferences.LastRebaseArchitectureId);
             if (match != null)
             {
                 SelectedArchitecture = match;
-                // Réappliquer GenerateM3U depuis les préférences — le setter de SelectedArchitecture
-                // l'a écrasé avec GenerateM3UByDefault de l'architecture
-                GenerateM3U = preferences.LastRebaseGenerateM3U;
+                // Réappliquer les options depuis les préférences — le setter de SelectedArchitecture
+                // les a écrasées avec les défauts de l'architecture
+                _archiveModeIndex   = preferences.LastRebaseArchiveMode switch { "Copy" => 1, "ExtractAll" => 2, _ => 0 };
+                _extractLayoutIndex = preferences.LastRebaseExtractLayout == "Subfolder" ? 1 : 0;
+                _copyCovers         = preferences.LastRebaseCopyCovers;
+                _generateGamelist   = preferences.LastRebaseGenerateGamelist && match.SupportsGamelist;
             }
+            _backupGamelist = preferences.LastRebaseBackupGamelist;
         }
+
+        if (saved != null)
+        {
+            // Architecture disparue : celle par défaut reste sélectionnée avec ses propres réglages de sortie.
+            // L'utilisateur en a été prévenu à l'ouverture du fichier.
+            var match = Architectures.FirstOrDefault(a => a.Id == saved.ArchitectureId);
+            if (match != null)
+            {
+                SelectedArchitecture = match;
+                _archiveModeIndex   = saved.ArchiveMode switch { "Copy" => 1, "ExtractAll" => 2, _ => 0 };
+                _extractLayoutIndex = saved.ExtractLayout == "Subfolder" ? 1 : 0;
+                _copyCovers         = saved.CopyCovers;
+                _generateGamelist   = saved.GenerateGamelist && match.SupportsGamelist;
+            }
+            _backupGamelist = saved.BackupGamelist;
+        }
+        _suspendReplan = false;
 
         PopulateRebaseItems();
         StatusText = string.Format(Strings.Rebase_Ready, selectedGames.Count);
 
-        // Calcul automatique de la taille dès l'ouverture — résultat disponible avant le clic sur Démarrer
-        _ = CalculateSizesAsync();
+        // Analyse automatique dès l'ouverture — plan et taille disponibles avant le clic sur Démarrer
+        _ = AnalyzeAsync();
     }
 
     // ── Chargement ────────────────────────────────────────────────────────
@@ -355,13 +669,28 @@ public class RebaseViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Pose les options de sortie par défaut d'une architecture (jaquettes, gamelist) et remet
+    /// le traitement des archives sur « selon l'architecture » : les règles par système font foi.
+    /// </summary>
+    private void ApplyArchitectureDefaults(ArchitectureEntry arch)
+    {
+        _archiveModeIndex = 0;
+        _copyCovers       = arch.CoversByDefault;
+        _generateGamelist = arch.GamelistByDefault && arch.SupportsGamelist;
+        OnPropertyChanged(nameof(ArchiveModeIndex));
+        OnPropertyChanged(nameof(IsExtractionEnabled));
+        OnPropertyChanged(nameof(CopyCovers));
+        OnPropertyChanged(nameof(GenerateGamelist));
+    }
+
     /// <summary>Pré-remplit RebaseItems depuis _selectedGames avec Status = Pending.</summary>
     private void PopulateRebaseItems()
     {
         RebaseItems.Clear();
         foreach (var g in _selectedGames)
         {
-            RebaseItems.Add(new RebaseGameItemViewModel
+            var row = new RebaseGameItemViewModel
             {
                 GameId          = g.Id,
                 Title           = g.Title,
@@ -370,7 +699,310 @@ public class RebaseViewModel : ViewModelBase
                 CoverPath       = g.CoverPath,
                 CoverExists     = g.CoverExists,
                 FileCount       = g.FileCount,
-            });
+                // Une règle basculée sur la ligne replanifie aussitôt, et compte comme une modification de la présélection
+                RuleChanged     = () => { RebuildPlan(); if (_session?.HasFile == true) CaptureSession(); },
+            };
+
+            // Règles par jeu retrouvées dans la sélection de travail (fichier ouvert, ou passage précédent dans cette fenêtre)
+            if (_session != null && _session.Overrides.TryGetValue(g.Rid, out var o))
+                row.RestoreOverrides(o.KeepFileName, o.M3U, o.Extract, o.Transform);
+
+            RebaseItems.Add(row);
+        }
+    }
+
+    // ── Sélection de travail ──────────────────────────────────────────────
+
+    /// <summary>Paramètres de la fenêtre dans leur état courant, au format du fichier de sélection.</summary>
+    private RebasePresetSettings CurrentPresetSettings() => new()
+    {
+        TargetPath        = _targetPath ?? string.Empty,
+        ArchitectureId    = _selectedArchitecture?.Id ?? string.Empty,
+        ArchitectureLabel = _selectedArchitecture?.Label ?? string.Empty,
+        ArchiveMode       = ArchiveMode.ToString(),
+        ExtractLayout     = ExtractLayout.ToString(),
+        CopyCovers        = _copyCovers,
+        GenerateGamelist  = _generateGamelist,
+        BackupGamelist    = _backupGamelist,
+        Convert           = _convertFiles,
+        MetadataLanguage  = _metadataLanguageTouched ? MetadataLocale : "auto",
+        DuplicatePolicy   = _duplicatePolicyIndex == 1 ? "Overwrite" : "Ignore",
+        MaxParallelCopies = _maxParallelCopies,
+        RetryCount        = _retryCount,
+        RetryDelaySeconds = _retryDelay,
+    };
+
+    /// <summary>Rend à la sélection de travail les paramètres et les règles par jeu de cette fenêtre.</summary>
+    internal void CaptureSession()
+    {
+        if (_session is null) return;
+
+        var overrides = new Dictionary<int, GameRuleOverrides>();
+        foreach (var row in RebaseItems)
+        {
+            var game = _selectedGames.FirstOrDefault(g => g.Id == row.GameId);
+            if (game is null) continue;
+            var o = new GameRuleOverrides(row.KeepFileNameOverride, row.M3UOverride, row.ExtractOverride, row.TransformOverride);
+            if (!o.IsEmpty) overrides[game.Rid] = o;
+        }
+        _session.Capture(CurrentPresetSettings(), overrides);
+    }
+
+    private void OnSavePreset(bool saveAs)
+    {
+        if (_session is null) return;
+        CaptureSession();
+        if (_session.SaveInteractive(OwnerWindow, saveAs))
+            StatusText = string.Format(Strings.Preset_Saved, _session.FileName);
+        RefreshPresetTexts();
+    }
+
+    /// <summary>Suffixe de la barre de titre : « — tests.rsrgp • ». Vide sans présélection.</summary>
+    public string PresetTitleSuffix => _session?.HasFile == true ? "  —  " + _session.DisplayText : string.Empty;
+
+    /// <summary>Rappel au-dessus des options : ce qui se règle ici appartient à la présélection chargée. Null sans présélection (ligne masquée).</summary>
+    public string? PresetBanner => _session?.HasFile == true
+        ? string.Format(Strings.Rebase_PresetBanner, _session.FileName)
+        : null;
+
+    /// <summary>Paramètres qui appartiennent à la présélection : les toucher allume aussitôt son « • », sans attendre la fermeture.</summary>
+    private static readonly HashSet<string> PresetSettingNames =
+    [
+        nameof(TargetPath), nameof(SelectedArchitecture), nameof(ArchiveModeIndex), nameof(ExtractLayoutIndex),
+        nameof(CopyCovers), nameof(GenerateGamelist), nameof(BackupGamelist), nameof(MetadataLanguageIndex), nameof(ConvertFiles),
+        nameof(DuplicatePolicyIndex), nameof(MaxParallelCopies), nameof(RetryCount), nameof(RetryDelay),
+    ];
+
+    private void OnSessionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        => RefreshPresetTexts();
+
+    private void OnOwnSettingChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (_suspendReplan || _session?.HasFile != true) return;
+        if (e.PropertyName is { } name && PresetSettingNames.Contains(name))
+            CaptureSession();
+    }
+
+    /// <summary>A la fermeture de la fenêtre : la session vit plus longtemps qu'elle et ne doit pas la retenir.</summary>
+    internal void DetachSession()
+    {
+        if (_session is null) return;
+        _session.PropertyChanged -= OnSessionChanged;
+        PropertyChanged          -= OnOwnSettingChanged;
+    }
+
+    /// <summary>Infobulle du bouton d'enregistrement : dit ce qui est enregistré, et où.</summary>
+    public string SavePresetTooltip => _session?.HasFile == true
+        ? string.Format(Strings.Rebase_SavePreset_Tooltip_File, _session.FileName)
+        : Strings.Rebase_SavePreset_Tooltip_New;
+
+    private void RefreshPresetTexts()
+    {
+        OnPropertyChanged(nameof(SavePresetTooltip));
+        OnPropertyChanged(nameof(PresetTitleSuffix));
+        OnPropertyChanged(nameof(PresetBanner));
+    }
+
+    // ── Analyse et plan ───────────────────────────────────────────────────
+
+    /// <summary>Mapping de l'architecture sélectionnée, chargé une fois par fichier. Null en cas d'erreur (signalée dans StatusText).</summary>
+    private FolderTreeMapping? CurrentMapping()
+    {
+        if (_selectedArchitecture is null) return null;
+        string file = _selectedArchitecture.FolderTreeMapping;
+        if (_mappings.TryGetValue(file, out var cached)) return cached;
+        try
+        {
+            var mapping = _archService.LoadFolderTreeMapping(file);
+            _mappings[file] = mapping;
+            return mapping;
+        }
+        catch (Exception ex)
+        {
+            StatusText = ex.Message;
+            return null;
+        }
+    }
+
+    private static PlanGameInput ToInput(GameItemViewModel g)
+        => new(g.Id, g.Title, g.SystemName, g.SystemImagePath, g.Rid, g.CoverPath, g.CoverExists);
+
+    /// <summary>Entrée d'un jeu coché, avec les surcharges de règles posées sur sa ligne.</summary>
+    private static PlanGameInput ToInput(GameItemViewModel g, RebaseGameItemViewModel? row)
+        => new(g.Id, g.Title, g.SystemName, g.SystemImagePath, g.Rid, g.CoverPath, g.CoverExists,
+               row?.KeepFileNameOverride, row?.M3UOverride, row?.ExtractOverride, row?.TransformOverride);
+
+    /// <summary>
+    /// Analyse en arrière-plan : fichiers Derby de toute la bibliothèque, inspection des archives,
+    /// tailles et arborescences des jeux cochés. Puis construit le plan et la taille estimée.
+    /// Retourne -1 si l'analyse est annulée.
+    /// </summary>
+    private async Task<long> AnalyzeAsync()
+    {
+        _sizeCts          = new CancellationTokenSource();
+        var ct            = _sizeCts.Token;
+        IsSizeCalculating = true;
+        IsSizeCalculated  = false;
+        EstimatedSizeText = string.Empty;
+        StatusText        = Strings.Rebase_Analyzing;
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                _filesByGame = _derby.GetGameFiles(_dbCopyPath);
+
+                foreach (var game in _selectedGames)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!_filesByGame.TryGetValue(game.Id, out var files)) continue;
+
+                    foreach (var f in files)
+                    {
+                        string source = Path.Combine(_romStationPath, "app", f.RelativePath.Replace('/', Path.DirectorySeparatorChar));
+                        _fileSizes[source] = SafeFileSize(source);
+
+                        if (ArchiveInspector.IsExtractable(source))
+                            _inspector.Inspect(source);
+                        else
+                        {
+                            // Jeu en dossier potentiel (DOS, Windows) : relever l'arborescence une fois
+                            string dir = Path.GetDirectoryName(source) ?? string.Empty;
+                            if (dir.Length > 0 && !_dirFiles.ContainsKey(dir))
+                                _dirFiles[dir] = ListDirectory(dir);
+                        }
+                    }
+
+                    if (game.CoverExists && game.CoverPath is not null)
+                        _fileSizes[game.CoverPath] = SafeFileSize(game.CoverPath);
+                }
+            }, ct);
+
+            _analysisDone = true;
+            RebuildPlan();
+            return _estimatedSizeBytes;
+        }
+        catch (OperationCanceledException)
+        {
+            _estimatedSizeBytes = -1;
+            EstimatedSizeText   = Strings.Rebase_CalculationCancelled;
+            IsSizeCalculated    = false;
+            StatusText          = string.Format(Strings.Rebase_Ready, _selectedGames.Count);
+            return -1;
+        }
+        catch (Exception ex)
+        {
+            _estimatedSizeBytes = -1;
+            IsSizeCalculated    = false;
+            StatusText          = ErrorMessageClassifier.Classify(ex);
+            return -1;
+        }
+        finally
+        {
+            IsSizeCalculating = false;
+            // Fin d'analyse sans geste de l'utilisateur : WPF ne réévaluerait « Démarrer » qu'à son prochain mouvement de souris
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    /// <summary>
+    /// Recalcule le plan à partir des caches de l'analyse et des options courantes — instantané, sans accès disque.
+    /// Sans effet tant que l'analyse n'est pas terminée.
+    /// </summary>
+    private void RebuildPlan()
+    {
+        if (_suspendReplan || !_analysisDone || _isRunning) return;
+        var mapping = CurrentMapping();
+        if (mapping is null || _selectedArchitecture is null)
+        {
+            // Sans architecture, pas de plan : le statut le dit et Démarrer reste inactif (CanStart)
+            if (HasNoArchitecture)
+            {
+                _plan = null;
+                IsSizeCalculated  = false;
+                EstimatedSizeText = string.Empty;
+                StatusText        = Strings.Rebase_NoArchitecture_Title;
+                foreach (var item in RebaseItems) item.Plan = null;
+            }
+            return;
+        }
+
+        var rows = RebaseItems.ToDictionary(i => i.GameId);
+
+        _plan = _planner.Plan(new RebasePlanRequest
+        {
+            SelectedGames        = _selectedGames.Select(g => ToInput(g, rows.GetValueOrDefault(g.Id))).ToList(),
+            AllGames             = _allGames.Select(ToInput).ToList(),
+            FilesByGame          = _filesByGame,
+            ArchiveLookup        = _inspector.TryGet,
+            FileSizeLookup       = p => _fileSizes.TryGetValue(p, out var s) ? s : SafeFileSize(p),
+            DirectoryFilesLookup = d => _dirFiles.TryGetValue(d, out var l) ? l : [],
+            RomStationPath       = _romStationPath,
+            Mapping              = mapping,
+            Architecture         = _selectedArchitecture,
+            GenerateM3U          = true, // le M3U ne dépend que du marqueur "m3u" du système dans l'architecture
+            ArchiveMode          = ArchiveMode,
+            Layout               = ExtractLayout,
+            CopyCovers           = _copyCovers,
+            GenerateGamelist     = _generateGamelist && _selectedArchitecture.SupportsGamelist,
+            Convert              = _convertFiles,
+            ToolLookup           = LookupTool,
+        });
+
+        var byId = _plan.Games.ToDictionary(g => g.GameId);
+        foreach (var item in RebaseItems)
+        {
+            item.Plan = byId.TryGetValue(item.GameId, out var p) ? p : null;
+
+            // Les colonnes Romset / M3U / Extraction redisent l'architecture pour le système de la ligne
+            var rule = mapping.FolderTreeMappings.FirstOrDefault(m =>
+                string.Equals(m.RomStationSystem, item.SystemName, StringComparison.OrdinalIgnoreCase));
+            item.SetArchitectureRules(rule is not null, rule?.KeepFileName ?? false, rule?.M3U ?? false, rule?.Extract ?? false, ArchiveMode);
+
+            // Colonne Conversion : pré-remplie par l'outil que l'architecture désigne pour ce système, et ouverte
+            // aux autres outils disponibles qui savent lire ce que contient le jeu
+            item.SetConversion(rule?.Transform ?? string.Empty, ToolOptionsFor(item.Plan), _convertFiles);
+        }
+        OnPropertyChanged(nameof(MissingToolsHint));
+
+        _estimatedSizeBytes = _plan.TotalBytes;
+        EstimatedSizeText   = FormatSize(_plan.TotalBytes);
+        IsSizeCalculated    = true;
+        int unmapped        = _plan.Games.Count(g => g.IsUnmapped);
+        StatusText          = string.Format(Strings.Rebase_PlanReady,
+            _plan.Games.Count - unmapped,
+            _plan.Games.Sum(g => g.Files.Count + g.Covers.Count + g.Playlists.Count))
+            + (unmapped > 0 ? string.Format(Strings.Rebase_PlanUnmapped, unmapped) : string.Empty);
+    }
+
+    /// <summary>Outils utilisables par ce rebase : ceux dont l'utilisateur a indiqué l'exécutable.</summary>
+    private Dictionary<string, (ExternalTool Tool, string ExecutablePath)> AvailableTools()
+    {
+        var map = new Dictionary<string, (ExternalTool, string)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var tool in _tools)
+            if (_toolExecutables.TryGetValue(tool.Id, out string? exe))
+                map[tool.Id] = (tool, exe);
+        return map;
+    }
+
+    private static long SafeFileSize(string path)
+    {
+        try   { return new FileInfo(path).Length; }
+        catch { return 0; }
+    }
+
+    private static IReadOnlyList<(string RelativePath, long Size)> ListDirectory(string dir)
+    {
+        try
+        {
+            return Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories)
+                .Select(f => (Path.GetRelativePath(dir, f).Replace('\\', '/'), SafeFileSize(f)))
+                .ToList();
+        }
+        catch
+        {
+            return [];
         }
     }
 
@@ -382,14 +1014,14 @@ public class RebaseViewModel : ViewModelBase
         // a. Dossier cible vide
         if (string.IsNullOrWhiteSpace(_targetPath))
         {
-            ShowConfirm(Strings.Rebase_Title, Strings.Rebase_Validation_NoTarget, "OK");
+            ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(Strings.Rebase_Validation_NoTarget, ErrorCodes.NoDestination), "OK");
             return;
         }
 
         // a-bis. Le chemin doit être absolu (rejette les chemins relatifs et les lettres de lecteur invalides)
         if (!Path.IsPathFullyQualified(_targetPath))
         {
-            ShowConfirm(Strings.Rebase_Title, Strings.Rebase_Validation_PathNotAbsolute, "OK");
+            ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(Strings.Rebase_Validation_PathNotAbsolute, ErrorCodes.DestinationNotAbsolute), "OK");
             return;
         }
 
@@ -400,7 +1032,7 @@ public class RebaseViewModel : ViewModelBase
             string? driveRoot = Path.GetPathRoot(_targetPath);
             if (string.IsNullOrEmpty(driveRoot) || !Directory.Exists(driveRoot))
             {
-                ShowConfirm(Strings.Rebase_Title, Strings.Rebase_Error_InvalidDriveLetter, "OK");
+                ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(Strings.Rebase_Error_InvalidDriveLetter, ErrorCodes.DestinationDriveMissing), "OK");
                 return;
             }
 
@@ -411,8 +1043,7 @@ public class RebaseViewModel : ViewModelBase
             try   { Directory.CreateDirectory(_targetPath); }
             catch (Exception ex)
             {
-                string userMessage = Helpers.ErrorMessageClassifier.Classify(ex);
-                ShowConfirm(Strings.Rebase_Title, userMessage, "OK");
+                ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(ex.Message, ErrorCodes.DestinationCreateFailed), "OK");
                 return;
             }
         }
@@ -426,28 +1057,26 @@ public class RebaseViewModel : ViewModelBase
 
         if (_selectedArchitecture is null)
         {
-            ShowConfirm(Strings.Rebase_Title, Strings.Rebase_Validation_NoArchitecture, "OK");
+            ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(Strings.Rebase_Validation_NoArchitecture, ErrorCodes.NoArchitecture), "OK");
             return;
         }
         if (_selectedGames.Count == 0)
         {
-            ShowConfirm(Strings.Rebase_Title, Strings.Rebase_Validation_NoGames, "OK");
+            ShowConfirm(Strings.Rebase_Title, ErrorCodes.Tag(Strings.Rebase_Validation_NoGames, ErrorCodes.NoGameSelected), "OK");
             return;
         }
 
-        FolderTreeMapping mapping;
-        try
+        // Plan : utiliser celui déjà calculé, relancer l'analyse si elle avait été annulée
+        if (!_analysisDone || _plan is null)
         {
-            mapping = _archService.LoadFolderTreeMapping(_selectedArchitecture.FolderTreeMapping);
+            long analyzed = await AnalyzeAsync();
+            if (analyzed < 0 || _plan is null) return; // analyse annulée ou en erreur
         }
-        catch (Exception ex)
-        {
-            ShowConfirm(Strings.Rebase_Title, ex.Message, "OK");
-            return;
-        }
+        var plan = _plan;
 
         // Avertissement systèmes sans mapping
-        var unmapped = _archService.GetUnmappedSystems(mapping, _selectedGames);
+        var unmapped = plan.Games.Where(g => g.IsUnmapped)
+            .Select(g => g.SystemName).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s).ToList();
         if (unmapped.Count > 0)
         {
             string msg = string.Format(Strings.Rebase_Validation_UnmappedSystems,
@@ -456,24 +1085,39 @@ public class RebaseViewModel : ViewModelBase
             if (!dlg.Result) return;
         }
 
-        // Utiliser la taille déjà calculée au démarrage ; recalculer si elle était annulée
-        long estimatedSize;
-        if (IsSizeCalculated)
+        if (!_archService.CheckDiskSpace(_targetPath, plan.TotalBytes))
         {
-            estimatedSize = _estimatedSizeBytes;
-        }
-        else
-        {
-            estimatedSize = await CalculateSizesAsync();
-            if (estimatedSize < 0) return; // calcul annulé par l'utilisateur
+            double gb = plan.TotalBytes / 1_073_741_824.0;
+            ShowConfirm(Strings.Rebase_Title,
+                ErrorCodes.Tag(string.Format(Strings.Rebase_Validation_NoSpace, gb.ToString("F1")), ErrorCodes.NotEnoughSpace), "OK");
+            return;
         }
 
-        if (!_archService.CheckDiskSpace(_targetPath, estimatedSize))
+        // Conversions : elles passent par un dossier de travail sur le disque local, il lui faut la place du plus gros jeu
+        if (plan.MaxWorkBytes > 0 && !_archService.CheckDiskSpace(ExternalToolService.WorkDirectory, plan.MaxWorkBytes))
         {
-            double gb = estimatedSize / 1_073_741_824.0;
+            double gb = plan.MaxWorkBytes / 1_073_741_824.0;
             ShowConfirm(Strings.Rebase_Title,
-                string.Format(Strings.Rebase_Validation_NoSpace, gb.ToString("F1")), "OK");
+                ErrorCodes.Tag(string.Format(Strings.Rebase_Validation_NoWorkSpace, gb.ToString("F1"), ExternalToolService.WorkDirectory), ErrorCodes.NotEnoughWorkSpace), "OK");
             return;
+        }
+
+        // Métadonnées : chargées en lot avant le démarrage, dans la langue choisie
+        bool withGamelist = _generateGamelist && _selectedArchitecture.SupportsGamelist;
+        IReadOnlyDictionary<int, GameMetadata>? metadata = null;
+        if (withGamelist)
+        {
+            try
+            {
+                string locale = MetadataLocale;
+                metadata = await Task.Run(() => _derby.GetGamelistMetadata(_dbCopyPath, locale));
+            }
+            catch (Exception ex)
+            {
+                ShowConfirm(Strings.Rebase_Error_Title,
+                    ErrorCodes.Tag(string.Format(Strings.Rebase_Error_Message, ex.Message), ErrorCodes.MetadataLoadFailed), "OK");
+                return;
+            }
         }
 
         // Réinitialisation des statuts — les items sont déjà affichés depuis l'ouverture
@@ -498,20 +1142,54 @@ public class RebaseViewModel : ViewModelBase
 
         var options = new RebaseOptions
         {
-            SelectedGames     = _selectedGames,
+            Plan              = plan,
             TargetPath        = _targetPath,
             Architecture      = _selectedArchitecture,
-            Mapping           = mapping,
-            GenerateM3U       = _generateM3U,
             DuplicatePolicy   = DuplicatePolicy,
             MaxParallelCopies = _maxParallelCopies,
             RetryCount        = _retryCount,
             RetryDelaySeconds = _retryDelay,
-            RomStationPath    = _romStationPath,
+            GenerateGamelist  = withGamelist,
+            BackupGamelist    = _backupGamelist,
+            Metadata          = metadata,
+            Tools             = AvailableTools(),
+            WorkDirectory     = ExternalToolService.WorkDirectory,
             PauseEvent        = _pauseEvent,
         };
 
-        var progress = new Progress<RebaseProgress>(OnProgressChanged(itemMap));
+        // Journal détaillé : un fichier horodaté par rebase. S'il ne peut pas être créé, le rebase a lieu sans lui.
+        _log?.Dispose();
+        _log = RebaseLogWriter.Create(DateTime.Now);
+        if (_log is not null)
+        {
+            _logPath    = _log.FilePath;
+            options.Log = _log;
+            RebaseLogReport.WriteHeader(_log, new RebaseLogContext(
+                AppVersion:        System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? string.Empty,
+                RomStationPath:    _romStationPath,
+                DatabasePath:      _dbCopyPath,
+                PresetPath:        _session?.FilePath,
+                ArchiveModeText:   _archiveModeIndex switch
+                {
+                    1 => Strings.Rebase_Archives_Never,
+                    2 => Strings.Rebase_Archives_ExtractAll,
+                    _ => Strings.Rebase_Archives_AsConfigured,
+                },
+                ExtractLayoutText: _extractLayoutIndex == 1 ? Strings.Rebase_ExtractLayout_Subfolder : Strings.Rebase_ExtractLayout_Auto,
+                CopyCovers:        _copyCovers,
+                MetadataFileName:  withGamelist ? MetadataFormats.DisplayFileName(_selectedArchitecture.GamelistFormat) : null,
+                MetadataLanguage:  MetadataLocale,
+                ConvertFiles:      _convertFiles), options);
+            CommandManager.InvalidateRequerySuggested();
+        }
+
+        int metadataFolders = 0;
+        var metadataNotes   = new List<string>();
+        var progress = new Progress<RebaseProgress>(OnProgressChanged(itemMap, (folders, notes) =>
+        {
+            metadataFolders = folders;
+            metadataNotes   = notes.ToList();
+        }));
 
         // Drapeaux capturés dans le finally pour piloter l'affichage post-rebase
         bool       wasCancelled = false;
@@ -525,11 +1203,13 @@ public class RebaseViewModel : ViewModelBase
         {
             // L'utilisateur a cliqué Annuler — pas de popup, il sait ce qu'il a fait
             wasCancelled = true;
+            _log?.Warn(Strings.Log_Cancelled);
         }
         catch (Exception ex)
         {
             // Erreur fatale non attendue — on la stocke pour l'afficher après le finally
             fatalError = ex;
+            _log?.Error(ErrorCodes.Tag(string.Format(Strings.Log_Fatal, ex), ErrorMessageClassifier.CodeOf(ex)));
         }
         finally
         {
@@ -537,16 +1217,20 @@ public class RebaseViewModel : ViewModelBase
             IsPaused     = false;
             IsCancelling = false;
 
+            // Le fichier est refermé : la fenêtre du journal, si elle est ouverte, garde ce qu'elle a lu
+            _log?.Dispose();
+            _log = null;
+
             // Reset visuel de la barre : 0 si interrompu, 100 si terminé normalement
             GlobalProgress = (wasCancelled || fatalError != null) ? 0 : 100;
 
-            // En cas d'erreur fatale, les items encore en "Copie en cours" au moment de l'exception
+            // En cas d'erreur fatale, les items encore en cours au moment de l'exception
             // restent figés dans cet état s'ils ne sont pas corrigés ici. On les bascule en Failed
             // avec le message d'erreur classifié pour la colonne Erreur du DataGrid.
             if (fatalError != null)
             {
                 string itemErrorMessage = ErrorMessageClassifier.Classify(fatalError);
-                foreach (var item in RebaseItems.Where(i => i.Status == RebaseItemStatus.Copying))
+                foreach (var item in RebaseItems.Where(i => i.Status is RebaseItemStatus.Copying or RebaseItemStatus.Extracting or RebaseItemStatus.Converting))
                 {
                     item.Status      = RebaseItemStatus.Failed;
                     item.ErrorDetail = itemErrorMessage;
@@ -576,29 +1260,38 @@ public class RebaseViewModel : ViewModelBase
             int failed    = RebaseItems.Count(i => i.Status == RebaseItemStatus.Failed);
             int skipped   = RebaseItems.Count(i => i.Status == RebaseItemStatus.Skipped);
 
+            string extra = string.Empty;
+            if (withGamelist)
+                extra += Environment.NewLine + Environment.NewLine
+                       + string.Format(Strings.Rebase_Completed_Metadata, metadataFolders);
+            if (metadataNotes.Count > 0)
+                extra += Environment.NewLine + string.Join(Environment.NewLine, metadataNotes);
+
             if (failed == 0 && skipped == 0)
             {
                 ShowConfirm(
                     Strings.Rebase_Completed_Title,
-                    string.Format(Strings.Rebase_Completed_Success, completed),
+                    string.Format(Strings.Rebase_Completed_Success, completed) + extra,
                     "OK");
             }
             else
             {
                 ShowConfirm(
                     Strings.Rebase_Completed_Partial_Title,
-                    string.Format(Strings.Rebase_Completed_Partial, completed, failed, skipped),
+                    string.Format(Strings.Rebase_Completed_Partial, completed, failed, skipped) + extra,
                     "OK");
             }
         }
     }
 
     /// <summary>Callback IProgress — met à jour les stats globales et l'item courant sur le thread UI.</summary>
-    private Action<RebaseProgress> OnProgressChanged(Dictionary<int, RebaseGameItemViewModel> itemMap)
+    private Action<RebaseProgress> OnProgressChanged(
+        Dictionary<int, RebaseGameItemViewModel> itemMap,
+        Action<int, IReadOnlyList<string>> onMetadata)
         => p =>
         {
             GlobalProgress = p.TotalBytes > 0
-                ? (double)p.CopiedBytes / p.TotalBytes * 100
+                ? Math.Min(100, (double)p.CopiedBytes / p.TotalBytes * 100)
                 : 0;
 
             SpeedText  = FormatSpeed(p.SpeedBytesPerSecond);
@@ -606,13 +1299,21 @@ public class RebaseViewModel : ViewModelBase
             StatusText = string.Format(Strings.Rebase_GamesCount,
                 p.CompletedFiles + p.FailedFiles + p.SkippedFiles, p.TotalFiles);
 
-            if (p.CompletedFiles + p.FailedFiles + p.SkippedFiles == p.TotalFiles && p.TotalFiles > 0)
+            if (p.Phase == RebasePhase.WritingMetadata)
+            {
+                StatusText = Strings.Rebase_Status_WritingMetadata;
+                SpeedText  = string.Empty;
+                EtaText    = string.Empty;
+            }
+
+            if (p.Phase == RebasePhase.Completed)
             {
                 StatusText     = string.Format(Strings.Rebase_Completed,
                     p.CompletedFiles, p.FailedFiles, p.SkippedFiles);
                 GlobalProgress = 100;
                 SpeedText      = string.Empty;
                 EtaText        = string.Empty;
+                onMetadata(p.MetadataFoldersWritten, p.MetadataNotes);
             }
 
             if (p.CurrentItem is not null && itemMap.TryGetValue(p.CurrentItem.GameId, out var vm))
@@ -624,6 +1325,71 @@ public class RebaseViewModel : ViewModelBase
         };
 
     // ── Commandes ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Retire un jeu de la liste et le décoche dans la bibliothèque, pour que les deux fenêtres
+    /// restent d'accord. Le plan et la taille estimée sont recalculés.
+    /// </summary>
+    private void RemoveItem(RebaseGameItemViewModel item)
+    {
+        if (_isRunning) return;
+
+        RebaseItems.Remove(item);
+        var game = _selectedGames.FirstOrDefault(g => g.Id == item.GameId);
+        if (game is not null)
+        {
+            _selectedGames.Remove(game);
+            game.IsSelected = false;
+        }
+
+        if (RebaseItems.Count == 0)
+            StatusText = string.Format(Strings.Rebase_Ready, 0);
+        RebuildPlan();
+        OnPropertyChanged(nameof(CanStart));
+    }
+
+    /// <summary>Ouvre l'éditeur d'architectures via le callback de la View, puis recharge la liste en gardant la sélection.</summary>
+    private void OnEditArchitectures()
+    {
+        if (OpenArchitectureEditor is null) return;
+        OpenArchitectureEditor();
+        if (_preferences is not null) _configService.AdoptChildWindowBounds(_preferences);
+        LoadTools();               // l'éditeur donne accès à la fenêtre des outils
+        ReloadArchitectures();
+    }
+
+    /// <summary>Recharge les architectures (fichiers distribués + surcharges utilisateur) et réapplique la sélection par identifiant.</summary>
+    internal void ReloadArchitectures()
+    {
+        string? currentId = _selectedArchitecture?.Id;
+        _mappings.Clear();
+        Architectures.Clear();
+
+        // Les options choisies par l'utilisateur survivent au rechargement : le setter de
+        // SelectedArchitecture réapplique les défauts, on les remet ensuite
+        var (archive, covers, gamelist) = (_archiveModeIndex, _copyCovers, _generateGamelist);
+
+        _suspendReplan = true;
+        LoadArchitectures();
+        var match = currentId is null ? null : Architectures.FirstOrDefault(a => a.Id == currentId);
+        if (match is not null)
+        {
+            SelectedArchitecture = match;
+            _archiveModeIndex = archive;
+            _copyCovers       = covers;
+            _generateGamelist = gamelist && match.SupportsGamelist;
+            OnPropertyChanged(nameof(ArchiveModeIndex));
+            OnPropertyChanged(nameof(IsExtractionEnabled));
+            OnPropertyChanged(nameof(CopyCovers));
+            OnPropertyChanged(nameof(GenerateGamelist));
+            OnPropertyChanged(nameof(ShowMetadataLanguage));
+        }
+        _suspendReplan = false;
+
+        OnPropertyChanged(nameof(HasNoArchitecture));
+        OnPropertyChanged(nameof(CanStart));
+        RebuildPlan();
+    }
 
     private void OnBrowse()
     {
@@ -646,8 +1412,8 @@ public class RebaseViewModel : ViewModelBase
 
     private void OnPauseResume()
     {
-        if (_isPaused) { _pauseEvent.Set();   IsPaused = false; }
-        else           { _pauseEvent.Reset(); IsPaused = true;  }
+        if (_isPaused) { _pauseEvent.Set();   IsPaused = false; _log?.Info(Strings.Log_Resumed); }
+        else           { _pauseEvent.Reset(); IsPaused = true;  _log?.Info(Strings.Log_Paused);  }
     }
 
     private void OnCancel()
@@ -669,6 +1435,7 @@ public class RebaseViewModel : ViewModelBase
     /// <summary>Annule le rebase sans confirmation — utilisé depuis OnClosing qui a son propre dialog.</summary>
     internal void StopRebase()
     {
+        _log?.Warn(Strings.Log_CancelRequested);
         _cts?.Cancel();
         _pauseEvent.Set(); // débloquer les tâches en pause pour qu'elles voient l'annulation
     }
@@ -684,62 +1451,8 @@ public class RebaseViewModel : ViewModelBase
             _sizeCts.Cancel();
     }
 
-    /// <summary>Annule le calcul de taille sans confirmation — appelé depuis OnClosing qui gère son propre dialog.</summary>
+    /// <summary>Annule l'analyse sans confirmation — appelé depuis OnClosing qui gère son propre dialog.</summary>
     internal void StopSizeCalculation() => _sizeCts.Cancel();
-
-    /// <summary>
-    /// Calcule la taille totale des fichiers à copier en itérant sur les jeux sélectionnés.
-    /// Vérifie l'annulation entre chaque jeu. Retourne -1 si le calcul est annulé.
-    /// </summary>
-    private async Task<long> CalculateSizesAsync()
-    {
-        _sizeCts         = new CancellationTokenSource();
-        IsSizeCalculating = true;
-        IsSizeCalculated  = false;
-        EstimatedSizeText = string.Empty;
-
-        try
-        {
-            long total = await Task.Run(() =>
-            {
-                long sum   = 0;
-                int  count = _selectedGames.Count;
-
-                for (int i = 0; i < count; i++)
-                {
-                    _sizeCts.Token.ThrowIfCancellationRequested();
-
-                    var    game     = _selectedGames[i];
-                    if (string.IsNullOrEmpty(game.GameDirectory)) continue;
-
-                    string gameRoot = ArchitectureService.ResolveGameRoot(game.GameDirectory, _romStationPath);
-                    if (!Directory.Exists(gameRoot)) continue;
-
-                    var files = Directory
-                        .GetFiles(gameRoot, "*", SearchOption.AllDirectories)
-                        .Where(f => !f.Contains(Path.DirectorySeparatorChar + "images" + Path.DirectorySeparatorChar));
-                    sum += files.Sum(f => { try { return new FileInfo(f).Length; } catch { return 0L; } });
-                }
-                return sum;
-            }, _sizeCts.Token);
-
-            _estimatedSizeBytes = total;
-            EstimatedSizeText   = FormatSize(total);
-            IsSizeCalculated    = true;
-            return total;
-        }
-        catch (OperationCanceledException)
-        {
-            _estimatedSizeBytes = -1;
-            EstimatedSizeText   = Strings.Rebase_CalculationCancelled;
-            IsSizeCalculated    = false;
-            return -1;
-        }
-        finally
-        {
-            IsSizeCalculating = false;
-        }
-    }
 
     private void OnOpenFolder()
     {
@@ -766,34 +1479,10 @@ public class RebaseViewModel : ViewModelBase
         bool rootExists = !string.IsNullOrWhiteSpace(root) && Directory.Exists(root);
 
         string message = rootExists
-            ? Strings.Rebase_Error_FolderNotExist
-            : Strings.Rebase_Error_InvalidDriveLetter;
+            ? ErrorCodes.Tag(Strings.Rebase_Error_FolderNotExist, ErrorCodes.DestinationFolderMissing)
+            : ErrorCodes.Tag(Strings.Rebase_Error_InvalidDriveLetter, ErrorCodes.DestinationDriveMissing);
 
         ShowConfirm(Strings.Rebase_Title, message, "OK");
-    }
-
-    private void OnExportLog()
-    {
-        if (RebaseItems.Count == 0) return;
-        var dialog = new SaveFileDialog
-        {
-            Title      = Strings.Rebase_ExportLog,
-            Filter     = "CSV (*.csv)|*.csv|Texte (*.txt)|*.txt",
-            DefaultExt = "csv",
-            FileName   = $"rebase-log-{DateTime.Now:yyyyMMdd-HHmm}.csv",
-        };
-        if (dialog.ShowDialog() != true) return;
-        try
-        {
-            using var w = new StreamWriter(dialog.FileName, false, System.Text.Encoding.UTF8);
-            w.WriteLine("Titre;Système;Fichiers;Statut;Erreur");
-            foreach (var item in RebaseItems)
-                w.WriteLine($"{item.Title};{item.SystemName};{item.FileCount};{item.StatusText};{item.ErrorDetail?.Replace(";", ",")}");
-        }
-        catch (Exception ex)
-        {
-            ShowConfirm(Strings.Rebase_ExportLog, ex.Message, "OK");
-        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -820,18 +1509,41 @@ public class RebaseViewModel : ViewModelBase
     /// </summary>
     internal void SaveRebasePreferences(Models.WindowBounds? bounds = null)
     {
+        // Même moment que les préférences : la sélection de travail retient ce qui a été réglé ici
+        CaptureSession();
+
         if (_preferences == null) return;
+
+        // Présélection chargée : ses paramètres lui appartiennent et n'écrasent pas les « derniers paramètres » utilisés sans elle.
+        // Seule la géométrie de la fenêtre est alors mémorisée.
+        if (_session?.HasFile == true)
+        {
+            if (bounds == null) return;
+            try
+            {
+                _preferences.RebaseWindowBounds = bounds;
+                _configService.SaveUserPreferences(_preferences);
+            }
+            catch { /* confort seulement */ }
+            return;
+        }
 
         try
         {
             if (!string.IsNullOrWhiteSpace(_targetPath))
                 _preferences.LastRebaseTargetPath = _targetPath;
-            _preferences.LastRebaseArchitectureId = _selectedArchitecture?.Id ?? string.Empty;
-            _preferences.LastRebaseGenerateM3U    = _generateM3U;
-            _preferences.DuplicatePolicy          = _duplicatePolicyIndex == 1 ? "Overwrite" : "Ignore";
-            _preferences.MaxParallelCopies        = _maxParallelCopies;
-            _preferences.RetryCount               = _retryCount;
-            _preferences.RetryDelaySeconds        = _retryDelay;
+            _preferences.LastRebaseArchitectureId   = _selectedArchitecture?.Id ?? string.Empty;
+            _preferences.LastRebaseArchiveMode      = ArchiveMode.ToString();
+            _preferences.LastRebaseExtractLayout    = ExtractLayout.ToString();
+            _preferences.LastRebaseCopyCovers       = _copyCovers;
+            _preferences.LastRebaseGenerateGamelist = _generateGamelist;
+            _preferences.LastRebaseBackupGamelist   = _backupGamelist;
+            _preferences.LastRebaseConvert          = _convertFiles;
+            _preferences.LastRebaseMetadataLanguage = _metadataLanguageTouched ? MetadataLocale : "auto";
+            _preferences.DuplicatePolicy            = _duplicatePolicyIndex == 1 ? "Overwrite" : "Ignore";
+            _preferences.MaxParallelCopies          = _maxParallelCopies;
+            _preferences.RetryCount                 = _retryCount;
+            _preferences.RetryDelaySeconds          = _retryDelay;
 
             // Les bounds ne sont fusionnés que lorsque l'appelant les fournit
             // (typiquement OnClosing). Au lancement effectif du rebase, l'appelant

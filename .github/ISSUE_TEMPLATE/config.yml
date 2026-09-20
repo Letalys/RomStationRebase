@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Dépannage
+    url: https://github.com/Letalys/RomStationRebase/wiki/Dépannage
+    about: Les situations les plus courantes et leur solution. À lire avant d'ouvrir une issue.
+  - name: Troubleshooting
+    url: https://github.com/Letalys/RomStationRebase/wiki/Troubleshooting
+    about: The most common situations and how to solve them. Read it before opening an issue.
+  - name: Codes d'erreur
+    url: https://github.com/Letalys/RomStationRebase/wiki/Codes-erreur
+    about: Ce que veut dire un code RSR-nnnn, et quoi faire.
+  - name: Error codes
+    url: https://github.com/Letalys/RomStationRebase/wiki/Error-codes
+    about: What an RSR-nnnn code means, and what to do.

@@ -39,9 +39,18 @@ public class SettingsViewModel : ViewModelBase
     // Métadonnées distribuées (repo, auteur, licence)
     private readonly AppMetadata _metadata;
 
-    public SettingsViewModel(UserPreferences preferences)
+    /// <summary>Tous les systèmes RomStation de la base — proposés dans la colonne Système de l'éditeur d'architectures.</summary>
+    public IReadOnlyList<string> SystemNames { get; }
+
+    /// <summary>Icône de chaque console, par nom de système — transmise à l'éditeur d'architectures.</summary>
+    public IReadOnlyDictionary<string, string> SystemIcons { get; }
+
+    public SettingsViewModel(UserPreferences preferences, IReadOnlyList<string>? systemNames = null,
+                             IReadOnlyDictionary<string, string>? systemIcons = null)
     {
+        SystemIcons    = systemIcons ?? new Dictionary<string, string>();
         _originalPrefs = preferences;
+        SystemNames    = systemNames ?? [];
 
         // Initialiser la copie de travail depuis les préférences actuelles
         _selectedLanguage = preferences.AppLanguage;
@@ -83,6 +92,12 @@ public class SettingsViewModel : ViewModelBase
 
         CheckForUpdateCommand = new RelayCommand(OnCheckForUpdate);
         OpenUpdateLinkCommand = new RelayCommand(OpenUpdateLink, () => IsUpdateStatusClickable);
+
+        EditArchitecturesCommand = new RelayCommand(() => { OpenArchitectureEditor?.Invoke(); _config.AdoptChildWindowBounds(_originalPrefs); },
+                                                    () => OpenArchitectureEditor is not null);
+        EditToolsCommand         = new RelayCommand(() => { OpenExternalTools?.Invoke(); _config.AdoptChildWindowBounds(_originalPrefs); },
+                                                    () => OpenExternalTools is not null);
+        TogglePresetAssociationCommand = new RelayCommand(TogglePresetAssociation, () => Environment.ProcessPath is not null);
 
         LoadInitialUpdateCheckState();
     }
@@ -192,6 +207,61 @@ public class SettingsViewModel : ViewModelBase
 
     /// <summary>URL cible du lien de téléchargement.</summary>
     public string? UpdateLinkUrl { get; private set; }
+
+    /// <summary>Ouvre l'éditeur d'architectures (modal) — injecté depuis SettingsWindow.xaml.cs.</summary>
+    public Action? OpenArchitectureEditor { get; set; }
+
+    /// <summary>Ouvre l'éditeur d'architectures cibles via le callback de la View.</summary>
+    public ICommand EditArchitecturesCommand    { get; }
+
+    /// <summary>Ouvre la fenêtre des outils externes de conversion (modal) — injecté depuis la View.</summary>
+    public Action? OpenExternalTools { get; set; }
+
+    public ICommand EditToolsCommand            { get; }
+
+    // ── Association des présélections (.rsrgp) ── ──────────────────────────
+    // Effet immédiat, comme les boutons « Ouvrir le dossier » : ce n'est pas une préférence soumise à Enregistrer / Annuler.
+
+    /// <summary>Associe les .rsrgp à cette copie de RSR, ou retire l'association si elle la désigne déjà.</summary>
+    public ICommand TogglePresetAssociationCommand { get; }
+
+    private PresetAssociationState AssociationState
+        => Environment.ProcessPath is { } exe ? FileAssociationService.GetState(exe) : PresetAssociationState.None;
+
+    public string PresetAssociationButtonText
+        => AssociationState == PresetAssociationState.ThisExecutable
+            ? Strings.Settings_Presets_Dissociate
+            : Strings.Settings_Presets_Associate;
+
+    /// <summary>Ce que fait aujourd'hui un double-clic sur un .rsr. Null sans association (ligne masquée).</summary>
+    public string? PresetAssociationStatus => _associationError ?? AssociationState switch
+    {
+        PresetAssociationState.ThisExecutable  => Strings.Settings_Presets_State_This,
+        PresetAssociationState.OtherExecutable => string.Format(Strings.Settings_Presets_State_Other,
+                                                       FileAssociationService.RegisteredExecutable()),
+        _                                       => null,
+    };
+
+    private string? _associationError;
+
+    private void TogglePresetAssociation()
+    {
+        if (Environment.ProcessPath is not { } exe) return;
+        _associationError = null;
+        try
+        {
+            if (AssociationState == PresetAssociationState.ThisExecutable)
+                FileAssociationService.Unregister();
+            else
+                FileAssociationService.Register(exe, Strings.Preset_FileFilter);
+        }
+        catch (Exception ex)
+        {
+            _associationError = Helpers.ErrorCodes.Tag(string.Format(Strings.Settings_Presets_Error, ex.Message), Helpers.ErrorCodes.PresetAssociationFailed);
+        }
+        OnPropertyChanged(nameof(PresetAssociationButtonText));
+        OnPropertyChanged(nameof(PresetAssociationStatus));
+    }
 
     public ICommand SaveCommand                 { get; }
     public ICommand CancelCommand               { get; }

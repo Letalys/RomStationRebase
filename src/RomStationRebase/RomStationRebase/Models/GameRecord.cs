@@ -6,6 +6,9 @@ public class GameRecord
     /// <summary>Identifiant Derby du jeu.</summary>
     public int Id { get; init; }
 
+    /// <summary>Identifiant RomStation du jeu (colonne RID), suffixe du dossier du jeu.</summary>
+    public int Rid { get; init; }
+
     /// <summary>Titre du jeu (colonne TITLE de APP.GAME).</summary>
     public string Title { get; init; } = string.Empty;
 

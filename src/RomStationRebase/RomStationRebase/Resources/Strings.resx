@@ -185,10 +185,7 @@ Detail: {0}</value>
     <value>Browse…</value>
   </data>
   <data name="Rebase_Architecture" xml:space="preserve">
-    <value>Target architecture</value>
-  </data>
-  <data name="Rebase_GenerateM3U" xml:space="preserve">
-    <value>Generate M3U playlists</value>
+    <value>Preconfigured target architecture</value>
   </data>
   <data name="Rebase_DuplicatePolicy" xml:space="preserve">
     <value>If file exists</value>
@@ -216,9 +213,6 @@ Detail: {0}</value>
   </data>
   <data name="Rebase_OpenFolder" xml:space="preserve">
     <value>Open folder</value>
-  </data>
-  <data name="Rebase_ExportLog" xml:space="preserve">
-    <value>Export log</value>
   </data>
   <data name="Rebase_Status_Pending" xml:space="preserve">
     <value>Pending</value>
@@ -615,5 +609,1105 @@ Technical details:
   </data>
   <data name="Sidebar_ShowEmptySystems" xml:space="preserve">
     <value>Show empty consoles</value>
+  </data>
+  <data name="Rebase_Group_Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="Rebase_Group_Metadata" xml:space="preserve">
+    <value>Metadata</value>
+  </data>
+  <data name="Rebase_Group_Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Rebase_Archives" xml:space="preserve">
+    <value>Archives</value>
+  </data>
+  <data name="Rebase_Archives_ExtractAll" xml:space="preserve">
+    <value>Extract everything (except romsets)</value>
+  </data>
+  <data name="Rebase_Archives_Tooltip" xml:space="preserve">
+    <value>Some emulators cannot read archives. The architecture lists the systems to extract.</value>
+  </data>
+  <data name="Rebase_ExtractLayout" xml:space="preserve">
+    <value>Extracted files</value>
+  </data>
+  <data name="Rebase_ExtractLayout_Auto" xml:space="preserve">
+    <value>Automatic (folder if several files)</value>
+  </data>
+  <data name="Rebase_ExtractLayout_Subfolder" xml:space="preserve">
+    <value>One folder per game</value>
+  </data>
+  <data name="Rebase_ExtractLayout_Tooltip" xml:space="preserve">
+    <value>A single extracted file is named after the game. Several files keep their names, in a folder named after the game.</value>
+  </data>
+  <data name="Rebase_CopyCovers" xml:space="preserve">
+    <value>Copy covers</value>
+  </data>
+  <data name="Rebase_CopyCovers_Tooltip" xml:space="preserve">
+    <value>Copies each game's cover to the folder set by the architecture, named after the ROM</value>
+  </data>
+  <data name="Rebase_GenerateGamelist" xml:space="preserve">
+    <value>Generate gamelist.xml</value>
+  </data>
+  <data name="Rebase_GenerateGamelist_Tooltip" xml:space="preserve">
+    <value>Writes the metadata of the copied games to the file the target reads. An existing file is merged without losing its favorites.</value>
+  </data>
+  <data name="Rebase_MetadataLanguage" xml:space="preserve">
+    <value>Metadata language</value>
+  </data>
+  <data name="Rebase_MetadataLanguage_Fr" xml:space="preserve">
+    <value>Français</value>
+  </data>
+  <data name="Rebase_MetadataLanguage_En" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Rebase_Column_Output" xml:space="preserve">
+    <value>Output</value>
+  </data>
+  <data name="Rebase_Output_Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Rebase_Output_Romset" xml:space="preserve">
+    <value>Romset (original name)</value>
+  </data>
+  <data name="Rebase_Output_DiscSet" xml:space="preserve">
+    <value>{0} discs + M3U</value>
+  </data>
+  <data name="Rebase_Output_Discs" xml:space="preserve">
+    <value>{0} discs</value>
+  </data>
+  <data name="Rebase_Output_Variants" xml:space="preserve">
+    <value>{0} versions</value>
+  </data>
+  <data name="Rebase_Output_Extract" xml:space="preserve">
+    <value>Extraction</value>
+  </data>
+  <data name="Rebase_Output_Folder" xml:space="preserve">
+    <value>Game folder</value>
+  </data>
+  <data name="Rebase_Output_Unmapped" xml:space="preserve">
+    <value>No mapping</value>
+  </data>
+  <data name="Rebase_Output_Tooltip" xml:space="preserve">
+    <value>Files that will be written:</value>
+  </data>
+  <data name="Rebase_Status_Extracting" xml:space="preserve">
+    <value>Extracting</value>
+  </data>
+  <data name="Rebase_Status_WritingMetadata" xml:space="preserve">
+    <value>Writing metadata…</value>
+  </data>
+  <data name="Rebase_Analyzing" xml:space="preserve">
+    <value>Analyzing files…</value>
+  </data>
+  <data name="Rebase_PlanReady" xml:space="preserve">
+    <value>{0} game(s) · {1} file(s) to write</value>
+  </data>
+  <data name="Rebase_Error_GamelistWrite" xml:space="preserve">
+    <value>{0} could not be written: {1}</value>
+  </data>
+  <data name="Rebase_Error_ArchiveInvalid" xml:space="preserve">
+    <value>Invalid or unreadable archive</value>
+  </data>
+  <data name="Rebase_Error_UnsafeArchive" xml:space="preserve">
+    <value>Archive rejected: an entry points outside the destination folder</value>
+  </data>
+  <data name="Rebase_Gamelist_Backup" xml:space="preserve">
+    <value>An unreadable metadata file was backed up as {0}</value>
+  </data>
+  <data name="Rebase_Completed_Metadata" xml:space="preserve">
+    <value>Metadata written in {0} system folder(s).</value>
+  </data>
+  <data name="Rebase_BackupGamelist" xml:space="preserve">
+    <value>Back up the existing file</value>
+  </data>
+  <data name="Rebase_BackupGamelist_Tooltip" xml:space="preserve">
+    <value>Keeps a dated copy of the existing file before merging</value>
+  </data>
+  <data name="Rebase_RemoveItem" xml:space="preserve">
+    <value>Remove from this rebase</value>
+  </data>
+  <data name="Rebase_RemoveItem_Tooltip" xml:space="preserve">
+    <value>Removes the game from this rebase and unchecks it in the library</value>
+  </data>
+  <data name="ArchEditor_Title" xml:space="preserve">
+    <value>Preconfigured target architectures</value>
+  </data>
+  <data name="ArchEditor_Origin_Distributed" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="ArchEditor_Origin_Overridden" xml:space="preserve">
+    <value>Modified</value>
+  </data>
+  <data name="ArchEditor_Origin_Custom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="ArchEditor_Modified_Tooltip" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="ArchEditor_Duplicate" xml:space="preserve">
+    <value>Duplicate</value>
+  </data>
+  <data name="ArchEditor_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="ArchEditor_RestoreDistributed" xml:space="preserve">
+    <value>Restore default version</value>
+  </data>
+  <data name="ArchEditor_AddSystem" xml:space="preserve">
+    <value>Add a system</value>
+  </data>
+  <data name="ArchEditor_Group_General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="ArchEditor_Group_Covers" xml:space="preserve">
+    <value>Covers</value>
+  </data>
+  <data name="ArchEditor_Group_Metadata" xml:space="preserve">
+    <value>Metadata</value>
+  </data>
+  <data name="ArchEditor_Group_Systems" xml:space="preserve">
+    <value>Systems</value>
+  </data>
+  <data name="ArchEditor_Label" xml:space="preserve">
+    <value>Label</value>
+  </data>
+  <data name="ArchEditor_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="ArchEditor_Id" xml:space="preserve">
+    <value>Identifier</value>
+  </data>
+  <data name="ArchEditor_Id_Tooltip" xml:space="preserve">
+    <value>File name of the architecture, set when it is created</value>
+  </data>
+  <data name="ArchEditor_CoversByDefault" xml:space="preserve">
+    <value>Copy covers by default</value>
+  </data>
+  <data name="ArchEditor_CoverFolder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="ArchEditor_CoverFolder_Tooltip" xml:space="preserve">
+    <value>Cover folder, relative to the system folder (e.g. images). With {system}, relative to the destination (e.g. ES-DE/downloaded_media/{system}/covers).</value>
+  </data>
+  <data name="ArchEditor_CoverSuffix" xml:space="preserve">
+    <value>Suffix</value>
+  </data>
+  <data name="ArchEditor_CoverSuffix_Tooltip" xml:space="preserve">
+    <value>Appended to the ROM name to name the cover (e.g. -image)</value>
+  </data>
+  <data name="ArchEditor_CoverMaxWidth" xml:space="preserve">
+    <value>Max width</value>
+  </data>
+  <data name="ArchEditor_CoverMaxHeight" xml:space="preserve">
+    <value>Max height</value>
+  </data>
+  <data name="ArchEditor_CoverSize_Tooltip" xml:space="preserve">
+    <value>In pixels, 0 = original size</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat" xml:space="preserve">
+    <value>Metadata file</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_EmulationStation" xml:space="preserve">
+    <value>EmulationStation (gamelist.xml)</value>
+  </data>
+  <data name="ArchEditor_GamelistByDefault" xml:space="preserve">
+    <value>Generated by default</value>
+  </data>
+  <data name="ArchEditor_Column_System" xml:space="preserve">
+    <value>RomStation system</value>
+  </data>
+  <data name="ArchEditor_Column_TargetFolder" xml:space="preserve">
+    <value>Target folder</value>
+  </data>
+  <data name="ArchEditor_Column_KeepFileName" xml:space="preserve">
+    <value>Keep name</value>
+  </data>
+  <data name="ArchEditor_Column_KeepFileName_Tooltip" xml:space="preserve">
+    <value>Files keep their original name, with no extraction and no M3U (arcade and Neo-Geo romsets)</value>
+  </data>
+  <data name="ArchEditor_Column_M3U" xml:space="preserve">
+    <value>M3U</value>
+  </data>
+  <data name="ArchEditor_Column_M3U_Tooltip" xml:space="preserve">
+    <value>Writes an M3U playlist for multi-disc games. Turn on if the emulator reads M3U files.</value>
+  </data>
+  <data name="ArchEditor_Column_Extract" xml:space="preserve">
+    <value>Extract</value>
+  </data>
+  <data name="ArchEditor_Column_Extract_Tooltip" xml:space="preserve">
+    <value>Extracts this system's archives. Turn on if the emulator cannot read them.</value>
+  </data>
+  <data name="ArchEditor_RemoveSystem_Tooltip" xml:space="preserve">
+    <value>Remove this system</value>
+  </data>
+  <data name="ArchEditor_OpenFolder" xml:space="preserve">
+    <value>Open architectures folder</value>
+  </data>
+  <data name="ArchEditor_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ArchEditor_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="ArchEditor_CopyLabel" xml:space="preserve">
+    <value>{0} (copy)</value>
+  </data>
+  <data name="ArchEditor_DeleteCustom_Title" xml:space="preserve">
+    <value>Delete architecture</value>
+  </data>
+  <data name="ArchEditor_DeleteCustom_Message" xml:space="preserve">
+    <value>Delete "{0}"? Its files will be deleted from disk. This cannot be undone.</value>
+  </data>
+  <data name="ArchEditor_RestoreOverridden_Title" xml:space="preserve">
+    <value>Restore default version</value>
+  </data>
+  <data name="ArchEditor_RestoreOverridden_Message" xml:space="preserve">
+    <value>Discard your changes to "{0}" and restore the default version? This cannot be undone.</value>
+  </data>
+  <data name="ArchEditor_Discard_Title" xml:space="preserve">
+    <value>Discard changes</value>
+  </data>
+  <data name="ArchEditor_Discard_Message" xml:space="preserve">
+    <value>Discard the unsaved changes?</value>
+  </data>
+  <data name="ArchEditor_Discard_Confirm" xml:space="preserve">
+    <value>Discard</value>
+  </data>
+  <data name="ArchEditor_Validation_Title" xml:space="preserve">
+    <value>Unable to save</value>
+  </data>
+  <data name="ArchEditor_Validation_EmptyLabel" xml:space="preserve">
+    <value>{0}: the label is empty.</value>
+  </data>
+  <data name="ArchEditor_Validation_EmptySystem" xml:space="preserve">
+    <value>{0}: a row has no RomStation system.</value>
+  </data>
+  <data name="ArchEditor_Validation_EmptyFolder" xml:space="preserve">
+    <value>{0}: no target folder for system "{1}".</value>
+  </data>
+  <data name="ArchEditor_Validation_DuplicateSystem" xml:space="preserve">
+    <value>{0}: system "{1}" appears more than once.</value>
+  </data>
+  <data name="ArchEditor_Validation_InvalidSize" xml:space="preserve">
+    <value>{0}: cover max width and height must be whole numbers (0 = original size).</value>
+  </data>
+  <data name="ArchEditor_Error_Title" xml:space="preserve">
+    <value>Preconfigured target architectures</value>
+  </data>
+  <data name="ArchEditor_Error_Write" xml:space="preserve">
+    <value>Unable to write "{0}": {1}</value>
+  </data>
+  <data name="ArchEditor_Error_Load" xml:space="preserve">
+    <value>Unable to load the architectures: {0}</value>
+  </data>
+  <data name="ArchEditor_Error_LoadMapping" xml:space="preserve">
+    <value>Unable to read the system table of "{0}": {1}</value>
+  </data>
+  <data name="Settings_Section_Architectures" xml:space="preserve">
+    <value>PRECONFIGURED TARGET ARCHITECTURES</value>
+  </data>
+  <data name="Settings_Architectures_Description" xml:space="preserve">
+    <value>Architectures are stored in the RSRebase data folder. Default architectures can be edited and restored.</value>
+  </data>
+  <data name="Settings_Architectures_Edit" xml:space="preserve">
+    <value>Edit preconfigured architectures…</value>
+  </data>
+  <data name="ArchEditor_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="ArchEditor_NewLabel" xml:space="preserve">
+    <value>New architecture</value>
+  </data>
+  <data name="ArchEditor_Delete_Shipped_Message" xml:space="preserve">
+    <value>Delete this default architecture? It can be brought back with "Restore default architectures".</value>
+  </data>
+  <data name="ArchEditor_Delete_Last" xml:space="preserve">
+    <value>At least one architecture must remain.</value>
+  </data>
+  <data name="ArchEditor_RestoreShipped" xml:space="preserve">
+    <value>Restore default architectures</value>
+  </data>
+  <data name="ArchEditor_RestoreShipped_Message" xml:space="preserve">
+    <value>All default architectures will be restored to their original state and your changes to them will be lost. Custom architectures are not affected.</value>
+  </data>
+  <data name="Rebase_Archives_AsConfigured" xml:space="preserve">
+    <value>Extract as the architecture requires (recommended)</value>
+  </data>
+  <data name="Rebase_Archives_Never" xml:space="preserve">
+    <value>Never extract</value>
+  </data>
+  <data name="Rebase_Rules_Hint" xml:space="preserve">
+    <value>Per-system rules (romsets, M3U, extraction) are defined by the architecture.</value>
+  </data>
+  <data name="Rebase_ManageArchitectures" xml:space="preserve">
+    <value>Manage architectures…</value>
+  </data>
+  <data name="Rebase_Column_Romset" xml:space="preserve">
+    <value>Romset</value>
+  </data>
+  <data name="Rebase_Column_Romset_Tooltip" xml:space="preserve">
+    <value>Archive copied under its original name, with no extraction and no M3U (arcade and Neo-Geo romsets)</value>
+  </data>
+  <data name="Rebase_Column_M3U" xml:space="preserve">
+    <value>M3U</value>
+  </data>
+  <data name="Rebase_Column_M3U_Tooltip" xml:space="preserve">
+    <value>Writes an M3U playlist for multi-disc games</value>
+  </data>
+  <data name="Rebase_Column_Extract" xml:space="preserve">
+    <value>Extraction</value>
+  </data>
+  <data name="Rebase_Column_Extract_Tooltip" xml:space="preserve">
+    <value>Extracts the archive instead of copying it. Can only be changed in "Extract as the architecture requires" mode.</value>
+  </data>
+  <data name="Rebase_Rule_Tooltip" xml:space="preserve">
+    <value>Value from the architecture for this system. Can be changed here for this game only.</value>
+  </data>
+  <data name="M" xml:space="preserve">
+    <value></value>
+  </data>
+  <data name="G" xml:space="preserve">
+    <value></value>
+  </data>
+  <data name="J" xml:space="preserve">
+    <value></value>
+  </data>
+  <data name="Main_SelectedBadge_Tooltip" xml:space="preserve">
+    <value>Games checked for the next rebase, including those hidden by the current filters</value>
+  </data>
+  <data name="Sidebar_SelectedCount_Tooltip" xml:space="preserve">
+    <value>Games checked in this system, including those hidden by the filters</value>
+  </data>
+  <data name="Main_ClearSelection_Tooltip" xml:space="preserve">
+    <value>Unchecks every game, hidden ones included</value>
+  </data>
+  <data name="Main_NoArchitecture_Warning" xml:space="preserve">
+    <value>No target architecture defined. Rebase unavailable.</value>
+  </data>
+  <data name="Rebase_NoArchitecture_Title" xml:space="preserve">
+    <value>No target architecture</value>
+  </data>
+  <data name="Rebase_NoArchitecture_Message" xml:space="preserve">
+    <value>No target architecture is available. Open "Manage architectures…" to restore the default architectures or create one.</value>
+  </data>
+  <data name="Rebase_PlanUnmapped" xml:space="preserve">
+    <value> · {0} without mapping</value>
+  </data>
+  <data name="Rebase_GenerateMetadataFile" xml:space="preserve">
+    <value>Generate {0}</value>
+  </data>
+  <data name="Rebase_MetadataHint_EsDe" xml:space="preserve">
+    <value>Metadata and covers are written to an ES-DE folder at the destination root. Merge it with the device's ES-DE folder, or import it from Cocoon.</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_EsDe" xml:space="preserve">
+    <value>ES-DE / Cocoon (gamelist.xml)</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_Miyoo" xml:space="preserve">
+    <value>Onion / Spruce (miyoogamelist.xml)</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_Pegasus" xml:space="preserve">
+    <value>Pegasus (metadata.pegasus.txt)</value>
+  </data>
+  <data name="ArchEditor_GamelistFormat_Logiqx" xml:space="preserve">
+    <value>Logiqx (.dat)</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_None" xml:space="preserve">
+    <value>No file written</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_EmulationStation" xml:space="preserve">
+    <value>In each system folder</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_EsDe" xml:space="preserve">
+    <value>In ES-DE/gamelists, at the root of the destination</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_Miyoo" xml:space="preserve">
+    <value>In each system folder</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_Pegasus" xml:space="preserve">
+    <value>In each system folder</value>
+  </data>
+  <data name="ArchEditor_GamelistHint_Logiqx" xml:space="preserve">
+    <value>In each system folder</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Preset_Menu" xml:space="preserve">
+    <value>Selection</value>
+  </data>
+  <data name="Preset_Menu_Tooltip" xml:space="preserve">
+    <value>Save the checked games and the rebase settings to a file, and load them back later</value>
+  </data>
+  <data name="Preset_Open" xml:space="preserve">
+    <value>Open…</value>
+  </data>
+  <data name="Preset_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Preset_SaveAs" xml:space="preserve">
+    <value>Save as…</value>
+  </data>
+  <data name="Preset_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Preset_Close_Tooltip" xml:space="preserve">
+    <value>Closes the preset and unchecks its games. The rebase window goes back to the last settings used without a preset.</value>
+  </data>
+  <data name="Preset_File_Tooltip" xml:space="preserve">
+    <value>A dot after the name means unsaved changes.</value>
+  </data>
+  <data name="Preset_Saved" xml:space="preserve">
+    <value>Preset saved: {0}</value>
+  </data>
+  <data name="Preset_FileFilter" xml:space="preserve">
+    <value>RomStation Rebase preset</value>
+  </data>
+  <data name="Preset_DefaultFileName" xml:space="preserve">
+    <value>preset</value>
+  </data>
+  <data name="Preset_SaveAs_DialogTitle" xml:space="preserve">
+    <value>Save the preset</value>
+  </data>
+  <data name="Preset_Open_DialogTitle" xml:space="preserve">
+    <value>Open a preset file</value>
+  </data>
+  <data name="Preset_SaveError_Title" xml:space="preserve">
+    <value>Preset not saved</value>
+  </data>
+  <data name="Preset_SaveError_Message" xml:space="preserve">
+    <value>The file could not be written:
+{0}
+
+{1}</value>
+  </data>
+  <data name="Preset_Overwrite_Title" xml:space="preserve">
+    <value>Replace the file?</value>
+  </data>
+  <data name="Preset_Overwrite_Message" xml:space="preserve">
+    <value>{0} already exists. Do you want to replace it?</value>
+  </data>
+  <data name="Preset_Overwrite_Proceed" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="Preset_Unsaved_Title" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="Preset_Unsaved_Message" xml:space="preserve">
+    <value>The preset {0} has unsaved changes.
+
+Save them?</value>
+  </data>
+  <data name="Preset_Unsaved_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Preset_Unsaved_Discard" xml:space="preserve">
+    <value>Don't save</value>
+  </data>
+  <data name="Preset_OpenError_Title" xml:space="preserve">
+    <value>Preset not opened</value>
+  </data>
+  <data name="Preset_OpenError_NotASelection" xml:space="preserve">
+    <value>This file is not a RomStation Rebase preset.</value>
+  </data>
+  <data name="Preset_OpenError_InvalidJson" xml:space="preserve">
+    <value>The file is damaged or is not valid JSON:
+{0}</value>
+  </data>
+  <data name="Preset_OpenError_Unreadable" xml:space="preserve">
+    <value>The file could not be read:
+{0}</value>
+  </data>
+  <data name="Preset_OpenError_NoGame" xml:space="preserve">
+    <value>None of the {1} games in {0} is in the library. Nothing was changed.</value>
+  </data>
+  <data name="Preset_Replace_Title" xml:space="preserve">
+    <value>Replace the checked games?</value>
+  </data>
+  <data name="Preset_Replace_Message" xml:space="preserve">
+    <value>{0} checked game(s) are not part of any preset. They will be unchecked and replaced by the {1} game(s) of this preset.</value>
+  </data>
+  <data name="Preset_Replace_Proceed" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="Preset_Opened_Title" xml:space="preserve">
+    <value>Preset discrepancies</value>
+  </data>
+  <data name="Preset_Opened_Summary" xml:space="preserve">
+    <value>{0} of the {1} games in the preset were found in the library.</value>
+  </data>
+  <data name="Preset_Warn_NewerVersion" xml:space="preserve">
+    <value>TO CHECK: preset created by a newer version of RomStation Rebase. Some of its settings may be ignored.</value>
+  </data>
+  <data name="Preset_Warn_MissingGames" xml:space="preserve">
+    <value>IGNORED: {0} game(s) no longer in the library. They will be removed from the preset the next time it is saved.</value>
+  </data>
+  <data name="Preset_Warn_AndMore" xml:space="preserve">
+    <value>… and {0} more</value>
+  </data>
+  <data name="Preset_Warn_MatchedByTitle" xml:space="preserve">
+    <value>FOUND: {0} game(s) matched by title and system. Their RomStation identifier has changed.</value>
+  </data>
+  <data name="Preset_Warn_MissingArchitecture" xml:space="preserve">
+    <value>REPLACED: the architecture "{0}" no longer exists. The default architecture and its output settings will be used.</value>
+  </data>
+  <data name="Preset_Warn_MissingTarget" xml:space="preserve">
+    <value>TO CHECK: destination folder not found. The drive may be unplugged.
+{0}</value>
+  </data>
+  <data name="Preset_Warn_HiddenByFilters" xml:space="preserve">
+    <value>{0} checked game(s) are hidden by the current filters. They are counted in the selection badge.</value>
+  </data>
+  <data name="Rebase_SavePreset" xml:space="preserve">
+    <value>Save this configuration</value>
+  </data>
+  <data name="Rebase_SavePreset_Tooltip" xml:space="preserve">
+    <value>Saves the checked games and the rebase settings to the preset (Ctrl+S)</value>
+  </data>
+  <data name="Rebase_SavePresetAs" xml:space="preserve">
+    <value>Save as…</value>
+  </data>
+  <data name="Preset_SaveAs_Shortcut" xml:space="preserve">
+    <value>Ctrl+Shift+S</value>
+  </data>
+  <data name="Preset_FileFilter_All" xml:space="preserve">
+    <value>All files</value>
+  </data>
+  <data name="Preset_Open_Tooltip" xml:space="preserve">
+    <value>Opens a .rsrgp preset to check its games and apply its rebase settings (Ctrl+O)</value>
+  </data>
+  <data name="Preset_Save_Tooltip" xml:space="preserve">
+    <value>Saves the checked games and the rebase settings to the preset (Ctrl+S)</value>
+  </data>
+  <data name="Preset_More_Tooltip" xml:space="preserve">
+    <value>Saves the preset under another name</value>
+  </data>
+  <data name="Preset_Discrepancy_Continue" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="Preset_Discrepancy_Cancel" xml:space="preserve">
+    <value>Cancel opening</value>
+  </data>
+  <data name="Main_RebaseDisabled_Tooltip" xml:space="preserve">
+    <value>Check some games or open a preset</value>
+  </data>
+  <data name="Main_EmptySelection" xml:space="preserve">
+    <value>No game checked ·</value>
+  </data>
+  <data name="Main_EmptySelection_Open" xml:space="preserve">
+    <value>Open a preset…</value>
+  </data>
+  <data name="Rebase_PresetBanner" xml:space="preserve">
+    <value>Settings and per-game rules are saved to the preset {0}.</value>
+  </data>
+  <data name="Preset_Busy_Title" xml:space="preserve">
+    <value>A rebase is running</value>
+  </data>
+  <data name="Preset_Busy_Message" xml:space="preserve">
+    <value>Open {0} again once the rebase is finished.</value>
+  </data>
+  <data name="Settings_Section_Presets" xml:space="preserve">
+    <value>PRESETS</value>
+  </data>
+  <data name="Settings_Presets_Description" xml:space="preserve">
+    <value>A preset (.rsrgp file) contains the checked games and the rebase settings. Once associated, it opens with a double-click in Explorer, for your Windows account only.</value>
+  </data>
+  <data name="Settings_Presets_Associate" xml:space="preserve">
+    <value>Associate .rsrgp files with RomStation Rebase</value>
+  </data>
+  <data name="Settings_Presets_Dissociate" xml:space="preserve">
+    <value>Remove the .rsrgp file association</value>
+  </data>
+  <data name="Settings_Presets_State_This" xml:space="preserve">
+    <value>.rsrgp files open with this copy of RomStation Rebase.</value>
+  </data>
+  <data name="Settings_Presets_State_Other" xml:space="preserve">
+    <value>.rsrgp files open with another copy of RomStation Rebase: {0}</value>
+  </data>
+  <data name="Settings_Presets_Error" xml:space="preserve">
+    <value>Unable to change the association: {0}</value>
+  </data>
+  <data name="Preset_Zone_Label" xml:space="preserve">
+    <value>PRESET</value>
+  </data>
+  <data name="Preset_Zone_None" xml:space="preserve">
+    <value>None loaded</value>
+  </data>
+  <data name="Preset_Zone_None_Tooltip" xml:space="preserve">
+    <value>A preset is a .rsrgp file that stores the checked games and the rebase settings.</value>
+  </data>
+  <data name="Rebase_SavePreset_Tooltip_File" xml:space="preserve">
+    <value>Saves the checked games and the rebase settings to the preset {0} (Ctrl+S)</value>
+  </data>
+  <data name="Rebase_SavePreset_Tooltip_New" xml:space="preserve">
+    <value>Saves the checked games and the rebase settings to a new .rsrgp preset (Ctrl+S)</value>
+  </data>
+  <data name="Rebase_Convert" xml:space="preserve">
+    <value>Convert files with external tools</value>
+  </data>
+  <data name="Rebase_Convert_Tooltip" xml:space="preserve">
+    <value>Converts each game with the tool set in its Conversion column</value>
+  </data>
+  <data name="Rebase_ManageTools" xml:space="preserve">
+    <value>Manage external tools…</value>
+  </data>
+  <data name="Rebase_MissingTools" xml:space="preserve">
+    <value>Executable not set for: {0}. The affected games will be copied without conversion.</value>
+  </data>
+  <data name="Rebase_Validation_NoWorkSpace" xml:space="preserve">
+    <value>Not enough space in the work folder for the conversions. Required: about {0} GB.
+{1}</value>
+  </data>
+  <data name="Rebase_Output_Converted" xml:space="preserve">
+    <value>Converted to {0}</value>
+  </data>
+  <data name="Rebase_Status_Converting" xml:space="preserve">
+    <value>Converting</value>
+  </data>
+  <data name="Rebase_Column_Convert" xml:space="preserve">
+    <value>Conversion</value>
+  </data>
+  <data name="Rebase_Column_Convert_Tooltip" xml:space="preserve">
+    <value>External tool that converts this game, pre-filled by the architecture. With "None", the game is copied or extracted without conversion.</value>
+  </data>
+  <data name="Rebase_Column_Convert_Tool" xml:space="preserve">
+    <value>Conversion tool: {0}</value>
+  </data>
+  <data name="Rebase_Column_Convert_None" xml:space="preserve">
+    <value>No conversion tool set by the architecture for this system</value>
+  </data>
+  <data name="ArchEditor_Column_Convert" xml:space="preserve">
+    <value>Conversion</value>
+  </data>
+  <data name="ArchEditor_Column_Convert_Tooltip" xml:space="preserve">
+    <value>External tool that converts this system's files during the rebase, for example GDI to CHD. No effect on a romset.</value>
+  </data>
+  <data name="ArchEditor_Convert_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="ArchEditor_Convert_Unknown" xml:space="preserve">
+    <value>{0} (tool not found)</value>
+  </data>
+  <data name="Settings_Tools_Description" xml:space="preserve">
+    <value>External tools convert files during the rebase (GDI to CHD, ISO to CSO…). They are not included with RSRebase.</value>
+  </data>
+  <data name="Settings_Tools_Edit" xml:space="preserve">
+    <value>Manage external tools…</value>
+  </data>
+  <data name="Tools_Title" xml:space="preserve">
+    <value>External tools</value>
+  </data>
+  <data name="Tools_Intro" xml:space="preserve">
+    <value>These programs are not included with RSRebase. Set the location of their executable here, otherwise the games are copied without conversion.</value>
+  </data>
+  <data name="Tools_Group_Executable" xml:space="preserve">
+    <value>Executable</value>
+  </data>
+  <data name="Tools_Group_Conversion" xml:space="preserve">
+    <value>Conversion</value>
+  </data>
+  <data name="Tools_Group_Monitoring" xml:space="preserve">
+    <value>Monitoring</value>
+  </data>
+  <data name="Tools_Path" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="Tools_Path_Tooltip" xml:space="preserve">
+    <value>Full path to the executable on this computer. Set it for each tool, even when the program is the same.</value>
+  </data>
+  <data name="Tools_Browse" xml:space="preserve">
+    <value>Browse…</value>
+  </data>
+  <data name="Tools_Browse_Title" xml:space="preserve">
+    <value>Locate {0}</value>
+  </data>
+  <data name="Tools_Browse_Filter" xml:space="preserve">
+    <value>Programs (*.exe)|*.exe|All files (*.*)|*.*</value>
+  </data>
+  <data name="Tools_Test" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="Tools_Test_Tooltip" xml:space="preserve">
+    <value>Runs the tool with its version arguments to check that it responds and is recent enough</value>
+  </data>
+  <data name="Tools_Test_NotFound" xml:space="preserve">
+    <value>Executable not found: {0}</value>
+  </data>
+  <data name="Tools_Test_TooOld" xml:space="preserve">
+    <value>Version {0} is too old. Minimum version: {1}.</value>
+  </data>
+  <data name="Tools_Test_Answers" xml:space="preserve">
+    <value>Test passed</value>
+  </data>
+  <data name="Tools_Test_Version" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="Tools_Test_Timeout" xml:space="preserve">
+    <value>The tool did not respond within 15 s.</value>
+  </data>
+  <data name="Tools_State_NotSet" xml:space="preserve">
+    <value>Executable not set</value>
+  </data>
+  <data name="Tools_State_Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Tools_State_Missing" xml:space="preserve">
+    <value>Executable not found at this location</value>
+  </data>
+  <data name="Tools_Detected" xml:space="preserve">
+    <value>Found on this computer: {0}</value>
+  </data>
+  <data name="Tools_UseDetected" xml:space="preserve">
+    <value>Use this location</value>
+  </data>
+  <data name="Tools_Download_Hint" xml:space="preserve">
+    <value>chdman is included with MAME and DolphinTool with Dolphin. RomStation can install both emulators.</value>
+  </data>
+  <data name="Tools_Download" xml:space="preserve">
+    <value>Open the download page</value>
+  </data>
+  <data name="Tools_DownloadUrl" xml:space="preserve">
+    <value>Download page</value>
+  </data>
+  <data name="Tools_Executable" xml:space="preserve">
+    <value>Executable name</value>
+  </data>
+  <data name="Tools_Executable_Tooltip" xml:space="preserve">
+    <value>File name only, for example chdman.exe. The path goes in Location.</value>
+  </data>
+  <data name="Tools_Input" xml:space="preserve">
+    <value>Input extensions</value>
+  </data>
+  <data name="Tools_Input_Tooltip" xml:space="preserve">
+    <value>Extensions accepted by the tool, separated by spaces (.gdi .cue). For an archive, its main file must have one of these extensions.</value>
+  </data>
+  <data name="Tools_Output" xml:space="preserve">
+    <value>Output extension</value>
+  </data>
+  <data name="Tools_Arguments" xml:space="preserve">
+    <value>Arguments (one per line)</value>
+  </data>
+  <data name="Tools_Arguments_Hint" xml:space="preserve">
+    <value>Placeholders: {input}, {output}, {inputDir}, {outputDir}, {base}, {threads}. Each line is passed as is to the program, without quotes.</value>
+  </data>
+  <data name="Tools_ProgressStream" xml:space="preserve">
+    <value>Progress read on</value>
+  </data>
+  <data name="Tools_ProgressStream_Both" xml:space="preserve">
+    <value>both</value>
+  </data>
+  <data name="Tools_ProgressRegex" xml:space="preserve">
+    <value>Progress pattern</value>
+  </data>
+  <data name="Tools_ProgressRegex_Tooltip" xml:space="preserve">
+    <value>Regular expression whose first group captures a percentage. Without a pattern, the progress bar moves when the conversion ends.</value>
+  </data>
+  <data name="Tools_ExitCodes" xml:space="preserve">
+    <value>Success exit codes</value>
+  </data>
+  <data name="Tools_ExitCodes_Tooltip" xml:space="preserve">
+    <value>Exit codes that mean success, separated by spaces (usually 0)</value>
+  </data>
+  <data name="Tools_VersionRegex" xml:space="preserve">
+    <value>Version pattern</value>
+  </data>
+  <data name="Tools_VersionRegex_Tooltip" xml:space="preserve">
+    <value>Regular expression whose first group captures the version printed by the tool during the test</value>
+  </data>
+  <data name="Tools_MinVersion" xml:space="preserve">
+    <value>Minimum version</value>
+  </data>
+  <data name="Tools_VersionArguments" xml:space="preserve">
+    <value>Version arguments (one per line)</value>
+  </data>
+  <data name="Tools_NewLabel" xml:space="preserve">
+    <value>New tool</value>
+  </data>
+  <data name="Tools_OpenFolder" xml:space="preserve">
+    <value>Open the tools folder</value>
+  </data>
+  <data name="Tools_Restore" xml:space="preserve">
+    <value>Restore default tools</value>
+  </data>
+  <data name="Tools_Restore_Message" xml:space="preserve">
+    <value>All default tools will be restored to their original state and your changes to them will be lost. Your own tools and the executable locations are not affected.</value>
+  </data>
+  <data name="Tools_Delete_Title" xml:space="preserve">
+    <value>Delete the tool</value>
+  </data>
+  <data name="Tools_Delete_Message" xml:space="preserve">
+    <value>Delete "{0}"? Architectures that use this tool will copy the games without conversion.</value>
+  </data>
+  <data name="Tools_Validation_Label" xml:space="preserve">
+    <value>the label is empty</value>
+  </data>
+  <data name="Tools_Validation_Executable" xml:space="preserve">
+    <value>the executable name is empty</value>
+  </data>
+  <data name="Tools_Validation_Input" xml:space="preserve">
+    <value>at least one input extension is required</value>
+  </data>
+  <data name="Tools_Validation_Output" xml:space="preserve">
+    <value>the output extension must look like .chd</value>
+  </data>
+  <data name="Tools_Validation_Arguments" xml:space="preserve">
+    <value>the arguments must contain {input} and {output}</value>
+  </data>
+  <data name="Tools_Validation_Regex" xml:space="preserve">
+    <value>invalid regular expression: {0}</value>
+  </data>
+  <data name="Tools_Error_ExitCode" xml:space="preserve">
+    <value>{0} failed (exit code {1}). {2}</value>
+  </data>
+  <data name="Tools_Error_NoOutput" xml:space="preserve">
+    <value>{0} produced no file. {1}</value>
+  </data>
+  <data name="Tools_Error_Launch" xml:space="preserve">
+    <value>Unable to run {0}: {1}</value>
+  </data>
+  <data name="Tools_Error_Stalled" xml:space="preserve">
+    <value>{0} was stopped after {1} s without activity. {2}</value>
+  </data>
+  <data name="Tools_Error_Unavailable" xml:space="preserve">
+    <value>Conversion tool unavailable: {0}</value>
+  </data>
+  <data name="Tools_Error_InputMissing" xml:space="preserve">
+    <value>File to convert not found in the archive: {0}</value>
+  </data>
+  <data name="Tools_Detected_RomStation" xml:space="preserve">
+    <value>Found in the emulators installed by RomStation: {0}</value>
+  </data>
+  <data name="Rebase_Column_Off_Romset" xml:space="preserve">
+    <value>Not available for a romset</value>
+  </data>
+  <data name="Rebase_Column_M3U_Off_SingleDisc" xml:space="preserve">
+    <value>This is not a multi-disc game</value>
+  </data>
+  <data name="Rebase_Column_Extract_Converted" xml:space="preserve">
+    <value>Extraction is done by the conversion, in the work folder</value>
+  </data>
+  <data name="Rebase_Column_Extract_Off_NoArchive" xml:space="preserve">
+    <value>This game is not an archive</value>
+  </data>
+  <data name="Rebase_Column_Extract_Off_Mode" xml:space="preserve">
+    <value>The selected Archives mode applies to all games</value>
+  </data>
+  <data name="Rebase_Column_Convert_Off_Switch" xml:space="preserve">
+    <value>Conversions are turned off for this rebase</value>
+  </data>
+  <data name="Rebase_Column_Convert_Off_NoTool" xml:space="preserve">
+    <value>No tool available to convert this game. See "Manage external tools…"</value>
+  </data>
+  <data name="Tools_Advanced_Show" xml:space="preserve">
+    <value>Show advanced settings (command line, progress) ▾</value>
+  </data>
+  <data name="Tools_Advanced_Hide" xml:space="preserve">
+    <value>Hide advanced settings ▴</value>
+  </data>
+  <data name="Rebase_Column_Convert_Off_NoToolFor" xml:space="preserve">
+    <value>No tool available to convert {0} files. See "Manage external tools…"</value>
+  </data>
+  <data name="Rebase_Output_DiscSet_Converted" xml:space="preserve">
+    <value>{0} discs to {1} + M3U</value>
+  </data>
+  <data name="ArchEditor_HideGameFiles" xml:space="preserve">
+    <value>Hidden folder for multi-file games</value>
+  </data>
+  <data name="ArchEditor_HideGameFiles_Tooltip" xml:space="preserve">
+    <value>Puts the game files in a folder whose name starts with a dot, launched by an M3U. The game list then shows one entry per game. Systems marked M3U only.</value>
+  </data>
+  <data name="ArchEditor_Column_System_Tooltip" xml:space="preserve">
+    <value>Sort by system name</value>
+  </data>
+  <data name="Rebase_ShowLog" xml:space="preserve">
+    <value>Show log</value>
+  </data>
+  <data name="Rebase_ShowLog_Tooltip" xml:space="preserve">
+    <value>Opens the detailed rebase log</value>
+  </data>
+  <data name="LogViewer_Title" xml:space="preserve">
+    <value>Rebase log</value>
+  </data>
+  <data name="LogViewer_Column_Time" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="LogViewer_Column_Level" xml:space="preserve">
+    <value>Level</value>
+  </data>
+  <data name="LogViewer_Column_Message" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="LogViewer_Level_Info" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="LogViewer_Level_Warning" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+  <data name="LogViewer_Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="LogViewer_ProblemsOnly" xml:space="preserve">
+    <value>Warnings and errors only</value>
+  </data>
+  <data name="LogViewer_Follow" xml:space="preserve">
+    <value>Follow</value>
+  </data>
+  <data name="LogViewer_Follow_Tooltip" xml:space="preserve">
+    <value>Scrolls to the last line when new lines arrive</value>
+  </data>
+  <data name="LogViewer_Open" xml:space="preserve">
+    <value>Open…</value>
+  </data>
+  <data name="LogViewer_Status" xml:space="preserve">
+    <value>Lines: {0} · Warnings: {1} · Errors: {2}</value>
+  </data>
+  <data name="Log_KeyValue" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Log_Value_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Log_Value_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Log_Section_Config" xml:space="preserve">
+    <value>Configuration</value>
+  </data>
+  <data name="Log_Section_Plan" xml:space="preserve">
+    <value>Plan</value>
+  </data>
+  <data name="Log_Section_Run" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="Log_Label_Database" xml:space="preserve">
+    <value>Database copy</value>
+  </data>
+  <data name="Log_Label_Preset" xml:space="preserve">
+    <value>Preset</value>
+  </data>
+  <data name="Log_Label_Tool" xml:space="preserve">
+    <value>Tool {0}</value>
+  </data>
+  <data name="Log_Label_WorkDirectory" xml:space="preserve">
+    <value>Work folder</value>
+  </data>
+  <data name="Log_Label_Cover" xml:space="preserve">
+    <value>Cover</value>
+  </data>
+  <data name="Log_Plan_Summary" xml:space="preserve">
+    <value>Games: {0} · Files: {1} · Size: {2}</value>
+  </data>
+  <data name="Log_Run_Start" xml:space="preserve">
+    <value>Rebase started</value>
+  </data>
+  <data name="Log_Game_Start" xml:space="preserve">
+    <value>{0} ({1}): started</value>
+  </data>
+  <data name="Log_Game_Done" xml:space="preserve">
+    <value>{0}: done in {1}</value>
+  </data>
+  <data name="Log_Game_Skipped" xml:space="preserve">
+    <value>{0}: already exists, skipped</value>
+  </data>
+  <data name="Log_Game_Unmapped" xml:space="preserve">
+    <value>{0}: skipped, no folder for system {1}</value>
+  </data>
+  <data name="Log_Game_Failed" xml:space="preserve">
+    <value>{0}: failed. {1}</value>
+  </data>
+  <data name="Log_File_Start" xml:space="preserve">
+    <value>{0}: {1} → {2} ({3})</value>
+  </data>
+  <data name="Log_File_Done" xml:space="preserve">
+    <value>{0}: written in {1}</value>
+  </data>
+  <data name="Log_File_Exists" xml:space="preserve">
+    <value>{0}: already exists, skipped</value>
+  </data>
+  <data name="Log_File_SourceMissing" xml:space="preserve">
+    <value>Source file not found: {0}</value>
+  </data>
+  <data name="Log_Retry" xml:space="preserve">
+    <value>{0}: retry {1} of {2}. {3}</value>
+  </data>
+  <data name="Log_Cue_Written" xml:space="preserve">
+    <value>{0}: CUE written</value>
+  </data>
+  <data name="Log_Cue_Repaired" xml:space="preserve">
+    <value>{0}: FILE line fixed, referenced BIN not found</value>
+  </data>
+  <data name="Log_Playlist_Written" xml:space="preserve">
+    <value>{0}: M3U written ({1})</value>
+  </data>
+  <data name="Log_Cover_Copied" xml:space="preserve">
+    <value>{0}: cover copied</value>
+  </data>
+  <data name="Log_Cover_Exists" xml:space="preserve">
+    <value>{0}: cover already exists, skipped</value>
+  </data>
+  <data name="Log_Cover_Failed" xml:space="preserve">
+    <value>{0}: cover not copied. {1}</value>
+  </data>
+  <data name="Log_Convert_Extract" xml:space="preserve">
+    <value>{0}: extracting to {1}</value>
+  </data>
+  <data name="Log_Convert_Command" xml:space="preserve">
+    <value>{0}: command {1}</value>
+  </data>
+  <data name="Log_Convert_Output" xml:space="preserve">
+    <value>{0} &gt; {1}</value>
+  </data>
+  <data name="Log_Convert_Progress" xml:space="preserve">
+    <value>{0}: conversion at {1}%</value>
+  </data>
+  <data name="Log_Convert_Result" xml:space="preserve">
+    <value>{0}: converted, {1}</value>
+  </data>
+  <data name="Log_Metadata_Written" xml:space="preserve">
+    <value>{0}: written ({1})</value>
+  </data>
+  <data name="Log_Metadata_Backup" xml:space="preserve">
+    <value>Existing file backed up as {0}</value>
+  </data>
+  <data name="Log_Summary_Duration" xml:space="preserve">
+    <value>Duration {0}, {1} processed, {2}/s on average</value>
+  </data>
+  <data name="Log_Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Log_Resumed" xml:space="preserve">
+    <value>Resumed</value>
+  </data>
+  <data name="Log_CancelRequested" xml:space="preserve">
+    <value>Cancel requested</value>
+  </data>
+  <data name="Log_Cancelled" xml:space="preserve">
+    <value>Rebase cancelled</value>
+  </data>
+  <data name="Log_Fatal" xml:space="preserve">
+    <value>Rebase stopped by an error: {0}</value>
+  </data>
+  <data name="Log_Convert_Sbi" xml:space="preserve">
+    <value>{0}: SBI copied</value>
+  </data>
+  <data name="Preset_AssociateOffer_Title" xml:space="preserve">
+    <value>Open by double-click</value>
+  </data>
+  <data name="Preset_AssociateOffer_Message" xml:space="preserve">
+    <value>Associate .rsrgp files with RomStation Rebase?
+
+A preset will open by double-click in File Explorer. The association applies to your Windows account and can be changed in Settings.</value>
+  </data>
+  <data name="Preset_AssociateOffer_Accept" xml:space="preserve">
+    <value>Associate</value>
+  </data>
+  <data name="Preset_AssociateOffer_Decline" xml:space="preserve">
+    <value>Don't associate</value>
+  </data>
+  <data name="Preset_AssociateError_Title" xml:space="preserve">
+    <value>Association failed</value>
   </data>
 </root>

@@ -39,6 +39,27 @@ public partial class RebaseWindow : Window
 
         // Animation de la barre de progression via l'event ViewModel
         vm.ProgressChanged += AnimateProgressBar;
+
+        // Avertissements d'ouverture (aucune architecture cible) : après affichage, pour que le dialog ait un Owner visible
+        Loaded += (_, _) => vm.ShowOpeningWarnings();
+
+        // Éditeur d'architectures — modal, le VM recharge la liste au retour.
+        // La colonne Système propose tous les systèmes de la base RomStation, moins ceux déjà paramétrés.
+        vm.OpenArchitectureEditor = () =>
+        {
+            var editor = new ArchitectureEditorWindow(vm.SystemNames, vm.SystemIcons) { Owner = this };
+            editor.ShowDialog();
+        };
+
+        // Journal du rebase — fenêtre indépendante, non modale : elle survit à celle-ci
+        vm.OpenLogViewer = RebaseLogWindow.ShowFor;
+
+        // Outils externes de conversion — modal, le VM relit les outils et replanifie au retour
+        vm.OpenExternalTools = () =>
+        {
+            var tools = new ExternalToolsWindow { Owner = this };
+            tools.ShowDialog();
+        };
     }
 
     /// <summary>Restaure les bounds mémorisés avant affichage.</summary>
@@ -48,6 +69,9 @@ public partial class RebaseWindow : Window
         var prefs    = SafeLoadPrefs(config);
         var defaults = config.LoadWindowDefaults();
         Helpers.WindowStatePersistence.Restore(this, prefs.RebaseWindowBounds, defaults.RebaseWindow);
+
+        // Fenêtre sans chrome : bornée à la zone de travail pour ne pas recouvrir la barre des tâches
+        Helpers.WorkAreaMaximizeHelper.Attach(this);
     }
 
     /// <summary>Charge UserPreferences ; retourne l'objet par défaut si corruption (évite de bloquer la capture).</summary>
@@ -98,6 +122,29 @@ public partial class RebaseWindow : Window
     /// Intercepte la fermeture pendant un calcul ou un rebase actif.
     /// Propose d'annuler via un ConfirmDialog avant de laisser la fenêtre se fermer.
     /// </summary>
+    // ── Menu du bouton scindé « Enregistrer la présélection » ──────────────────
+
+    private DateTime _projectMenuClosedAt = DateTime.MinValue;
+
+    /// <summary>Un clic sur la flèche, menu ouvert, le ferme d'abord (clic hors du Popup) : ce garde-fou évite qu'il se rouvre aussitôt.</summary>
+    private void OnPresetMenuButtonClick(object sender, RoutedEventArgs e)
+    {
+        if ((DateTime.Now - _projectMenuClosedAt).TotalMilliseconds < 250) return;
+        PresetMenuPopup.IsOpen = true;
+    }
+
+    private void OnPresetMenuClosed(object? sender, EventArgs e)
+        => _projectMenuClosedAt = DateTime.Now;
+
+    private void OnPresetMenuItemClick(object sender, RoutedEventArgs e)
+        => PresetMenuPopup.IsOpen = false;
+
+    protected override void OnClosed(EventArgs e)
+    {
+        (DataContext as RebaseViewModel)?.DetachSession();
+        base.OnClosed(e);
+    }
+
     protected override void OnClosing(CancelEventArgs e)
     {
         // Capture les bounds avant toute logique d'annulation — même si la fermeture est annulée,

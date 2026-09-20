@@ -1,0 +1,36 @@
+{
+  "id": "chdman_createdvd_default",
+  "label": "chdman : DVD vers CHD (Default)",
+  "description": "Images ISO de DVD vers CHD",
+  "executable": "chdman.exe",
+  "downloadUrl": "https://www.mamedev.org/release.html",
+  "searchPaths": [
+    "%ProgramFiles%\\MAME",
+    "%USERPROFILE%\\MAME",
+    "%USERPROFILE%\\Downloads\\mame"
+  ],
+  "inputExtensions": [
+    ".iso"
+  ],
+  "outputExtension": ".chd",
+  "arguments": [
+    "createdvd",
+    "-i",
+    "{input}",
+    "-o",
+    "{output}",
+    "-f"
+  ],
+  "progressStream": "stderr",
+  "progressRegex": "(\\d+(?:\\.\\d+)?)% complete",
+  "successExitCodes": [
+    0
+  ],
+  "versionArguments": [
+    "-help"
+  ],
+  "versionRegex": "manager\\s+(\\d+\\.\\d+)",
+  "minVersion": "0.255",
+  "sizeRatioHint": 0.7,
+  "stallTimeoutSeconds": 300
+}

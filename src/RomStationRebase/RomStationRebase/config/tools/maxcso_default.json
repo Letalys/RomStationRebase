@@ -1,0 +1,34 @@
+{
+  "id": "maxcso_default",
+  "label": "maxcso : PSP vers CSO (Default)",
+  "description": "ISO PSP vers CSO",
+  "executable": "maxcso.exe",
+  "downloadUrl": "https://github.com/unknownbrackets/maxcso/releases",
+  "searchPaths": [
+    "%USERPROFILE%\\Downloads\\maxcso"
+  ],
+  "inputExtensions": [
+    ".iso"
+  ],
+  "outputExtension": ".cso",
+  "arguments": [
+    "--threads={threads}",
+    "--block=2048",
+    "--format=cso1",
+    "{input}",
+    "-o",
+    "{output}"
+  ],
+  "progressStream": "both",
+  "progressRegex": "(\\d+)%",
+  "successExitCodes": [
+    0
+  ],
+  "versionArguments": [
+    "--help"
+  ],
+  "versionRegex": "maxcso\\s+v?(\\d+(?:\\.\\d+)+)",
+  "minVersion": "",
+  "sizeRatioHint": 0.75,
+  "stallTimeoutSeconds": 300
+}

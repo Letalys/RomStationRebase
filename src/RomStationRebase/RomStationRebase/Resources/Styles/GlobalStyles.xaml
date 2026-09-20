@@ -459,4 +459,38 @@
     <!-- Aucun impact collatéral : aucun Slider ni GridSplitter dans le projet -->
     <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
 
+    <!-- Entrée d'un menu déroulant (Popup) : pleine largeur, survol en fond, libellé à gauche et raccourci à droite (Tag) -->
+    <Style x:Key="MenuItemButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="FontSize"   Value="12"/>
+        <Setter Property="Cursor"     Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="10,7">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter Grid.Column="0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Center"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="{TemplateBinding Tag}"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                            <Setter Property="Cursor"  Value="Arrow"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

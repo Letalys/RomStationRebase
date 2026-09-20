@@ -1,0 +1,255 @@
+<Window x:Class="RomStationRebase.Views.Dialogs.RebaseLogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:res="clr-namespace:RomStationRebase.Resources"
+        xmlns:vm="clr-namespace:RomStationRebase.ViewModels"
+        xmlns:services="clr-namespace:RomStationRebase.Services"
+        mc:Ignorable="d"
+        Title="{Binding WindowTitle}"
+        Icon="/Resources/Images/rsr-logo.ico"
+        Height="620" Width="980"
+        MinHeight="320" MinWidth="560"
+        WindowStyle="None" AllowsTransparency="False"
+        ResizeMode="CanResizeWithGrip"
+        Background="{DynamicResource BackgroundBrush}"
+        ShowInTaskbar="True"
+        d:DataContext="{d:DesignInstance Type=vm:RebaseLogViewModel, IsDesignTimeCreatable=False}">
+
+    <Window.Resources>
+        <!-- Titlebar : même chrome que RebaseWindow -->
+        <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width"           Value="46"/>
+            <Setter Property="Height"          Value="36"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="Foreground"      Value="White"/>
+            <Setter Property="FontSize"        Value="12"/>
+        </Style>
+        <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource CloseButtonHoverBrush}"/>
+                    <Setter Property="Opacity"    Value="1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="ToggleLabel" TargetType="TextBlock">
+            <Setter Property="FontSize"          Value="12"/>
+            <Setter Property="Foreground"        Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin"            Value="8,0,0,0"/>
+        </Style>
+
+        <!-- Grille du journal : lignes serrées, police à chasse fixe, fond coloré pour les avertissements et les erreurs -->
+        <Style TargetType="DataGrid">
+            <Setter Property="Background"               Value="{DynamicResource DataGridBackgroundBrush}"/>
+            <Setter Property="Foreground"               Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush"              Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness"          Value="0,1,0,1"/>
+            <Setter Property="RowBackground"            Value="{DynamicResource DataGridBackgroundBrush}"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource DataGridGridLinesBrush}"/>
+            <Setter Property="VerticalGridLinesBrush"   Value="Transparent"/>
+            <Setter Property="FontFamily"               Value="Consolas"/>
+            <Setter Property="FontSize"                 Value="12"/>
+            <Setter Property="RowHeight"                Value="22"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background"      Value="{DynamicResource DataGridColumnHeaderBrush}"/>
+            <Setter Property="Foreground"      Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="FontFamily"      Value="Segoe UI"/>
+            <Setter Property="FontSize"        Value="11"/>
+            <Setter Property="FontWeight"      Value="SemiBold"/>
+            <Setter Property="Padding"         Value="8,5"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+        <Style TargetType="DataGridRow">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Level}" Value="{x:Static services:RebaseLogLevel.Warning}">
+                    <Setter Property="Background" Value="{DynamicResource LogWarningRowBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="{x:Static services:RebaseLogLevel.Error}">
+                    <Setter Property="Background" Value="{DynamicResource LogErrorRowBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding"         Value="8,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource DataGridCellSelectedBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36"/>    <!-- Titlebar -->
+            <RowDefinition Height="Auto"/>  <!-- Barre d'outils -->
+            <RowDefinition Height="*"/>     <!-- Lignes du journal -->
+            <RowDefinition Height="66"/>    <!-- Ligne sélectionnée, en entier -->
+            <RowDefinition Height="28"/>    <!-- Barre d'état -->
+        </Grid.RowDefinitions>
+
+        <!-- ── Titlebar ── -->
+        <Border Grid.Row="0" Background="{DynamicResource AccentBrush}"
+                MouseLeftButtonDown="Titlebar_MouseLeftButtonDown">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding WindowTitle}"
+                           Foreground="White" FontWeight="SemiBold" FontSize="13"
+                           VerticalAlignment="Center" Margin="14,0" TextTrimming="CharacterEllipsis"/>
+                <Button Grid.Column="1" Style="{StaticResource ChromeButton}"
+                        Content="&#x2212;" Click="MinimizeButton_Click"/>
+                <Button Grid.Column="2" x:Name="MaximizeButton"
+                        Style="{StaticResource ChromeButton}"
+                        Content="□" Click="MaximizeButton_Click"/>
+                <Button Grid.Column="3" Style="{StaticResource CloseButton}"
+                        Content="✕" Click="CloseButton_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- ── Barre d'outils ── -->
+        <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="260"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Filtre sur le texte du message ; le libellé s'efface dès la première frappe -->
+                <Grid Grid.Column="0">
+                    <TextBox x:Name="FilterBox" Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
+                             MinHeight="30" VerticalContentAlignment="Center" FontSize="12"/>
+                    <TextBlock Text="{x:Static res:Strings.LogViewer_Filter}" IsHitTestVisible="False"
+                               Margin="9,0,0,0" VerticalAlignment="Center" FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=FilterBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center">
+                    <ToggleButton IsChecked="{Binding ProblemsOnly}" Style="{StaticResource ToggleSwitchButton}"/>
+                    <TextBlock Style="{StaticResource ToggleLabel}" Text="{x:Static res:Strings.LogViewer_ProblemsOnly}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center"
+                            ToolTip="{x:Static res:Strings.LogViewer_Follow_Tooltip}">
+                    <ToggleButton IsChecked="{Binding Follow}" Style="{StaticResource ToggleSwitchButton}"/>
+                    <TextBlock Style="{StaticResource ToggleLabel}" Text="{x:Static res:Strings.LogViewer_Follow}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="4" Orientation="Horizontal">
+                    <Button Content="{x:Static res:Strings.LogViewer_Open}"
+                            Command="{Binding OpenFileCommand}" Padding="10,6" Margin="0,0,8,0"/>
+                    <Button Content="{x:Static res:Strings.Rebase_OpenFolder}"
+                            Command="{Binding OpenFolderCommand}" Padding="10,6"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ── Lignes ── -->
+        <DataGrid Grid.Row="2" x:Name="LinesGrid"
+                  PreviewMouseWheel="LinesGrid_PreviewMouseWheel"
+                  ItemsSource="{Binding LinesView}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="None"
+                  SelectionMode="Extended"
+                  SelectionUnit="FullRow"
+                  ClipboardCopyMode="ExcludeHeader"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  CanUserSortColumns="False"
+                  CanUserReorderColumns="False"
+                  CanUserResizeRows="False"
+                  EnableRowVirtualization="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  VirtualizingPanel.ScrollUnit="Item">
+            <DataGrid.Resources>
+                <Style TargetType="ScrollBar" BasedOn="{StaticResource SidebarScrollBar}"/>
+            </DataGrid.Resources>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="{x:Static res:Strings.LogViewer_Column_Time}" Binding="{Binding Time}" Width="104"/>
+                <DataGridTemplateColumn Header="{x:Static res:Strings.LogViewer_Column_Level}" Width="120"
+                                        ClipboardContentBinding="{Binding Level}">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock x:Name="LevelText" Text="{x:Static res:Strings.LogViewer_Level_Info}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Level}" Value="{x:Static services:RebaseLogLevel.Warning}">
+                                    <Setter TargetName="LevelText" Property="Text"       Value="{x:Static res:Strings.LogViewer_Level_Warning}"/>
+                                    <Setter TargetName="LevelText" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                    <Setter TargetName="LevelText" Property="FontWeight" Value="SemiBold"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Level}" Value="{x:Static services:RebaseLogLevel.Error}">
+                                    <Setter TargetName="LevelText" Property="Text"       Value="{x:Static res:Strings.Rebase_Column_Error}"/>
+                                    <Setter TargetName="LevelText" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                    <Setter TargetName="LevelText" Property="FontWeight" Value="SemiBold"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="{x:Static res:Strings.LogViewer_Column_Message}" Binding="{Binding Message}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- ── Ligne sélectionnée : le message en entier, sélectionnable ── -->
+        <TextBox Grid.Row="3" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0"
+                 FontFamily="Consolas" FontSize="12" Padding="10,6"
+                 VerticalScrollBarVisibility="Auto"
+                 Background="{DynamicResource BackgroundBrush}"
+                 Text="{Binding SelectedItem.Message, ElementName=LinesGrid, Mode=OneWay}"/>
+
+        <!-- ── Barre d'état ── -->
+        <Border Grid.Row="4" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+            <Grid Margin="12,0,22,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding StatusText}" FontSize="11" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Grid.Column="1" Text="{Binding FilePath}" FontSize="11" VerticalAlignment="Center"
+                           HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" Margin="20,0,0,0"
+                           Foreground="{DynamicResource TextSecondaryBrush}" ToolTip="{Binding FilePath}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
