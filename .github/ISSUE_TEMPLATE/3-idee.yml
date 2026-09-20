@@ -1,0 +1,52 @@
+name: "Proposer une amélioration / Feature request"
+description: "Une idée de fonctionnalité, ou une façon de rendre quelque chose plus simple. / A feature idea, or a way to make something simpler."
+title: "[Idée] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: "Le besoin / The need"
+      description: "Ce que l'on cherche à faire, et ce qui gêne aujourd'hui. / What you are trying to do, and what gets in the way today."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "La proposition / The proposal"
+      description: "Comment cela pourrait se présenter dans RSRebase. / How it could look in RSRebase."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Partie concernée / Area"
+      options:
+        - "Bibliothèque / Library"
+        - "Fenêtre de rebase / Rebase window"
+        - "Architectures cibles / Target architectures"
+        - "Outils externes et conversion / External tools and conversion"
+        - "Métadonnées et jaquettes / Metadata and covers"
+        - "Présélections / Presets"
+        - "Journal / Log"
+        - "Documentation / Documentation"
+        - "Autre / Other"
+    validations:
+      required: true
+
+  - type: input
+    id: target
+    attributes:
+      label: "Console ou frontend concerné / Device or frontend concerned"
+      placeholder: "Anbernic RG353V sous dArkOS…"
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Contournement actuel / Current workaround"
+    validations:
+      required: false
