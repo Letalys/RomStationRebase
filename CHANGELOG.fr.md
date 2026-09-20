@@ -13,7 +13,7 @@ et ce projet respecte le [versionnage sémantique](https://semver.org/lang/fr/).
 
 La release « prête pour la cible » : les fichiers portent le nom qu'attendent les émulateurs, les archives peuvent être extraites pour les systèmes qui l'exigent, et chaque cible reçoit ses jaquettes et le fichier de métadonnées qu'elle sait lire. Validée sur une Anbernic RG353V sous dArkOS.
 
-Cette version a été co-écrite avec une IA : Claude Code, modèle Claude Fable 5.1 d'Anthropic. Letalys a défini les besoins, arbitré chaque choix et validé le résultat, dans l'application puis sur la console.
+Cette version a été co-écrite avec une IA : Claude Code, modèle Claude Fable 5.1 d'Anthropic.
 
 ### Ajouté
 

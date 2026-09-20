@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The "target-ready" release: files are named the way emulators expect them, archives can be extracted for the systems that need it, and each target receives its covers and the metadata file it knows how to read. Validated on an Anbernic RG353V running dArkOS.
 
-This version was co-written with an AI: Claude Code, Anthropic's Claude Fable 5.1 model. Letalys defined the needs, made every call and validated the result, in the application and then on the device.
+This version was co-written with an AI: Claude Code, Anthropic's Claude Fable 5.1 model.
 
 ### Added
 
