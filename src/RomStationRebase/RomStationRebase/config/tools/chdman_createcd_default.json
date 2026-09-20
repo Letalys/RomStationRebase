@@ -1,0 +1,39 @@
+{
+  "id": "chdman_createcd_default",
+  "label": "chdman : CD vers CHD (Default)",
+  "description": "Images de CD (GDI, CUE et BIN) vers CHD",
+  "executable": "chdman.exe",
+  "downloadUrl": "https://www.mamedev.org/release.html",
+  "searchPaths": [
+    "%ProgramFiles%\\MAME",
+    "%USERPROFILE%\\MAME",
+    "%USERPROFILE%\\Downloads\\mame"
+  ],
+  "inputExtensions": [
+    ".gdi",
+    ".cue",
+    ".toc",
+    ".nrg"
+  ],
+  "outputExtension": ".chd",
+  "arguments": [
+    "createcd",
+    "-i",
+    "{input}",
+    "-o",
+    "{output}",
+    "-f"
+  ],
+  "progressStream": "stderr",
+  "progressRegex": "(\\d+(?:\\.\\d+)?)% complete",
+  "successExitCodes": [
+    0
+  ],
+  "versionArguments": [
+    "-help"
+  ],
+  "versionRegex": "manager\\s+(\\d+\\.\\d+)",
+  "minVersion": "0.230",
+  "sizeRatioHint": 0.6,
+  "stallTimeoutSeconds": 300
+}

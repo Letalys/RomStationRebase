@@ -1,0 +1,104 @@
+name: "Retour sur une console ou un frontend / Device or frontend report"
+description: "Dire ce qui marche ou non sur une cible : dossiers, extraction, M3U, jaquettes, métadonnées. / Tell what works or not on a target."
+title: "[Cible] "
+labels: ["frontend compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Les architectures par défaut suivent la documentation de chaque cible, et toutes n'ont pas été essayées sur appareil. Un retour, même positif, aide à les corriger.
+        Default architectures follow each target's documentation, and not all of them were tried on a device. Any report, even a positive one, helps.
+
+  - type: input
+    id: rsr_version
+    attributes:
+      label: "Version de RSRebase / RSRebase version"
+      placeholder: "1.3.0"
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: "Appareil / Device"
+      placeholder: "Anbernic RG353V, Miyoo Mini Plus, Ayn Thor, PC…"
+    validations:
+      required: true
+
+  - type: input
+    id: system
+    attributes:
+      label: "Système ou frontend, et sa version / System or frontend, and its version"
+      placeholder: "dArkOS 2026-08, Batocera 41, Onion 4.3, ES-DE 3.2…"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: "Architecture utilisée / Architecture used"
+      options:
+        - "ArkOS / dArkOS (Default)"
+        - "RetroArch / Lakka (Default)"
+        - "Batocera / Knulli (Default)"
+        - "EmulationStation / RetroPie (Default)"
+        - "ES-DE (Default)"
+        - "Cocoon (Android) (Default)"
+        - "Onion / Miyoo Mini (Default)"
+        - "Anbernic OS stock (Default)"
+        - "Une architecture modifiée ou personnalisée / A modified or custom architecture"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: verdict
+    attributes:
+      label: "Résultat d'ensemble / Overall result"
+      options:
+        - "Tout fonctionne / Everything works"
+        - "Fonctionne, avec des réserves / Works, with reservations"
+        - "Ne fonctionne pas / Does not work"
+    validations:
+      required: true
+
+  - type: textarea
+    id: systems
+    attributes:
+      label: "Systèmes essayés / Systems tried"
+      description: "Un système par ligne, avec ce qui a été constaté. / One system per line, with what you saw."
+      placeholder: |
+        Playstation : OK, changement de disque OK
+        Dreamcast : le dossier devrait s'appeler « dc »
+        PSP : les jeux n'apparaissent pas
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: aspects
+    attributes:
+      label: "Ce qui pose problème / What is wrong"
+      options:
+        - label: "Nom d'un dossier système / A system folder name"
+        - label: "Un système devrait être extrait, ou ne devrait pas l'être / Extraction rule"
+        - label: "Playlists M3U / M3U playlists"
+        - label: "Romsets arcade / Arcade romsets"
+        - label: "Jaquettes (dossier, nom, taille) / Covers (folder, name, size)"
+        - label: "Fichier de métadonnées (emplacement, contenu) / Metadata file"
+        - label: "Un jeu apparaît plusieurs fois / A game is listed several times"
+        - label: "Format converti non lu (CHD, RVZ, CSO) / Converted format not read"
+
+  - type: textarea
+    id: details
+    attributes:
+      label: "Détails et correction proposée / Details and suggested fix"
+      description: "Ce que la cible attend, avec un lien vers sa documentation si possible. / What the target expects, with a link to its documentation if possible."
+    validations:
+      required: false
+
+  - type: textarea
+    id: architecture_file
+    attributes:
+      label: "Fichier de l'architecture / Architecture file"
+      description: "Pour une architecture modifiée : glisser son fichier `.json`, depuis « Ouvrir le dossier des architectures ». / For a modified architecture: drag its `.json` file here."
+    validations:
+      required: false

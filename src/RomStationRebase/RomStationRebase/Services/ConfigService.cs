@@ -87,8 +87,41 @@ public class ConfigService
     /// <summary>Sérialise UserPreferences en JSON indenté et écrit le fichier.</summary>
     public void SaveUserPreferences(UserPreferences prefs)
     {
+        // La fenêtre du journal vit à côté des autres et se ferme quand elle veut : sa géométrie, une fois connue,
+        // est reportée dans toute copie des préférences qu'une autre fenêtre viendrait écrire ensuite
+        if (_rebaseLogWindowBounds is not null)
+            prefs.RebaseLogWindowBounds = _rebaseLogWindowBounds;
+
+        // Même précaution pour la proposition d'association : une fenêtre qui tient une copie plus ancienne
+        // des préférences ne doit pas faire reposer la question
+        if (_presetAssociationOffered)
+            prefs.PresetAssociationOffered = true;
+
         Directory.CreateDirectory(ConfigDir);
         File.WriteAllText(UserPreferencesFile, JsonSerializer.Serialize(prefs, WriteOptions));
+    }
+
+    private static WindowBounds? _rebaseLogWindowBounds;
+    private static bool          _presetAssociationOffered;
+
+    /// <summary>Retient que l'association des .rsrgp a été proposée, sans toucher au reste des préférences sur disque.</summary>
+    public void MarkPresetAssociationOffered()
+    {
+        _presetAssociationOffered = true;
+        UserPreferences prefs;
+        try   { prefs = LoadUserPreferences(); }
+        catch { prefs = new UserPreferences(); }
+        SaveUserPreferences(prefs);
+    }
+
+    /// <summary>Mémorise la géométrie de la fenêtre du journal, sans toucher au reste des préférences sur disque.</summary>
+    public void SaveRebaseLogWindowBounds(WindowBounds bounds)
+    {
+        _rebaseLogWindowBounds = bounds;
+        UserPreferences prefs;
+        try   { prefs = LoadUserPreferences(); }
+        catch { prefs = new UserPreferences(); }
+        SaveUserPreferences(prefs);
     }
 
     /// <summary>Supprime user-preferences.json s'il existe.</summary>
@@ -134,6 +167,14 @@ public class ConfigService
         // LastSortCriteria : normalisé en silence — préférence visuelle sans impact critique
         if (prefs.LastSortCriteria != "Title" && prefs.LastSortCriteria != "System")
             prefs.LastSortCriteria = "Title";
+
+        // Options de sortie du rebase : whitelist silencieuse, l'architecture réapplique ses défauts au besoin
+        if (!new[] { "Copy", "ExtractRequired", "ExtractAll" }.Contains(prefs.LastRebaseArchiveMode))
+            prefs.LastRebaseArchiveMode = "ExtractRequired";
+        if (prefs.LastRebaseExtractLayout != "Auto" && prefs.LastRebaseExtractLayout != "Subfolder")
+            prefs.LastRebaseExtractLayout = "Auto";
+        if (!ValidLanguages.Contains(prefs.LastRebaseMetadataLanguage))
+            prefs.LastRebaseMetadataLanguage = "auto";
     }
 
     // ── AppMetadata ───────────────────────────────────────────────────────
@@ -193,9 +234,12 @@ public class ConfigService
         // Fallback : valeurs codées en dur + reconstruction du fichier
         var fallback = new WindowDefaults
         {
-            MainWindow       = new WindowSize { Width = 1280, Height = 800  },
-            RebaseWindow     = new WindowSize { Width = 1100, Height = 720  },
-            GameDetailWindow = new WindowSize { Width = 700,  Height = 820  },
+            MainWindow               = new WindowSize { Width = 1280, Height = 800  },
+            RebaseWindow             = new WindowSize { Width = 1100, Height = 720  },
+            GameDetailWindow         = new WindowSize { Width = 700,  Height = 820  },
+            SettingsWindow           = new WindowSize { Width = 620,  Height = 780  },
+            ArchitectureEditorWindow = new WindowSize { Width = 1000, Height = 720  },
+            ExternalToolsWindow      = new WindowSize { Width = 960,  Height = 700  },
         };
 
         try
@@ -214,9 +258,29 @@ public class ConfigService
         return fallback;
     }
 
+    /// <summary>
+    /// Une fenêtre fille (éditeur d'architectures, outils externes) mémorise sa géométrie sur disque à sa fermeture.
+    /// La fenêtre qui l'a ouverte tient sa propre copie des préférences et l'écrira plus tard : elle reprend ici
+    /// ces géométries, sinon elle les écraserait par les anciennes.
+    /// </summary>
+    public void AdoptChildWindowBounds(UserPreferences target)
+    {
+        try
+        {
+            var disk = LoadUserPreferences();
+            target.ArchitectureEditorWindowBounds = disk.ArchitectureEditorWindowBounds;
+            target.ExternalToolsWindowBounds      = disk.ExternalToolsWindowBounds;
+        }
+        catch
+        {
+            // Confort seulement : au pire la fenêtre fille retrouvera sa taille précédente
+        }
+    }
+
     /// <summary>Valide que les tailles sont dans une plage raisonnable (évite un JSON avec width=0).</summary>
     private static bool IsValid(WindowDefaults d)
         => d.MainWindow.Width        >= 400 && d.MainWindow.Height        >= 300
         && d.RebaseWindow.Width      >= 400 && d.RebaseWindow.Height      >= 300
-        && d.GameDetailWindow.Width  >= 400 && d.GameDetailWindow.Height  >= 300;
+        && d.GameDetailWindow.Width  >= 400 && d.GameDetailWindow.Height  >= 300
+        && d.ArchitectureEditorWindow.Width >= 400 && d.ArchitectureEditorWindow.Height >= 300;
 }

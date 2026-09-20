@@ -9,6 +9,9 @@ namespace RomStationRebase.Views;
 
 public partial class MainWindow : Window
 {
+    // Fractions de cran de molette en attente (souris à défilement fin) — voir OnMosaicMouseWheel
+    private double _wheelAccumulator;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -24,6 +27,9 @@ public partial class MainWindow : Window
         var prefs    = SafeLoadPrefs(config);
         var defaults = config.LoadWindowDefaults();
         Helpers.WindowStatePersistence.Restore(this, prefs.MainWindowBounds, defaults.MainWindow);
+
+        // Fenêtre sans chrome : bornée à la zone de travail pour ne pas recouvrir la barre des tâches
+        Helpers.WorkAreaMaximizeHelper.Attach(this);
 
         // Au premier lancement (aucun bounds mémorisés), MainWindow s'ouvre maximisée par défaut.
         if (prefs.MainWindowBounds is null)
@@ -52,6 +58,39 @@ public partial class MainWindow : Window
             if ((bool)args.NewValue && DataContext is MainViewModel vm2)
                 ApplyThumbnailSize(vm2.ThumbnailSize);
         };
+
+        // Molette en mosaïque : un cran = une ligne de cartes, alignée sur la grille
+        MosaicListView.PreviewMouseWheel += OnMosaicMouseWheel;
+    }
+
+    /// <summary>
+    /// Fait défiler la mosaïque d'exactement une ligne de cartes par cran de molette, et réaligne
+    /// l'offset sur une frontière de ligne. Le pas natif du VirtualizingWrapPanel (48 px, multiplié
+    /// par les lignes de défilement Windows) donnait l'impression de sauter des lignes.
+    /// Mécanique WPF pure : la hauteur de ligne est celle du ViewModel (MosaicItemHeight).
+    /// </summary>
+    private void OnMosaicMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        var scrollViewer = FindVisualChild<ScrollViewer>(MosaicListView);
+        if (scrollViewer is null || vm.MosaicItemHeight <= 0) return;
+
+        double rowHeight = vm.MosaicItemHeight;
+        double notches   = e.Delta / 120.0; // un cran = 120, les souris à défilement fin envoient des fractions
+
+        // Les souris à défilement fin envoient des fractions de cran : on les cumule jusqu'à une ligne entière
+        _wheelAccumulator += notches;
+        int rows = (int)Math.Truncate(_wheelAccumulator);
+        e.Handled = true;
+        if (rows == 0) return;
+        _wheelAccumulator -= rows;
+
+        // Ligne courante la plus proche (l'ascenseur a pu laisser l'offset entre deux lignes), puis un cran = une ligne
+        double currentRow = Math.Round(scrollViewer.VerticalOffset / rowHeight);
+        double target     = (currentRow - rows) * rowHeight;
+
+        scrollViewer.ScrollToVerticalOffset(Math.Clamp(target, 0, scrollViewer.ScrollableHeight));
+        e.Handled = true;
     }
 
     /// <summary>
@@ -107,8 +146,36 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Capture et sauvegarde les bounds avant fermeture.</summary>
+    // ── Menu du bouton scindé « Enregistrer » ────────────────────────────────────────────────
+
+    private DateTime _projectMenuClosedAt = DateTime.MinValue;
+
+    /// <summary>
+    /// Ouvre le menu. Un clic sur le bouton alors que le menu est ouvert le ferme d'abord (clic hors du Popup) :
+    /// sans ce garde-fou, le même clic le rouvrirait aussitôt.
+    /// </summary>
+    private void OnPresetMenuButtonClick(object sender, RoutedEventArgs e)
+    {
+        if ((DateTime.Now - _projectMenuClosedAt).TotalMilliseconds < 250) return;
+        PresetMenuPopup.IsOpen = true;
+    }
+
+    private void OnPresetMenuClosed(object? sender, EventArgs e)
+        => _projectMenuClosedAt = DateTime.Now;
+
+    /// <summary>Le menu se referme dès qu'une entrée est choisie ; la commande de l'entrée s'exécute ensuite.</summary>
+    private void OnPresetMenuItemClick(object sender, RoutedEventArgs e)
+        => PresetMenuPopup.IsOpen = false;
+
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
+        // Une sélection modifiée depuis son dernier enregistrement : proposer de l'enregistrer, ou renoncer à quitter
+        if (DataContext is MainViewModel vm && !vm.ConfirmDiscardPresetChanges())
+        {
+            e.Cancel = true;
+            return;
+        }
+
         try
         {
             var config = new Services.ConfigService();
@@ -120,6 +187,9 @@ public partial class MainWindow : Window
         {
             // Ne pas bloquer la fermeture si la sauvegarde échoue
         }
+
+        // Fenêtre indépendante : elle garderait l'application ouverte après la fermeture de celle-ci
+        Dialogs.RebaseLogWindow.CloseIfOpen();
         base.OnClosing(e);
     }
 

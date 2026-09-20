@@ -33,11 +33,16 @@
          au prix d'une légère augmentation de taille -->
     <PublishReadyToRun>true</PublishReadyToRun>
 
-    <Version>1.2.0</Version>
-    <AssemblyVersion>1.2.0.0</AssemblyVersion>
-    <FileVersion>1.2.0.0</FileVersion>
+    <Version>1.3.0</Version>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion>
+    <FileVersion>1.3.0.0</FileVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+
+  <!-- Le projet de tests accède aux helpers internes (planificateur, rédacteurs) -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="RomStationRebase.Tests" />
+  </ItemGroup>
 
   <!-- IKVM : pont Java→.NET pour accéder à la base Derby de RomStation -->
   <ItemGroup>
@@ -59,7 +64,14 @@
 
   <!-- Fichiers de configuration des architectures — copiés dans le répertoire de sortie -->
   <ItemGroup>
+    <Content Include="Resources\Images\rsr-preset.ico" Link="rsr-preset.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="config\architectures\*.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <!-- Outils externes de conversion par défaut — copiés dans le dossier utilisateur au premier lancement -->
+    <Content Include="config\tools\*.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="config\window-defaults.json">

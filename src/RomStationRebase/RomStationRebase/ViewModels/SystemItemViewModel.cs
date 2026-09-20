@@ -5,6 +5,21 @@ public class SystemItemViewModel : ViewModelBase
 {
     private readonly Action _onFilterChanged;
     private bool _isChecked;
+    private int  _selectedCount;
+
+    /// <summary>Nombre de jeux cochés dans ce système, que le système soit affiché ou non. Posé par MainViewModel.</summary>
+    public int SelectedCount
+    {
+        get => _selectedCount;
+        internal set
+        {
+            if (SetProperty(ref _selectedCount, value))
+                OnPropertyChanged(nameof(HasSelection));
+        }
+    }
+
+    /// <summary>True si au moins un jeu de ce système est coché — affiche le badge de la sidebar.</summary>
+    public bool HasSelection => _selectedCount > 0;
 
     /// <summary>Nom du système tel qu'il apparaît dans la base RomStation.</summary>
     public string Name { get; }

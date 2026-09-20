@@ -1,0 +1,150 @@
+name: "Signaler un problème / Bug report"
+description: "Une erreur, un plantage, un jeu mal copié ou qui ne se lance pas. / An error, a crash, a game copied wrong or that does not start."
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler ce problème. Français ou anglais, au choix.
+        Thanks for taking the time to report this. French or English, as you prefer.
+
+        Avant de continuer : la page [Dépannage](https://github.com/Letalys/RomStationRebase/wiki/Dépannage) et la liste des [codes d'erreur](https://github.com/Letalys/RomStationRebase/wiki/Codes-erreur) répondent aux cas les plus courants.
+        Before going on: the [Troubleshooting](https://github.com/Letalys/RomStationRebase/wiki/Troubleshooting) page and the list of [error codes](https://github.com/Letalys/RomStationRebase/wiki/Error-codes) cover the most common cases.
+
+  - type: input
+    id: rsr_version
+    attributes:
+      label: "Version de RSRebase / RSRebase version"
+      description: "Paramètres, section À propos. / Settings, About section."
+      placeholder: "1.3.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install_type
+    attributes:
+      label: "Installation"
+      options:
+        - "Installeur MSI / MSI installer"
+        - "ZIP portable / Portable ZIP"
+    validations:
+      required: true
+
+  - type: input
+    id: windows_version
+    attributes:
+      label: "Version de Windows / Windows version"
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+
+  - type: input
+    id: romstation_version
+    attributes:
+      label: "Version de RomStation / RomStation version"
+      description: "Et son type d'installation : programme d'installation ou ZIP. / And how it was installed: setup or ZIP."
+      placeholder: "2.x, setup"
+    validations:
+      required: false
+
+  - type: input
+    id: error_code
+    attributes:
+      label: "Code d'erreur / Error code"
+      description: "Le code entre crochets à la fin du message, s'il y en a un. / The code in brackets at the end of the message, if any."
+      placeholder: "RSR-3004"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Où le problème se produit / Where it happens"
+      options:
+        - "Démarrage / Startup"
+        - "Bibliothèque (affichage, filtres, sélection) / Library"
+        - "Fenêtre de rebase (options, tableau) / Rebase window"
+        - "Pendant la copie ou l'extraction / During copy or extraction"
+        - "Conversion par outil externe / External tool conversion"
+        - "Métadonnées ou jaquettes / Metadata or covers"
+        - "Présélections (.rsrgp) / Presets"
+        - "Éditeur d'architectures / Architecture editor"
+        - "Sur la console ou le frontend, après la copie / On the device, after the copy"
+        - "Autre / Other"
+    validations:
+      required: true
+
+  - type: input
+    id: architecture
+    attributes:
+      label: "Architecture cible / Target architecture"
+      description: "Celle choisie dans la fenêtre de rebase. Préciser si elle a été modifiée. / The one selected in the rebase window. Say if you modified it."
+      placeholder: "ArkOS / dArkOS (Default)"
+    validations:
+      required: false
+
+  - type: input
+    id: device
+    attributes:
+      label: "Appareil et système / Device and system"
+      description: "Si le problème se voit sur la console. / If the problem shows on the device."
+      placeholder: "Anbernic RG353V, dArkOS"
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Étapes pour reproduire / Steps to reproduce"
+      description: "Une action par ligne. Citer le jeu et son système s'ils comptent. / One action per line. Name the game and its system if they matter."
+      placeholder: |
+        1. Cocher « Shenmue » (Dreamcast)
+        2. Rebase vers… E:\, architecture ArkOS / dArkOS
+        3. Démarrer
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Résultat attendu / Expected result"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Résultat obtenu / Actual result"
+      description: "Le message d'erreur complet, ou ce que l'on voit sur la console. / The full error message, or what shows on the device."
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: "Journal du rebase / Rebase log"
+      description: |
+        Glisser ici le fichier `RSR_aaaammjj_hhmmss.log` du rebase concerné, et le fichier `RSR_crash_….txt` si l'application s'est fermée.
+        Dossier : `%LOCALAPPDATA%\RomStationRebase\logs` (bouton « Afficher le journal », puis « Ouvrir le dossier »).
+        Le journal contient des chemins de votre ordinateur : le relire avant de le joindre.
+        Drag the `RSR_….log` file of that rebase here, and the `RSR_crash_….txt` file if the application closed. The log contains paths from your computer: review it first.
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: "Captures et autres informations / Screenshots and anything else"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: "Vérifications / Checks"
+      options:
+        - label: "J'ai cherché dans les issues existantes. / I searched the existing issues."
+          required: true
+        - label: "J'utilise la dernière version de RSRebase. / I am using the latest RSRebase version."
+          required: false
