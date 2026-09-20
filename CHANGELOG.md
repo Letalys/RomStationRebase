@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.0] - Unreleased
+## [1.3.0] - 2026-09-20
 
 The "target-ready" release: files are named the way emulators expect them, archives can be extracted for the systems that need it, and each target receives its covers and the metadata file it knows how to read. Validated on an Anbernic RG353V running dArkOS.
 

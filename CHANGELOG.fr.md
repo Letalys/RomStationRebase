@@ -9,7 +9,7 @@ et ce projet respecte le [versionnage sémantique](https://semver.org/lang/fr/).
 
 ---
 
-## [1.3.0] - Non publiée
+## [1.3.0] - 2026-09-20
 
 La release « prête pour la cible » : les fichiers portent le nom qu'attendent les émulateurs, les archives peuvent être extraites pour les systèmes qui l'exigent, et chaque cible reçoit ses jaquettes et le fichier de métadonnées qu'elle sait lire. Validée sur une Anbernic RG353V sous dArkOS.
 
